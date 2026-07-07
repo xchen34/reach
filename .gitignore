@@ -12,3 +12,4 @@ __pycache__
 apps/api/.venv
 apps/api/htmlcov
 .playwright-cli
+*.tsbuildinfo

@@ -14,7 +14,11 @@ from app.services.auth import AuthService
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/request-magic-link", response_model=MagicLinkRequestResponse)
+@router.post(
+    "/request-magic-link",
+    response_model=MagicLinkRequestResponse,
+    responses={400: {"description": "Magic link request rejected."}},
+)
 def request_magic_link(
     payload: MagicLinkRequest,
     db: Session = Depends(get_db),
@@ -29,7 +33,11 @@ def request_magic_link(
         ) from exc
 
 
-@router.post("/verify-magic-link", response_model=MagicLinkVerifyResponse)
+@router.post(
+    "/verify-magic-link",
+    response_model=MagicLinkVerifyResponse,
+    responses={400: {"description": "Magic link verification failed."}},
+)
 def verify_magic_link(
     payload: MagicLinkVerifyRequest,
     db: Session = Depends(get_db),
@@ -44,7 +52,11 @@ def verify_magic_link(
         ) from exc
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={401: {"description": "Missing, expired, revoked, or invalid bearer session."}},
+)
 def logout(
     session_context: StaffSessionContext = Depends(require_staff_session),
     db: Session = Depends(get_db),

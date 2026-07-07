@@ -52,7 +52,7 @@ class CaseListItem(ApiModel):
 class CaseDetailResponse(CaseListItem):
     language_code: str
     reporter_name: Optional[str] = None
-    reporter_email: Optional[str] = None
+    reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = None
 
 

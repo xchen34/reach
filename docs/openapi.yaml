@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Beacon API
   version: 0.2.0
-  description: Phase 1 contract foundation for Beacon case intake and staff access.
+  description: Phase 1 domain foundation for Beacon
 servers:
   - url: http://localhost:8000
 components:
@@ -66,7 +66,7 @@ components:
       properties:
         token:
           type: string
-    StaffSessionResponse:
+    MagicLinkVerifyResponse:
       type: object
       required: [access_token, token_type, expires_at, user, magic_link_status]
       properties:
@@ -94,7 +94,7 @@ components:
           format: date-time
     AnonymousCaseSubmissionRequest:
       type: object
-      required: [incident_type, urgency, language_code, location_summary, needs_summary]
+      required: [incident_type, urgency, location_summary, needs_summary]
       properties:
         incident_type:
           $ref: "#/components/schemas/IncidentType"
@@ -102,6 +102,7 @@ components:
           $ref: "#/components/schemas/UrgencyLevel"
         language_code:
           type: string
+          default: en
         location_summary:
           type: string
         needs_summary:
@@ -302,6 +303,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MagicLinkRequestResponse"
+        "400":
+          description: Magic link request rejected.
   /auth/verify-magic-link:
     post:
       tags: [auth]
@@ -317,7 +320,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StaffSessionResponse"
+                $ref: "#/components/schemas/MagicLinkVerifyResponse"
+        "400":
+          description: Magic link verification failed.
+  /auth/logout:
+    post:
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Current bearer session revoked.
+        "401":
+          description: Missing, expired, revoked, or invalid bearer session.
   /staff/me:
     get:
       tags: [staff]
@@ -425,12 +440,14 @@ paths:
   /share/{token}:
     get:
       tags: [share-links]
+      description: Accesses a private case view through a capability URL token. The token is the only credential required for this endpoint. Tokens are treated as private secrets and must not be logged or reconstructed by clients. The current Phase 1 implementation does not expose end-user expiry or revocation management flows.
       parameters:
         - in: path
           name: token
           required: true
           schema:
             type: string
+          description: Private capability token embedded in the share URL.
       responses:
         "200":
           description: Private shared case view

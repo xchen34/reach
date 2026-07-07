@@ -16,7 +16,7 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
     return db
 
 
-bearer_scheme = HTTPBearer(auto_error=False)
+bearer_scheme = HTTPBearer(auto_error=False, scheme_name="bearerAuth")
 
 
 @dataclass
