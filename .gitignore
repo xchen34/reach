@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+build
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+*.pyc
+.env
+apps/api/.venv
+apps/api/htmlcov
+.playwright-cli

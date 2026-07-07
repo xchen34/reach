@@ -1,0 +1,440 @@
+openapi: 3.1.0
+info:
+  title: Beacon API
+  version: 0.2.0
+  description: Phase 1 contract foundation for Beacon case intake and staff access.
+servers:
+  - url: http://localhost:8000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  schemas:
+    StaffRole:
+      type: string
+      enum: [volunteer, coordinator]
+    CaseStatus:
+      type: string
+      enum: [pending_review, active, waiting_for_information, safe_resolved, closed]
+    UrgencyLevel:
+      type: string
+      enum: [low, medium, high, critical]
+    IncidentType:
+      type: string
+      enum: [medical, fire, evacuation, shelter, utilities, other]
+    CaseActionType:
+      type: string
+      enum: [note, status_change, claim, reassign]
+    ShareLinkScope:
+      type: string
+      enum: [status_only]
+    StaffUserSummary:
+      type: object
+      required: [id, email, role]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/StaffRole"
+    MagicLinkRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    MagicLinkRequestResponse:
+      type: object
+      required: [message, expires_at]
+      properties:
+        message:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        login_url:
+          type: string
+          nullable: true
+    MagicLinkVerifyRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    StaffSessionResponse:
+      type: object
+      required: [access_token, token_type, expires_at, user, magic_link_status]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [bearer]
+        expires_at:
+          type: string
+          format: date-time
+        magic_link_status:
+          type: string
+          enum: [accepted]
+        user:
+          $ref: "#/components/schemas/StaffUserSummary"
+    CurrentStaffSession:
+      type: object
+      required: [user, session_expires_at]
+      properties:
+        user:
+          $ref: "#/components/schemas/StaffUserSummary"
+        session_expires_at:
+          type: string
+          format: date-time
+    AnonymousCaseSubmissionRequest:
+      type: object
+      required: [incident_type, urgency, language_code, location_summary, needs_summary]
+      properties:
+        incident_type:
+          $ref: "#/components/schemas/IncidentType"
+        urgency:
+          $ref: "#/components/schemas/UrgencyLevel"
+        language_code:
+          type: string
+        location_summary:
+          type: string
+        needs_summary:
+          type: string
+        reporter_name:
+          type: string
+          nullable: true
+        reporter_email:
+          type: string
+          format: email
+          nullable: true
+        reporter_phone:
+          type: string
+          nullable: true
+    ShareLinkSummary:
+      type: object
+      required: [token, url, scope]
+      properties:
+        token:
+          type: string
+        url:
+          type: string
+        scope:
+          $ref: "#/components/schemas/ShareLinkScope"
+    CaseSubmissionResponse:
+      type: object
+      required: [id, case_code, status, share_link, created_at]
+      properties:
+        id:
+          type: integer
+        case_code:
+          type: string
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        share_link:
+          $ref: "#/components/schemas/ShareLinkSummary"
+        created_at:
+          type: string
+          format: date-time
+    CaseListItem:
+      type: object
+      required: [id, case_code, status, urgency, incident_type, location_summary, needs_summary, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        case_code:
+          type: string
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        urgency:
+          $ref: "#/components/schemas/UrgencyLevel"
+        incident_type:
+          $ref: "#/components/schemas/IncidentType"
+        location_summary:
+          type: string
+        needs_summary:
+          type: string
+        latest_public_update:
+          type: string
+          nullable: true
+        assigned_staff_user:
+          allOf:
+            - $ref: "#/components/schemas/StaffUserSummary"
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CaseDetailResponse:
+      allOf:
+        - $ref: "#/components/schemas/CaseListItem"
+        - type: object
+          required: [language_code]
+          properties:
+            language_code:
+              type: string
+            reporter_name:
+              type: string
+              nullable: true
+            reporter_email:
+              type: string
+              format: email
+              nullable: true
+            reporter_phone:
+              type: string
+              nullable: true
+    ShareLinkCaseView:
+      type: object
+      required: [case_code, status, location_summary, needs_summary, created_at]
+      properties:
+        case_code:
+          type: string
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        location_summary:
+          type: string
+        needs_summary:
+          type: string
+        latest_public_update:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    StaffCaseActionRequest:
+      type: object
+      required: [action_type]
+      properties:
+        action_type:
+          $ref: "#/components/schemas/CaseActionType"
+        note:
+          type: string
+          nullable: true
+        to_status:
+          allOf:
+            - $ref: "#/components/schemas/CaseStatus"
+          nullable: true
+        target_staff_user_id:
+          type: integer
+          nullable: true
+    StaffCaseActionResponse:
+      type: object
+      required: [id, case_id, action_type, created_at]
+      properties:
+        id:
+          type: integer
+        case_id:
+          type: integer
+        actor_user_id:
+          type: integer
+          nullable: true
+        action_type:
+          $ref: "#/components/schemas/CaseActionType"
+        note:
+          type: string
+          nullable: true
+        from_status:
+          allOf:
+            - $ref: "#/components/schemas/CaseStatus"
+          nullable: true
+        to_status:
+          allOf:
+            - $ref: "#/components/schemas/CaseStatus"
+          nullable: true
+        target_staff_user_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    AuditLogEntryResponse:
+      type: object
+      required: [id, actor_type, event_type, created_at]
+      properties:
+        id:
+          type: integer
+        actor_type:
+          type: string
+        actor_user_id:
+          type: integer
+          nullable: true
+        case_id:
+          type: integer
+          nullable: true
+        share_link_id:
+          type: integer
+          nullable: true
+        event_type:
+          type: string
+        metadata_json:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+paths:
+  /health:
+    get:
+      tags: [health]
+      responses:
+        "200":
+          description: Health check response
+  /auth/request-magic-link:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MagicLinkRequest"
+      responses:
+        "200":
+          description: Development magic link issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MagicLinkRequestResponse"
+  /auth/verify-magic-link:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MagicLinkVerifyRequest"
+      responses:
+        "200":
+          description: Staff session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffSessionResponse"
+  /staff/me:
+    get:
+      tags: [staff]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current authenticated staff session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentStaffSession"
+  /cases:
+    post:
+      tags: [cases]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnonymousCaseSubmissionRequest"
+      responses:
+        "201":
+          description: Anonymous case submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseSubmissionResponse"
+  /staff/cases:
+    get:
+      tags: [staff-cases]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated staff case list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CaseListItem"
+  /staff/cases/{case_id}:
+    get:
+      tags: [staff-cases]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: case_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Staff case detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseDetailResponse"
+  /staff/cases/{case_id}/actions:
+    post:
+      tags: [staff-cases]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: case_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffCaseActionRequest"
+      responses:
+        "200":
+          description: Staff case action created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffCaseActionResponse"
+  /staff/cases/{case_id}/audit:
+    get:
+      tags: [staff-audit]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: case_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Case audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntryResponse"
+  /share/{token}:
+    get:
+      tags: [share-links]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Private shared case view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLinkCaseView"
