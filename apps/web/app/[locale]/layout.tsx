@@ -1,8 +1,26 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDictionary, isSupportedLocale, type Locale } from "@/lib/i18n";
 
 export function generateStaticParams() {
   return [{ locale: "en" }, { locale: "fr" }, { locale: "zh" }];
+}
+
+export function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Metadata {
+  if (!isSupportedLocale(params.locale)) {
+    return {};
+  }
+
+  const dictionary = getDictionary(params.locale);
+
+  return {
+    title: "Beacon",
+    description: dictionary.home.description,
+  };
 }
 
 export default function LocaleLayout({
@@ -24,4 +42,3 @@ export default function LocaleLayout({
     </section>
   );
 }
-

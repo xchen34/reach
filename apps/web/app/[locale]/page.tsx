@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { AnonymousCaseSubmissionFlow } from "@/components/anonymous-case-submission-flow";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary, type Locale } from "@/lib/i18n";
 
 export default function LocaleHomePage({
@@ -14,42 +15,23 @@ export default function LocaleHomePage({
         <span className="eyebrow">{dictionary.home.eyebrow}</span>
         <h1 className="headline">{dictionary.home.title}</h1>
         <p className="lede">{dictionary.home.description}</p>
-        <span className="status-pill">{dictionary.home.status}</span>
+        <p className="support-copy">{dictionary.home.privacy}</p>
 
-        <ul className="language-list" aria-label={dictionary.home.languagePicker}>
-          <li>
-            <Link className="language-link" href="/en">
-              English
-            </Link>
-          </li>
-          <li>
-            <Link className="language-link" href="/fr">
-              Francais
-            </Link>
-          </li>
-          <li>
-            <Link className="language-link" href="/zh">
-              中文
-            </Link>
-          </li>
-        </ul>
+        <LanguageSwitcher
+          currentLocale={params.locale}
+          label={dictionary.home.languagePicker}
+        />
 
-        <div className="section-grid">
-          <section className="section-card">
-            <h2>{dictionary.home.sections.web.title}</h2>
-            <p>{dictionary.home.sections.web.body}</p>
-          </section>
-          <section className="section-card">
-            <h2>{dictionary.home.sections.api.title}</h2>
-            <p>{dictionary.home.sections.api.body}</p>
-          </section>
-          <section className="section-card">
-            <h2>{dictionary.home.sections.auth.title}</h2>
-            <p>{dictionary.home.sections.auth.body}</p>
-          </section>
-        </div>
+        <section className="form-panel" aria-labelledby="submission-title">
+          <h2 className="section-title" id="submission-title">
+            {dictionary.home.form.title}
+          </h2>
+          <AnonymousCaseSubmissionFlow
+            dictionary={dictionary}
+            locale={params.locale}
+          />
+        </section>
       </div>
     </main>
   );
 }
-

@@ -2,27 +2,113 @@ export const zh = {
   meta: {
     languageLabel: "中文界面",
   },
-  home: {
-    eyebrow: "Beacon 第 0 阶段",
-    title: "为危机上报建立冷静清晰的基础。",
-    description:
-      "这一阶段先搭建公开页面、API、本地开发环境，以及后续员工登录所需的认证基础。",
-    status: "仅基础设施",
-    languagePicker: "语言选择",
-    sections: {
-      web: {
-        title: "网页外壳",
-        body: "已提供移动优先页面、语言路由和无障碍基础样式。",
-      },
-      api: {
-        title: "API",
-        body: "FastAPI 当前提供健康检查和开发环境魔法链接请求接口。",
-      },
-      auth: {
-        title: "认证基础",
-        body: "已具备短时效一次性令牌，但尚未实现会话或员工后台。",
-      },
+  caseStatus: {
+    labels: {
+      pending_review: "等待审核",
+      active: "处理中",
+      waiting_for_information: "等待补充信息",
+      safe_resolved: "已安全解决",
+      closed: "已关闭",
     },
   },
+  home: {
+    eyebrow: "Beacon 第 1 阶段",
+    title: "请说明当前情况。",
+    description:
+      "使用此表单提交匿名个案。如果您正面临立即危险，请立刻联系当地紧急服务。",
+    privacy: "只有在您希望工作人员后续联系时，才填写联系方式。",
+    languagePicker: "语言选择",
+    form: {
+      title: "匿名个案提交",
+      incidentType: {
+        label: "事件类型",
+        hint: "请选择最接近的类型。",
+        options: {
+          medical: "医疗",
+          fire: "火灾",
+          evacuation: "疏散",
+          shelter: "安置",
+          utilities: "基础设施",
+          other: "其他",
+        },
+      },
+      urgency: {
+        label: "紧急程度",
+        hint: "请选择当前紧急程度。",
+        options: {
+          low: "低",
+          medium: "中",
+          high: "高",
+          critical: "极高",
+        },
+      },
+      locationSummary: {
+        label: "地点",
+        hint: "请填写您能安全提供的地点信息。",
+      },
+      needsSummary: {
+        label: "您现在需要什么帮助？",
+        hint: "请描述情况和当前最紧急的需要。",
+      },
+      reporterName: {
+        label: "您的姓名（可选）",
+        hint: "如果希望保持匿名，可以留空。",
+      },
+      reporterPhone: {
+        label: "电话号码（可选）",
+        hint: "只有在允许工作人员联系您时才填写。",
+      },
+      reporterEmail: {
+        label: "电子邮箱（可选）",
+        hint: "只有在允许工作人员联系您时才填写。",
+      },
+      submit: "发送报告",
+      submitting: "正在发送...",
+      errors: {
+        network: "请求无法连接到服务器。请检查网络后重试。",
+        server: "服务器暂时无法处理该报告。请稍后重试。",
+      },
+      validation: {
+        incident_type: "请选择事件类型。",
+        urgency: "请选择紧急程度。",
+        location_summary_min: "地点至少需要 5 个字符。",
+        location_summary_max: "地点不能超过 280 个字符。",
+        needs_summary_min: "情况描述至少需要 5 个字符。",
+        needs_summary_max: "情况描述不能超过 4000 个字符。",
+        reporter_name_max: "姓名不能超过 120 个字符。",
+        reporter_email_invalid: "请输入有效的电子邮箱地址。",
+        reporter_phone_max: "电话号码不能超过 40 个字符。",
+      },
+    },
+    success: {
+      badge: "已提交",
+      title: "您的报告已发送。",
+      description: "如果您之后想查看状态，请保留下面的私人链接。",
+      caseCodeLabel: "个案编号",
+      statusLabel: "当前状态",
+      shareLinkLabel: "私人状态链接",
+      shareLinkHelp: "请将此链接视为私密信息。任何持有该链接的人都可以查看此状态页面。",
+      openShareLink: "打开私人状态页",
+      submitAnother: "再提交一份报告",
+    },
+  },
+  share: {
+    eyebrow: "私人个案状态",
+    title: "当前个案状态",
+    description: "此页面显示该个案当前可公开查看的状态。",
+    caseCodeLabel: "个案编号",
+    statusLabel: "状态",
+    locationLabel: "地点",
+    needsLabel: "已报告需求",
+    latestUpdateLabel: "最新公开更新",
+    latestUpdateFallback: "目前还没有公开更新。",
+    createdAtLabel: "提交时间",
+    footer: "此页面不会联系紧急服务。如果存在立即危险，请立刻联系当地紧急服务。",
+    loading: "正在加载私人状态页面...",
+    notFoundTitle: "找不到私人状态页面",
+    notFoundBody: "该分享链接无效或已不可用。请检查完整链接后重试。",
+    retry: "重试",
+    errorTitle: "私人状态页面暂时不可用",
+    errorBody: "服务器暂时无法加载该状态页面。请稍后重试。",
+  },
 };
-
