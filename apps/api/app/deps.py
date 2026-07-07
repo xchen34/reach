@@ -37,12 +37,18 @@ def require_staff_session(
         )
 
     service = AuthService(db)
-    session = service.get_staff_session_record(credentials.credentials)
-    if session is None:
+    validation = service.validate_staff_session(credentials.credentials)
+    if not validation.valid or validation.session is None:
+        detail = {
+            "invalid_session": "Invalid session token.",
+            "session_expired": "Session expired.",
+            "session_revoked": "Session revoked.",
+        }.get(validation.reason, "Invalid session token.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session.",
+            detail=detail,
         )
+    session = validation.session
 
     if session.user is None:
         raise HTTPException(

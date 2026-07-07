@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.deps import get_db
+from app.deps import StaffSessionContext, get_db, require_staff_session
 from app.schemas.auth import (
     MagicLinkRequest,
     MagicLinkRequestResponse,
@@ -42,3 +42,12 @@ def verify_magic_link(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    session_context: StaffSessionContext = Depends(require_staff_session),
+    db: Session = Depends(get_db),
+) -> None:
+    service = AuthService(db)
+    service.revoke_staff_session(session_context.session)
