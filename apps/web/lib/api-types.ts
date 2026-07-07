@@ -8,6 +8,8 @@ export const incidentTypes = [
 ] as const;
 
 export const urgencyLevels = ["low", "medium", "high", "critical"] as const;
+export const staffRoles = ["volunteer", "coordinator"] as const;
+export const caseActionTypes = ["note", "status_change", "claim", "reassign"] as const;
 
 export const caseStatuses = [
   "pending_review",
@@ -19,6 +21,8 @@ export const caseStatuses = [
 
 export type IncidentType = (typeof incidentTypes)[number];
 export type UrgencyLevel = (typeof urgencyLevels)[number];
+export type StaffRole = (typeof staffRoles)[number];
+export type CaseActionType = (typeof caseActionTypes)[number];
 export type CaseStatus = (typeof caseStatuses)[number];
 export type ShareLinkScope = "status_only";
 
@@ -53,5 +57,81 @@ export interface ShareLinkCaseView {
   location_summary: string;
   needs_summary: string;
   latest_public_update: string | null;
+  created_at: string;
+}
+
+export interface StaffUserSummary {
+  id: number;
+  email: string;
+  role: StaffRole;
+}
+
+export interface StaffMagicLinkRequestResponse {
+  message: string;
+  expires_at: string;
+  login_url?: string | null;
+}
+
+export interface StaffSessionResponse {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  magic_link_status?: string;
+  user: StaffUserSummary;
+}
+
+export interface CurrentStaffSession {
+  user: StaffUserSummary;
+  session_expires_at: string;
+}
+
+export interface StaffCaseListItem {
+  id: number;
+  case_code: string;
+  status: CaseStatus;
+  urgency: UrgencyLevel;
+  incident_type: IncidentType;
+  location_summary: string;
+  needs_summary: string;
+  latest_public_update: string | null;
+  assigned_staff_user: StaffUserSummary | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffCaseDetailResponse extends StaffCaseListItem {
+  language_code: string;
+  reporter_name: string | null;
+  reporter_email: string | null;
+  reporter_phone: string | null;
+}
+
+export interface StaffCaseActionRequest {
+  action_type: CaseActionType;
+  note?: string | null;
+  to_status?: CaseStatus | null;
+  target_staff_user_id?: number | null;
+}
+
+export interface StaffCaseActionResponse {
+  id: number;
+  case_id: number;
+  actor_user_id: number | null;
+  action_type: CaseActionType;
+  note: string | null;
+  from_status: CaseStatus | null;
+  to_status: CaseStatus | null;
+  target_staff_user_id: number | null;
+  created_at: string;
+}
+
+export interface AuditLogEntryResponse {
+  id: number;
+  actor_type: string;
+  actor_user_id: number | null;
+  case_id: number | null;
+  share_link_id: number | null;
+  event_type: string;
+  metadata_json: Record<string, unknown> | null;
   created_at: string;
 }

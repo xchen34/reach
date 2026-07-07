@@ -1,11 +1,13 @@
-import { getDictionary, type Locale } from "@/lib/i18n";
+"use client";
 
-export default function ShareTokenLoading({
-  params,
-}: {
-  params: { locale: Locale };
-}) {
-  const dictionary = getDictionary(params.locale);
+import { useParams } from "next/navigation";
+import { getDictionary, isSupportedLocale, type Locale } from "@/lib/i18n";
+
+export default function ShareTokenLoading() {
+  const params = useParams<{ locale?: string }>();
+  const rawLocale = params?.locale ?? "";
+  const locale: Locale = isSupportedLocale(rawLocale) ? rawLocale : "en";
+  const dictionary = getDictionary(locale);
 
   return (
     <main className="page-shell">
