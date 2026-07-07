@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import AnyUrl, EmailStr, Field
+from pydantic import EmailStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +16,10 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     database_url: str = "postgresql+psycopg://beacon:beacon@db:5432/beacon"
-    cors_origins: list[AnyUrl] = []
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
     auth_token_secret: str = Field(
         default="change-me-in-production",
         min_length=16,

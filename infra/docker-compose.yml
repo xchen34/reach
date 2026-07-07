@@ -43,6 +43,7 @@ services:
       dockerfile: infra/web.Dockerfile
     working_dir: /app/apps/web
     environment:
+      API_INTERNAL_BASE_URL: http://api:8000
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     command: npm run dev
     ports:
@@ -54,4 +55,3 @@ services:
 
 volumes:
   postgres_data:
-

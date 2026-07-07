@@ -49,6 +49,19 @@ export function AnonymousCaseSubmissionFlow({
     return dictionary.caseStatus.labels[result.status];
   }, [dictionary.caseStatus.labels, result]);
 
+  const sharePageUrl = useMemo(() => {
+    if (!result) {
+      return null;
+    }
+
+    const sharePath = `/${locale}/share/${result.share_link.token}`;
+    if (typeof window === "undefined") {
+      return sharePath;
+    }
+
+    return new URL(sharePath, window.location.origin).toString();
+  }, [locale, result]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNetworkError(null);
@@ -95,7 +108,7 @@ export function AnonymousCaseSubmissionFlow({
     }
   }
 
-  if (result && statusCopy) {
+  if (result && statusCopy && sharePageUrl) {
     return (
       <section className="success-panel" aria-live="polite">
         <span className="status-pill">{dictionary.home.success.badge}</span>
@@ -113,7 +126,7 @@ export function AnonymousCaseSubmissionFlow({
           </div>
           <div className="detail-card detail-card-wide">
             <dt>{dictionary.home.success.shareLinkLabel}</dt>
-            <dd className="break-all">{result.share_link.url}</dd>
+            <dd className="break-all">{sharePageUrl}</dd>
           </div>
         </dl>
 
@@ -122,7 +135,7 @@ export function AnonymousCaseSubmissionFlow({
         <div className="button-row">
           <a
             className="button-primary"
-            href={result.share_link.url}
+            href={sharePageUrl}
             rel="noreferrer"
           >
             {dictionary.home.success.openShareLink}

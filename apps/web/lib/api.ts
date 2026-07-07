@@ -4,7 +4,8 @@ import type {
   ShareLinkCaseView,
 } from "@/lib/api-types";
 
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const publicBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const internalBaseUrl = process.env.API_INTERNAL_BASE_URL ?? publicBaseUrl;
 
 interface ApiErrorOptions {
   detail?: string | null;
@@ -25,6 +26,7 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
+  const baseUrl = typeof window === "undefined" ? internalBaseUrl : publicBaseUrl;
 
   try {
     response = await fetch(`${baseUrl}${path}`, {

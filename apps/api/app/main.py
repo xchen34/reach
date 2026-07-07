@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
@@ -9,12 +10,23 @@ from app.api.cases import staff_router as staff_cases_router
 from app.api.health import router as health_router
 from app.api.share_links import router as share_links_router
 from app.api.staff import router as staff_router
+from app.config import get_settings
 
 
 app = FastAPI(
     title="Beacon API",
     version="0.2.0",
     description="Phase 1 domain foundation for Beacon",
+)
+
+settings = get_settings()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)
