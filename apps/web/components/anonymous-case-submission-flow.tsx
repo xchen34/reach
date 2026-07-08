@@ -69,6 +69,7 @@ export function AnonymousCaseSubmissionFlow({
   const [voiceStatusMessage, setVoiceStatusMessage] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isConfirmingVoice, setIsConfirmingVoice] = useState(false);
+  const [canRecord, setCanRecord] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -77,11 +78,14 @@ export function AnonymousCaseSubmissionFlow({
   const transcriptPollTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const canRecord =
-    typeof window !== "undefined" &&
-    typeof MediaRecorder !== "undefined" &&
-    typeof navigator !== "undefined" &&
-    !!navigator.mediaDevices?.getUserMedia;
+  useEffect(() => {
+    setCanRecord(
+      typeof window !== "undefined" &&
+        typeof MediaRecorder !== "undefined" &&
+        typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia,
+    );
+  }, []);
 
   const statusCopy = useMemo(() => {
     if (!result) {
