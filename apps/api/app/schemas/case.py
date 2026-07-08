@@ -16,6 +16,7 @@ class AnonymousCaseSubmissionRequest(BaseModel):
     language_code: str = Field(default="en", min_length=2, max_length=8)
     location_summary: str = Field(min_length=5, max_length=280)
     needs_summary: str = Field(min_length=5, max_length=4000)
+    voice_intake_token: Optional[str] = Field(default=None, min_length=16)
     reporter_name: Optional[str] = Field(default=None, max_length=120)
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = Field(default=None, max_length=40)

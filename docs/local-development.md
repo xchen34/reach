@@ -25,6 +25,15 @@ docker compose -f infra/docker-compose.yml exec api alembic upgrade head
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
 
+## Voice intake storage
+
+Phase 1.5 stores uploaded audio in a Docker volume mounted only into the API container:
+
+- Docker volume: `voice_uploads_data`
+- In-container path: `/app/data/voice_uploads`
+
+Uploaded media is not stored in PostgreSQL and is not written into the Git checkout. The current speech-to-text integration is a development stub behind a provider abstraction, so the stored audio and transcript state can be exercised locally without locking the project to a production speech vendor yet.
+
 ## Development magic links
 
 Request a magic link through:

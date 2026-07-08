@@ -54,8 +54,28 @@ class AuditEventType(str, Enum):
     CASE_ACTION_CREATED = "case_action_created"
     SHARE_LINK_CREATED = "share_link_created"
     SHARE_LINK_VIEWED = "share_link_viewed"
+    VOICE_INTAKE_UPLOADED = "voice_intake_uploaded"
+    VOICE_TRANSCRIPT_CONFIRMED = "voice_transcript_confirmed"
+    VOICE_TRANSCRIPT_ATTACHED = "voice_transcript_attached"
+    STAFF_VOICE_AUDIO_ACCESSED = "staff_voice_audio_accessed"
 
 
 class ShareLinkScope(str, Enum):
     STATUS_ONLY = "status_only"
 
+
+class VoiceProcessingStatus(str, Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class VoiceTranscriptState(str, Enum):
+    GENERATED = "generated"
+    CONFIRMED = "confirmed"
+    EDITED = "edited"
+
+
+class VoiceRetentionState(str, Enum):
+    RETAINED = "retained"
+    DELETED = "deleted"

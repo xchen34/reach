@@ -52,4 +52,4 @@ class Case(Base):
     share_links = relationship("CaseShareLink", back_populates="case")
     actions = relationship("CaseAction", back_populates="case")
     audit_entries = relationship("AuditLogEntry", back_populates="case")
-
+    voice_intake = relationship("VoiceIntake", back_populates="case", uselist=False)

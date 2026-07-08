@@ -1,6 +1,6 @@
 # Beacon
 
-Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting and coordination platform. This repository currently implements the Phase 1 backend domain foundation on top of the Phase 0 infrastructure.
+Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting and coordination platform. This repository currently implements the Phase 1 backend domain foundation plus a Phase 1.5 voice-intake backend foundation on top of the Phase 0 infrastructure.
 
 ## Current scope
 
@@ -10,6 +10,7 @@ Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting an
 - Development-only staff magic-link request and verification flow
 - Minimal staff session support for authenticated API endpoints
 - Initial case, share-link, case action, and audit-log database domain
+- Voice upload, transcript confirmation, and staff-only voice access contract foundation
 - OpenAPI contract file at `docs/openapi.yaml`
 - Local Docker Compose workflow
 
@@ -19,7 +20,8 @@ Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting an
 - AI workflows
 - Offline drafts
 - WebSockets
-- Speech-to-text
+- Production speech-to-text integration
+- Final voice recording UI
 
 ## Local setup
 
@@ -53,6 +55,16 @@ In Phase 0, the login link is visible in the API response or logs for local deve
 - `POST /cases`
 - `GET /staff/cases`
 - `GET /staff/cases/{case_id}`
+- `GET /staff/cases/{case_id}/voice`
+- `GET /staff/cases/{case_id}/voice/audio`
 - `POST /staff/cases/{case_id}/actions`
 - `GET /staff/cases/{case_id}/audit`
 - `GET /share/{token}`
+
+## Phase 1.5 voice foundation
+
+- `POST /voice-intakes`
+- `POST /voice-intakes/retrieve`
+- `POST /voice-intakes/confirm`
+
+The current voice transcription path uses a development stub behind a provider abstraction. Audio is stored in a local Docker volume, not in PostgreSQL or Git.

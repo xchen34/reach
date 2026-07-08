@@ -10,13 +10,15 @@ from app.api.cases import staff_router as staff_cases_router
 from app.api.health import router as health_router
 from app.api.share_links import router as share_links_router
 from app.api.staff import router as staff_router
+from app.api.voice import router as voice_router
+from app.api.voice import staff_router as staff_voice_router
 from app.config import get_settings
 
 
 app = FastAPI(
     title="Beacon API",
-    version="0.2.0",
-    description="Phase 1 domain foundation for Beacon",
+    version="0.3.0",
+    description="Phase 1.5 voice intake foundation for Beacon",
 )
 
 settings = get_settings()
@@ -34,6 +36,8 @@ app.include_router(auth_router)
 app.include_router(staff_router)
 app.include_router(cases_router)
 app.include_router(staff_cases_router)
+app.include_router(voice_router)
+app.include_router(staff_voice_router)
 app.include_router(share_links_router)
 app.include_router(audit_router)
 

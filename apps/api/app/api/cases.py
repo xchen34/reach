@@ -17,12 +17,20 @@ router = APIRouter(tags=["cases"])
 staff_router = APIRouter(prefix="/staff/cases", tags=["staff-cases"])
 
 
-@router.post("/cases", response_model=CaseSubmissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/cases",
+    response_model=CaseSubmissionResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={400: {"description": "Case submission was rejected."}},
+)
 def submit_case(
     payload: AnonymousCaseSubmissionRequest,
     db: Session = Depends(get_db),
 ) -> CaseSubmissionResponse:
-    return CaseService(db).create_anonymous_case(payload)
+    try:
+        return CaseService(db).create_anonymous_case(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @staff_router.get("", response_model=list[CaseListItem])
@@ -60,4 +68,3 @@ def create_case_action(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-

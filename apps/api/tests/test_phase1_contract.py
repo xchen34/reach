@@ -11,6 +11,7 @@ from app.db import Base
 from app.main import app
 from app.schemas.case import AnonymousCaseSubmissionRequest, StaffCaseActionRequest
 from app.models.enums import CaseActionType, CaseStatus, IncidentType, UrgencyLevel
+from app.schemas.voice import VoiceIntakeUploadForm, VoiceTranscriptConfirmRequest
 
 
 def test_openapi_includes_phase1_paths() -> None:
@@ -19,8 +20,13 @@ def test_openapi_includes_phase1_paths() -> None:
         "/auth/verify-magic-link",
         "/staff/me",
         "/cases",
+        "/voice-intakes",
+        "/voice-intakes/retrieve",
+        "/voice-intakes/confirm",
         "/staff/cases",
         "/staff/cases/{case_id}",
+        "/staff/cases/{case_id}/voice",
+        "/staff/cases/{case_id}/voice/audio",
         "/staff/cases/{case_id}/actions",
         "/staff/cases/{case_id}/audit",
         "/share/{token}",
@@ -35,8 +41,10 @@ def test_case_submission_schema_validation() -> None:
         language_code="en",
         location_summary="Apartment stairwell, third floor",
         needs_summary="One adult with chest pain and trouble breathing.",
+        voice_intake_token="voice-token-placeholder",
     )
     assert payload.urgency is UrgencyLevel.HIGH
+    assert payload.voice_intake_token == "voice-token-placeholder"
 
 
 def test_case_action_schema_constraints() -> None:
@@ -61,6 +69,7 @@ def test_model_metadata_contains_phase1_tables() -> None:
         "case_share_links",
         "case_actions",
         "audit_log_entries",
+        "voice_intakes",
     ):
         assert table_name in metadata.tables
 
@@ -69,4 +78,15 @@ def test_alembic_has_single_head() -> None:
     config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["0002_phase1_domain_foundation"]
+    assert script.get_heads() == ["0003_phase15_voice_foundation"]
+
+
+def test_voice_schema_validation() -> None:
+    upload = VoiceIntakeUploadForm(language_code="EN", duration_seconds=3.5)
+    assert upload.language_code == "en"
+
+    confirm = VoiceTranscriptConfirmRequest(
+        voice_intake_token="voice-token-placeholder",
+        confirmed_transcript_text="Please send evacuation support.",
+    )
+    assert confirm.confirmed_transcript_text.startswith("Please")

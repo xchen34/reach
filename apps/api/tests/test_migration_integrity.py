@@ -8,7 +8,7 @@ from alembic.script import ScriptDirectory
 from app.db import Base
 
 
-def test_model_metadata_contains_phase1_tables() -> None:
+def test_model_metadata_contains_phase15_tables() -> None:
     metadata = Base.metadata
     for table_name in (
         "users",
@@ -18,13 +18,13 @@ def test_model_metadata_contains_phase1_tables() -> None:
         "case_share_links",
         "case_actions",
         "audit_log_entries",
+        "voice_intakes",
     ):
         assert table_name in metadata.tables
 
 
-def test_alembic_has_single_phase1_head() -> None:
+def test_alembic_has_single_phase15_head() -> None:
     config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["0002_phase1_domain_foundation"]
-
+    assert script.get_heads() == ["0003_phase15_voice_foundation"]

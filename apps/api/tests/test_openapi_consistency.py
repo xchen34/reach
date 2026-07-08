@@ -13,8 +13,13 @@ PHASE1_PATHS = {
     "/auth/logout": {"post"},
     "/staff/me": {"get"},
     "/cases": {"post"},
+    "/voice-intakes": {"post"},
+    "/voice-intakes/retrieve": {"post"},
+    "/voice-intakes/confirm": {"post"},
     "/staff/cases": {"get"},
     "/staff/cases/{case_id}": {"get"},
+    "/staff/cases/{case_id}/voice": {"get"},
+    "/staff/cases/{case_id}/voice/audio": {"get"},
     "/staff/cases/{case_id}/actions": {"post"},
     "/staff/cases/{case_id}/audit": {"get"},
     "/share/{token}": {"get"},
@@ -47,7 +52,7 @@ def test_documented_and_live_openapi_align_on_phase1_auth_contract() -> None:
     documented = _load_documented_openapi()
     live = app.openapi()
 
-    assert documented["info"]["description"] == live["info"]["description"] == "Phase 1 domain foundation for Beacon"
+    assert documented["info"]["description"] == live["info"]["description"] == "Phase 1.5 voice intake foundation for Beacon"
     assert list(documented["components"]["securitySchemes"]) == ["bearerAuth"]
     assert list(live["components"]["securitySchemes"]) == ["bearerAuth"]
 
@@ -86,11 +91,26 @@ def test_case_detail_reporter_email_format_matches_docs_and_live_schema() -> Non
     documented = _load_documented_openapi()
     live = app.openapi()
 
-    documented_email = documented["components"]["schemas"]["CaseDetailResponse"]["allOf"][1]["properties"][
-        "reporter_email"
-    ]
+    documented_email = documented["components"]["schemas"]["CaseDetailResponse"]["properties"]["reporter_email"]
     live_email = live["components"]["schemas"]["CaseDetailResponse"]["properties"]["reporter_email"]
 
-    assert documented_email["format"] == "email"
+    assert documented_email["anyOf"][0]["format"] == "email"
     assert live_email["anyOf"][0]["format"] == "email"
 
+
+def test_documented_and_live_openapi_align_on_voice_contract() -> None:
+    documented = _load_documented_openapi()
+    live = app.openapi()
+
+    documented_upload = documented["paths"]["/voice-intakes"]["post"]
+    live_upload = live["paths"]["/voice-intakes"]["post"]
+    assert "multipart/form-data" in documented_upload["requestBody"]["content"]
+    assert "multipart/form-data" in live_upload["requestBody"]["content"]
+
+    documented_confirm = _schema_ref_name(documented["paths"]["/voice-intakes/confirm"]["post"], "200")
+    live_confirm = _schema_ref_name(live["paths"]["/voice-intakes/confirm"]["post"], "200")
+    assert documented_confirm == live_confirm == "VoiceIntakeView"
+
+    documented_audio = documented["paths"]["/staff/cases/{case_id}/voice/audio"]["get"]
+    live_audio = live["paths"]["/staff/cases/{case_id}/voice/audio"]["get"]
+    assert documented_audio["security"] == live_audio["security"] == [{"bearerAuth": []}]

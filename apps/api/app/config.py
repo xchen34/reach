@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     dev_default_role: str = "volunteer"
     dev_auto_create_users: bool = True
     dev_magic_link_inbox_email: Optional[EmailStr] = None
+    speech_to_text_provider: str = "development_stub"
+    voice_storage_dir: str = "/tmp/beacon/voice_uploads"
+    voice_max_upload_bytes: int = 10 * 1024 * 1024
 
 
 @lru_cache

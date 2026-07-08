@@ -1,457 +1,1269 @@
 openapi: 3.1.0
 info:
   title: Beacon API
-  version: 0.2.0
-  description: Phase 1 domain foundation for Beacon
-servers:
-  - url: http://localhost:8000
+  description: Phase 1.5 voice intake foundation for Beacon
+  version: 0.3.0
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health Check
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /auth/request-magic-link:
+    post:
+      tags:
+      - auth
+      summary: Request Magic Link
+      operationId: request_magic_link_auth_request_magic_link_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicLinkRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MagicLinkRequestResponse'
+        '400':
+          description: Magic link request rejected.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/verify-magic-link:
+    post:
+      tags:
+      - auth
+      summary: Verify Magic Link
+      operationId: verify_magic_link_auth_verify_magic_link_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MagicLinkVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MagicLinkVerifyResponse'
+        '400':
+          description: Magic link verification failed.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      operationId: logout_auth_logout_post
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+      security:
+      - bearerAuth: []
+  /staff/me:
+    get:
+      tags:
+      - staff
+      summary: Current Staff Session
+      operationId: current_staff_session_staff_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentStaffSession'
+      security:
+      - bearerAuth: []
+  /cases:
+    post:
+      tags:
+      - cases
+      summary: Submit Case
+      operationId: submit_case_cases_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnonymousCaseSubmissionRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseSubmissionResponse'
+        '400':
+          description: Case submission was rejected.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases:
+    get:
+      tags:
+      - staff-cases
+      summary: List Cases
+      operationId: list_cases_staff_cases_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CaseListItem'
+                type: array
+                title: Response List Cases Staff Cases Get
+      security:
+      - bearerAuth: []
+  /staff/cases/{case_id}:
+    get:
+      tags:
+      - staff-cases
+      summary: Get Case Detail
+      operationId: get_case_detail_staff_cases__case_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/actions:
+    post:
+      tags:
+      - staff-cases
+      summary: Create Case Action
+      operationId: create_case_action_staff_cases__case_id__actions_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCaseActionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffCaseActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /voice-intakes:
+    post:
+      tags:
+      - voice
+      summary: Upload Voice Intake
+      operationId: upload_voice_intake_voice_intakes_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_voice_intake_voice_intakes_post'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceIntakeCreateResponse'
+        '400':
+          description: Audio validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Audio file exceeded the configured size limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /voice-intakes/retrieve:
+    post:
+      tags:
+      - voice
+      summary: Retrieve Voice Intake
+      operationId: retrieve_voice_intake_voice_intakes_retrieve_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceIntakeRetrieveRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceIntakeView'
+        '404':
+          description: Voice intake not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /voice-intakes/confirm:
+    post:
+      tags:
+      - voice
+      summary: Confirm Voice Intake
+      operationId: confirm_voice_intake_voice_intakes_confirm_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceTranscriptConfirmRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceIntakeView'
+        '400':
+          description: Voice transcript confirmation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Voice intake not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/voice:
+    get:
+      tags:
+      - staff-voice
+      summary: Get Case Voice
+      operationId: get_case_voice_staff_cases__case_id__voice_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffCaseVoiceResponse'
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Case voice intake not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/voice/audio:
+    get:
+      tags:
+      - staff-voice
+      summary: Get Case Voice Audio
+      operationId: get_case_voice_audio_staff_cases__case_id__voice_audio_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      responses:
+        '200':
+          description: Authorized staff audio download.
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Voice audio not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /share/{token}:
+    get:
+      tags:
+      - share-links
+      summary: Get Shared Case
+      description: Accesses a private case view through a capability URL token. The
+        token is the only credential required for this endpoint. Tokens are treated
+        as private secrets and must not be logged or reconstructed by clients. The
+        current Phase 1 implementation does not expose end-user expiry or revocation
+        management flows.
+      operationId: get_shared_case_share__token__get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Private capability token embedded in the share URL.
+          title: Token
+        description: Private capability token embedded in the share URL.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareLinkCaseView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/audit:
+    get:
+      tags:
+      - staff-audit
+      summary: List Case Audit
+      operationId: list_case_audit_staff_cases__case_id__audit_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEntryResponse'
+                title: Response List Case Audit Staff Cases  Case Id  Audit Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
+  schemas:
+    AnonymousCaseSubmissionRequest:
+      properties:
+        incident_type:
+          $ref: '#/components/schemas/IncidentType'
+        urgency:
+          $ref: '#/components/schemas/UrgencyLevel'
+        language_code:
+          type: string
+          maxLength: 8
+          minLength: 2
+          title: Language Code
+          default: en
+        location_summary:
+          type: string
+          maxLength: 280
+          minLength: 5
+          title: Location Summary
+        needs_summary:
+          type: string
+          maxLength: 4000
+          minLength: 5
+          title: Needs Summary
+        voice_intake_token:
+          anyOf:
+          - type: string
+            minLength: 16
+          - type: 'null'
+          title: Voice Intake Token
+        reporter_name:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Reporter Name
+        reporter_email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Reporter Email
+        reporter_phone:
+          anyOf:
+          - type: string
+            maxLength: 40
+          - type: 'null'
+          title: Reporter Phone
+      type: object
+      required:
+      - incident_type
+      - urgency
+      - location_summary
+      - needs_summary
+      title: AnonymousCaseSubmissionRequest
+    AuditLogEntryResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        actor_type:
+          type: string
+          title: Actor Type
+        actor_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Actor User Id
+        case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Case Id
+        share_link_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Share Link Id
+        event_type:
+          type: string
+          title: Event Type
+        metadata_json:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata Json
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - actor_type
+      - event_type
+      - created_at
+      title: AuditLogEntryResponse
+    Body_upload_voice_intake_voice_intakes_post:
+      properties:
+        audio_file:
+          type: string
+          format: binary
+          title: Audio File
+        language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language Code
+        duration_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration Seconds
+      type: object
+      required:
+      - audio_file
+      title: Body_upload_voice_intake_voice_intakes_post
+    CaseActionType:
+      type: string
+      enum:
+      - note
+      - status_change
+      - claim
+      - reassign
+      title: CaseActionType
+    CaseDetailResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_code:
+          type: string
+          title: Case Code
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        urgency:
+          $ref: '#/components/schemas/UrgencyLevel'
+        incident_type:
+          $ref: '#/components/schemas/IncidentType'
+        location_summary:
+          type: string
+          title: Location Summary
+        needs_summary:
+          type: string
+          title: Needs Summary
+        latest_public_update:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Public Update
+        assigned_staff_user:
+          anyOf:
+          - $ref: '#/components/schemas/StaffUserSummary'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        language_code:
+          type: string
+          title: Language Code
+        reporter_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Name
+        reporter_email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Reporter Email
+        reporter_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Phone
+      type: object
+      required:
+      - id
+      - case_code
+      - status
+      - urgency
+      - incident_type
+      - location_summary
+      - needs_summary
+      - created_at
+      - updated_at
+      - language_code
+      title: CaseDetailResponse
+    CaseListItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_code:
+          type: string
+          title: Case Code
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        urgency:
+          $ref: '#/components/schemas/UrgencyLevel'
+        incident_type:
+          $ref: '#/components/schemas/IncidentType'
+        location_summary:
+          type: string
+          title: Location Summary
+        needs_summary:
+          type: string
+          title: Needs Summary
+        latest_public_update:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Public Update
+        assigned_staff_user:
+          anyOf:
+          - $ref: '#/components/schemas/StaffUserSummary'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - case_code
+      - status
+      - urgency
+      - incident_type
+      - location_summary
+      - needs_summary
+      - created_at
+      - updated_at
+      title: CaseListItem
+    CaseStatus:
+      type: string
+      enum:
+      - pending_review
+      - active
+      - waiting_for_information
+      - safe_resolved
+      - closed
+      title: CaseStatus
+    CaseSubmissionResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_code:
+          type: string
+          title: Case Code
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        share_link:
+          $ref: '#/components/schemas/ShareLinkSummary'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - case_code
+      - status
+      - share_link
+      - created_at
+      title: CaseSubmissionResponse
+    CurrentStaffSession:
+      properties:
+        user:
+          $ref: '#/components/schemas/StaffUserSummary'
+        session_expires_at:
+          type: string
+          format: date-time
+          title: Session Expires At
+      type: object
+      required:
+      - user
+      - session_expires_at
+      title: CurrentStaffSession
+    ErrorResponse:
+      properties:
+        detail:
+          type: string
+          title: Detail
+      type: object
+      required:
+      - detail
+      title: ErrorResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        database:
+          type: string
+          title: Database
+      type: object
+      required:
+      - status
+      - database
+      title: HealthResponse
+    IncidentType:
+      type: string
+      enum:
+      - medical
+      - fire
+      - evacuation
+      - shelter
+      - utilities
+      - other
+      title: IncidentType
+    MagicLinkRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+      - email
+      title: MagicLinkRequest
+    MagicLinkRequestResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        login_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Login Url
+      type: object
+      required:
+      - message
+      - expires_at
+      title: MagicLinkRequestResponse
+    MagicLinkVerifyRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: MagicLinkVerifyRequest
+    MagicLinkVerifyResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        user:
+          $ref: '#/components/schemas/StaffUserSummary'
+        magic_link_status:
+          type: string
+          title: Magic Link Status
+          default: accepted
+      type: object
+      required:
+      - access_token
+      - expires_at
+      - user
+      title: MagicLinkVerifyResponse
+    ShareLinkCaseView:
+      properties:
+        case_code:
+          type: string
+          title: Case Code
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        location_summary:
+          type: string
+          title: Location Summary
+        needs_summary:
+          type: string
+          title: Needs Summary
+        latest_public_update:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Public Update
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - case_code
+      - status
+      - location_summary
+      - needs_summary
+      - created_at
+      title: ShareLinkCaseView
+    ShareLinkScope:
+      type: string
+      enum:
+      - status_only
+      title: ShareLinkScope
+    ShareLinkSummary:
+      properties:
+        token:
+          type: string
+          title: Token
+        url:
+          type: string
+          title: Url
+        scope:
+          $ref: '#/components/schemas/ShareLinkScope'
+      type: object
+      required:
+      - token
+      - url
+      - scope
+      title: ShareLinkSummary
+    StaffCaseActionRequest:
+      properties:
+        action_type:
+          $ref: '#/components/schemas/CaseActionType'
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+        to_status:
+          anyOf:
+          - $ref: '#/components/schemas/CaseStatus'
+          - type: 'null'
+        target_staff_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Target Staff User Id
+      type: object
+      required:
+      - action_type
+      title: StaffCaseActionRequest
+    StaffCaseActionResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_id:
+          type: integer
+          title: Case Id
+        actor_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Actor User Id
+        action_type:
+          $ref: '#/components/schemas/CaseActionType'
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        from_status:
+          anyOf:
+          - $ref: '#/components/schemas/CaseStatus'
+          - type: 'null'
+        to_status:
+          anyOf:
+          - $ref: '#/components/schemas/CaseStatus'
+          - type: 'null'
+        target_staff_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Target Staff User Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - case_id
+      - action_type
+      - created_at
+      title: StaffCaseActionResponse
+    StaffCaseVoiceResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_id:
+          type: integer
+          title: Case Id
+        processing_status:
+          $ref: '#/components/schemas/VoiceProcessingStatus'
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        duration_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration Seconds
+        transcription_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Text
+        transcription_language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Language Code
+        transcription_confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Transcription Confidence
+        confirmed_transcript_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmed Transcript Text
+        transcript_state:
+          $ref: '#/components/schemas/VoiceTranscriptState'
+        retention_state:
+          $ref: '#/components/schemas/VoiceRetentionState'
+        audio_available:
+          type: boolean
+          title: Audio Available
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - case_id
+      - processing_status
+      - content_type
+      - size_bytes
+      - transcript_state
+      - retention_state
+      - audio_available
+      - created_at
+      - updated_at
+      title: StaffCaseVoiceResponse
+    StaffRole:
+      type: string
+      enum:
+      - volunteer
+      - coordinator
+      title: StaffRole
+    StaffUserSummary:
+      properties:
+        id:
+          type: integer
+          title: Id
+        email:
+          type: string
+          title: Email
+        role:
+          $ref: '#/components/schemas/StaffRole'
+      type: object
+      required:
+      - id
+      - email
+      - role
+      title: StaffUserSummary
+    UrgencyLevel:
+      type: string
+      enum:
+      - low
+      - medium
+      - high
+      - critical
+      title: UrgencyLevel
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VoiceIntakeCreateResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        processing_status:
+          $ref: '#/components/schemas/VoiceProcessingStatus'
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        duration_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration Seconds
+        transcription_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Text
+        transcription_language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Language Code
+        transcription_confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Transcription Confidence
+        confirmed_transcript_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmed Transcript Text
+        transcript_state:
+          $ref: '#/components/schemas/VoiceTranscriptState'
+        retention_state:
+          $ref: '#/components/schemas/VoiceRetentionState'
+        attached_to_case:
+          type: boolean
+          title: Attached To Case
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        voice_intake_token:
+          type: string
+          title: Voice Intake Token
+      type: object
+      required:
+      - id
+      - processing_status
+      - content_type
+      - size_bytes
+      - transcript_state
+      - retention_state
+      - attached_to_case
+      - created_at
+      - updated_at
+      - voice_intake_token
+      title: VoiceIntakeCreateResponse
+    VoiceIntakeRetrieveRequest:
+      properties:
+        voice_intake_token:
+          type: string
+          minLength: 16
+          title: Voice Intake Token
+      type: object
+      required:
+      - voice_intake_token
+      title: VoiceIntakeRetrieveRequest
+    VoiceIntakeView:
+      properties:
+        id:
+          type: integer
+          title: Id
+        processing_status:
+          $ref: '#/components/schemas/VoiceProcessingStatus'
+        content_type:
+          type: string
+          title: Content Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        duration_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration Seconds
+        transcription_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Text
+        transcription_language_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcription Language Code
+        transcription_confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Transcription Confidence
+        confirmed_transcript_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmed Transcript Text
+        transcript_state:
+          $ref: '#/components/schemas/VoiceTranscriptState'
+        retention_state:
+          $ref: '#/components/schemas/VoiceRetentionState'
+        attached_to_case:
+          type: boolean
+          title: Attached To Case
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - processing_status
+      - content_type
+      - size_bytes
+      - transcript_state
+      - retention_state
+      - attached_to_case
+      - created_at
+      - updated_at
+      title: VoiceIntakeView
+    VoiceProcessingStatus:
+      type: string
+      enum:
+      - pending
+      - completed
+      - failed
+      title: VoiceProcessingStatus
+    VoiceRetentionState:
+      type: string
+      enum:
+      - retained
+      - deleted
+      title: VoiceRetentionState
+    VoiceTranscriptConfirmRequest:
+      properties:
+        voice_intake_token:
+          type: string
+          minLength: 16
+          title: Voice Intake Token
+        confirmed_transcript_text:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Confirmed Transcript Text
+      type: object
+      required:
+      - voice_intake_token
+      - confirmed_transcript_text
+      title: VoiceTranscriptConfirmRequest
+    VoiceTranscriptState:
+      type: string
+      enum:
+      - generated
+      - confirmed
+      - edited
+      title: VoiceTranscriptState
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: opaque
-  schemas:
-    StaffRole:
-      type: string
-      enum: [volunteer, coordinator]
-    CaseStatus:
-      type: string
-      enum: [pending_review, active, waiting_for_information, safe_resolved, closed]
-    UrgencyLevel:
-      type: string
-      enum: [low, medium, high, critical]
-    IncidentType:
-      type: string
-      enum: [medical, fire, evacuation, shelter, utilities, other]
-    CaseActionType:
-      type: string
-      enum: [note, status_change, claim, reassign]
-    ShareLinkScope:
-      type: string
-      enum: [status_only]
-    StaffUserSummary:
-      type: object
-      required: [id, email, role]
-      properties:
-        id:
-          type: integer
-        email:
-          type: string
-          format: email
-        role:
-          $ref: "#/components/schemas/StaffRole"
-    MagicLinkRequest:
-      type: object
-      required: [email]
-      properties:
-        email:
-          type: string
-          format: email
-    MagicLinkRequestResponse:
-      type: object
-      required: [message, expires_at]
-      properties:
-        message:
-          type: string
-        expires_at:
-          type: string
-          format: date-time
-        login_url:
-          type: string
-          nullable: true
-    MagicLinkVerifyRequest:
-      type: object
-      required: [token]
-      properties:
-        token:
-          type: string
-    MagicLinkVerifyResponse:
-      type: object
-      required: [access_token, token_type, expires_at, user, magic_link_status]
-      properties:
-        access_token:
-          type: string
-        token_type:
-          type: string
-          enum: [bearer]
-        expires_at:
-          type: string
-          format: date-time
-        magic_link_status:
-          type: string
-          enum: [accepted]
-        user:
-          $ref: "#/components/schemas/StaffUserSummary"
-    CurrentStaffSession:
-      type: object
-      required: [user, session_expires_at]
-      properties:
-        user:
-          $ref: "#/components/schemas/StaffUserSummary"
-        session_expires_at:
-          type: string
-          format: date-time
-    AnonymousCaseSubmissionRequest:
-      type: object
-      required: [incident_type, urgency, location_summary, needs_summary]
-      properties:
-        incident_type:
-          $ref: "#/components/schemas/IncidentType"
-        urgency:
-          $ref: "#/components/schemas/UrgencyLevel"
-        language_code:
-          type: string
-          default: en
-        location_summary:
-          type: string
-        needs_summary:
-          type: string
-        reporter_name:
-          type: string
-          nullable: true
-        reporter_email:
-          type: string
-          format: email
-          nullable: true
-        reporter_phone:
-          type: string
-          nullable: true
-    ShareLinkSummary:
-      type: object
-      required: [token, url, scope]
-      properties:
-        token:
-          type: string
-        url:
-          type: string
-        scope:
-          $ref: "#/components/schemas/ShareLinkScope"
-    CaseSubmissionResponse:
-      type: object
-      required: [id, case_code, status, share_link, created_at]
-      properties:
-        id:
-          type: integer
-        case_code:
-          type: string
-        status:
-          $ref: "#/components/schemas/CaseStatus"
-        share_link:
-          $ref: "#/components/schemas/ShareLinkSummary"
-        created_at:
-          type: string
-          format: date-time
-    CaseListItem:
-      type: object
-      required: [id, case_code, status, urgency, incident_type, location_summary, needs_summary, created_at, updated_at]
-      properties:
-        id:
-          type: integer
-        case_code:
-          type: string
-        status:
-          $ref: "#/components/schemas/CaseStatus"
-        urgency:
-          $ref: "#/components/schemas/UrgencyLevel"
-        incident_type:
-          $ref: "#/components/schemas/IncidentType"
-        location_summary:
-          type: string
-        needs_summary:
-          type: string
-        latest_public_update:
-          type: string
-          nullable: true
-        assigned_staff_user:
-          allOf:
-            - $ref: "#/components/schemas/StaffUserSummary"
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    CaseDetailResponse:
-      allOf:
-        - $ref: "#/components/schemas/CaseListItem"
-        - type: object
-          required: [language_code]
-          properties:
-            language_code:
-              type: string
-            reporter_name:
-              type: string
-              nullable: true
-            reporter_email:
-              type: string
-              format: email
-              nullable: true
-            reporter_phone:
-              type: string
-              nullable: true
-    ShareLinkCaseView:
-      type: object
-      required: [case_code, status, location_summary, needs_summary, created_at]
-      properties:
-        case_code:
-          type: string
-        status:
-          $ref: "#/components/schemas/CaseStatus"
-        location_summary:
-          type: string
-        needs_summary:
-          type: string
-        latest_public_update:
-          type: string
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-    StaffCaseActionRequest:
-      type: object
-      required: [action_type]
-      properties:
-        action_type:
-          $ref: "#/components/schemas/CaseActionType"
-        note:
-          type: string
-          nullable: true
-        to_status:
-          allOf:
-            - $ref: "#/components/schemas/CaseStatus"
-          nullable: true
-        target_staff_user_id:
-          type: integer
-          nullable: true
-    StaffCaseActionResponse:
-      type: object
-      required: [id, case_id, action_type, created_at]
-      properties:
-        id:
-          type: integer
-        case_id:
-          type: integer
-        actor_user_id:
-          type: integer
-          nullable: true
-        action_type:
-          $ref: "#/components/schemas/CaseActionType"
-        note:
-          type: string
-          nullable: true
-        from_status:
-          allOf:
-            - $ref: "#/components/schemas/CaseStatus"
-          nullable: true
-        to_status:
-          allOf:
-            - $ref: "#/components/schemas/CaseStatus"
-          nullable: true
-        target_staff_user_id:
-          type: integer
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-    AuditLogEntryResponse:
-      type: object
-      required: [id, actor_type, event_type, created_at]
-      properties:
-        id:
-          type: integer
-        actor_type:
-          type: string
-        actor_user_id:
-          type: integer
-          nullable: true
-        case_id:
-          type: integer
-          nullable: true
-        share_link_id:
-          type: integer
-          nullable: true
-        event_type:
-          type: string
-        metadata_json:
-          type: object
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-paths:
-  /health:
-    get:
-      tags: [health]
-      responses:
-        "200":
-          description: Health check response
-  /auth/request-magic-link:
-    post:
-      tags: [auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MagicLinkRequest"
-      responses:
-        "200":
-          description: Development magic link issued
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MagicLinkRequestResponse"
-        "400":
-          description: Magic link request rejected.
-  /auth/verify-magic-link:
-    post:
-      tags: [auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MagicLinkVerifyRequest"
-      responses:
-        "200":
-          description: Staff session created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MagicLinkVerifyResponse"
-        "400":
-          description: Magic link verification failed.
-  /auth/logout:
-    post:
-      tags: [auth]
-      security:
-        - bearerAuth: []
-      responses:
-        "204":
-          description: Current bearer session revoked.
-        "401":
-          description: Missing, expired, revoked, or invalid bearer session.
-  /staff/me:
-    get:
-      tags: [staff]
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Current authenticated staff session
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CurrentStaffSession"
-  /cases:
-    post:
-      tags: [cases]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnonymousCaseSubmissionRequest"
-      responses:
-        "201":
-          description: Anonymous case submitted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CaseSubmissionResponse"
-  /staff/cases:
-    get:
-      tags: [staff-cases]
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Authenticated staff case list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CaseListItem"
-  /staff/cases/{case_id}:
-    get:
-      tags: [staff-cases]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: case_id
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Staff case detail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CaseDetailResponse"
-  /staff/cases/{case_id}/actions:
-    post:
-      tags: [staff-cases]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: case_id
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StaffCaseActionRequest"
-      responses:
-        "200":
-          description: Staff case action created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StaffCaseActionResponse"
-  /staff/cases/{case_id}/audit:
-    get:
-      tags: [staff-audit]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: case_id
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Case audit entries
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AuditLogEntryResponse"
-  /share/{token}:
-    get:
-      tags: [share-links]
-      description: Accesses a private case view through a capability URL token. The token is the only credential required for this endpoint. Tokens are treated as private secrets and must not be logged or reconstructed by clients. The current Phase 1 implementation does not expose end-user expiry or revocation management flows.
-      parameters:
-        - in: path
-          name: token
-          required: true
-          schema:
-            type: string
-          description: Private capability token embedded in the share URL.
-      responses:
-        "200":
-          description: Private shared case view
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ShareLinkCaseView"

@@ -35,6 +35,7 @@ from app.schemas.case import (
     StaffCaseActionResponse,
 )
 from app.schemas.staff import StaffUserSummary
+from app.services.voice_intake import VoiceIntakeService
 
 
 class CaseService:
@@ -61,6 +62,12 @@ class CaseService:
         )
         self.db.add(case)
         self.db.flush()
+
+        if payload.voice_intake_token:
+            VoiceIntakeService(self.db).attach_confirmed_voice_to_case(
+                case_id=case.id,
+                voice_intake_token=payload.voice_intake_token,
+            )
 
         share_token = secrets.token_urlsafe(18)
         share_link = CaseShareLink(

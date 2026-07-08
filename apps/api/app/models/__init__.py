@@ -11,10 +11,14 @@ from app.models.enums import (
     ShareLinkScope,
     StaffRole,
     UrgencyLevel,
+    VoiceProcessingStatus,
+    VoiceRetentionState,
+    VoiceTranscriptState,
 )
 from app.models.magic_link_token import MagicLinkToken
 from app.models.staff_session import StaffSession
 from app.models.user import User
+from app.models.voice_intake import VoiceIntake
 
 __all__ = [
     "AuditActorType",
@@ -32,4 +36,8 @@ __all__ = [
     "StaffSession",
     "UrgencyLevel",
     "User",
+    "VoiceIntake",
+    "VoiceProcessingStatus",
+    "VoiceRetentionState",
+    "VoiceTranscriptState",
 ]

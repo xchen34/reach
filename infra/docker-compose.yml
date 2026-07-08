@@ -28,6 +28,8 @@ services:
       BEACON_DEV_MAGIC_LINK_MODE: response
       BEACON_DEV_DEFAULT_ROLE: volunteer
       BEACON_DEV_AUTO_CREATE_USERS: "true"
+      BEACON_SPEECH_TO_TEXT_PROVIDER: development_stub
+      BEACON_VOICE_STORAGE_DIR: /app/data/voice_uploads
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
@@ -36,6 +38,7 @@ services:
         condition: service_healthy
     volumes:
       - ../apps/api:/app/apps/api
+      - voice_uploads_data:/app/data/voice_uploads
 
   web:
     build:
@@ -55,3 +58,4 @@ services:
 
 volumes:
   postgres_data:
+  voice_uploads_data:
