@@ -10,6 +10,9 @@ export const incidentTypes = [
 export const urgencyLevels = ["low", "medium", "high", "critical"] as const;
 export const staffRoles = ["volunteer", "coordinator"] as const;
 export const caseActionTypes = ["note", "status_change", "claim", "reassign"] as const;
+export const voiceProcessingStatuses = ["pending", "completed", "failed"] as const;
+export const voiceTranscriptStates = ["generated", "confirmed", "edited"] as const;
+export const voiceRetentionStates = ["retained", "deleted"] as const;
 
 export const caseStatuses = [
   "pending_review",
@@ -25,6 +28,9 @@ export type StaffRole = (typeof staffRoles)[number];
 export type CaseActionType = (typeof caseActionTypes)[number];
 export type CaseStatus = (typeof caseStatuses)[number];
 export type ShareLinkScope = "status_only";
+export type VoiceProcessingStatus = (typeof voiceProcessingStatuses)[number];
+export type VoiceTranscriptState = (typeof voiceTranscriptStates)[number];
+export type VoiceRetentionState = (typeof voiceRetentionStates)[number];
 
 export interface AnonymousCaseSubmissionRequest {
   incident_type: IncidentType;
@@ -32,9 +38,31 @@ export interface AnonymousCaseSubmissionRequest {
   language_code: string;
   location_summary: string;
   needs_summary: string;
+  voice_intake_token?: string | null;
   reporter_name?: string | null;
   reporter_email?: string | null;
   reporter_phone?: string | null;
+}
+
+export interface VoiceIntakeView {
+  id: number;
+  processing_status: VoiceProcessingStatus;
+  content_type: string;
+  size_bytes: number;
+  duration_seconds: number | null;
+  transcription_text: string | null;
+  transcription_language_code: string | null;
+  transcription_confidence: number | null;
+  confirmed_transcript_text: string | null;
+  transcript_state: VoiceTranscriptState;
+  retention_state: VoiceRetentionState;
+  attached_to_case: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoiceIntakeCreateResponse extends VoiceIntakeView {
+  voice_intake_token: string;
 }
 
 export interface ShareLinkSummary {

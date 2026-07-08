@@ -4,6 +4,9 @@ const internalBaseUrl = process.env.API_INTERNAL_BASE_URL ?? publicBaseUrl;
 const forwardedHeaderNames = ["authorization", "content-type"] as const;
 const allowedRoutes = [
   { method: "POST", pattern: /^cases$/ },
+  { method: "POST", pattern: /^voice-intakes$/ },
+  { method: "POST", pattern: /^voice-intakes\/retrieve$/ },
+  { method: "POST", pattern: /^voice-intakes\/confirm$/ },
   { method: "GET", pattern: /^share\/[^/]+$/ },
   { method: "POST", pattern: /^auth\/request-magic-link$/ },
   { method: "POST", pattern: /^auth\/verify-magic-link$/ },
@@ -51,7 +54,7 @@ async function proxyRequest(request: Request, context: RouteContext) {
   const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined
-      : await request.text();
+      : await request.arrayBuffer();
 
   let upstreamResponse: Response;
   try {

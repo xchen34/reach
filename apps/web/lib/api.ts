@@ -10,6 +10,8 @@ import type {
   StaffMagicLinkRequestResponse,
   StaffSessionResponse,
   ShareLinkCaseView,
+  VoiceIntakeCreateResponse,
+  VoiceIntakeView,
 } from "@/lib/api-types";
 
 const publicBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -34,9 +36,7 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
-  const isBrowser = typeof window !== "undefined";
-  const baseUrl = isBrowser ? "" : internalBaseUrl;
-  const resolvedPath = isBrowser ? `/api${path}` : path;
+  const { baseUrl, resolvedPath } = resolveApiPath(path);
 
   try {
     response = await fetch(`${baseUrl}${resolvedPath}`, {
@@ -67,6 +67,65 @@ export function submitAnonymousCase(payload: AnonymousCaseSubmissionRequest) {
   return apiFetch<CaseSubmissionResponse>("/cases", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+interface UploadVoiceIntakeOptions {
+  audioFile: Blob;
+  fileName: string;
+  languageCode?: string;
+  durationSeconds?: number;
+  onUploadProgress?: (progress: number) => void;
+}
+
+export async function uploadVoiceIntake({
+  audioFile,
+  fileName,
+  languageCode,
+  durationSeconds,
+  onUploadProgress,
+}: UploadVoiceIntakeOptions): Promise<VoiceIntakeCreateResponse> {
+  if (typeof window !== "undefined") {
+    return uploadVoiceIntakeInBrowser({
+      audioFile,
+      fileName,
+      languageCode,
+      durationSeconds,
+      onUploadProgress,
+    });
+  }
+
+  const formData = new FormData();
+  formData.set("audio_file", audioFile, fileName);
+
+  if (languageCode) {
+    formData.set("language_code", languageCode);
+  }
+
+  if (typeof durationSeconds === "number" && Number.isFinite(durationSeconds)) {
+    formData.set("duration_seconds", durationSeconds.toString());
+  }
+
+  return fetchJson<VoiceIntakeCreateResponse>("/voice-intakes", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function retrieveVoiceIntake(voiceIntakeToken: string) {
+  return apiFetch<VoiceIntakeView>("/voice-intakes/retrieve", {
+    method: "POST",
+    body: JSON.stringify({ voice_intake_token: voiceIntakeToken }),
+  });
+}
+
+export function confirmVoiceIntake(voiceIntakeToken: string, confirmedTranscriptText: string) {
+  return apiFetch<VoiceIntakeView>("/voice-intakes/confirm", {
+    method: "POST",
+    body: JSON.stringify({
+      voice_intake_token: voiceIntakeToken,
+      confirmed_transcript_text: confirmedTranscriptText,
+    }),
   });
 }
 
@@ -126,9 +185,7 @@ export function createStaffCaseAction(
 
 export async function logoutStaffSession(accessToken: string) {
   let response: Response;
-  const isBrowser = typeof window !== "undefined";
-  const baseUrl = isBrowser ? "" : internalBaseUrl;
-  const path = isBrowser ? "/api/auth/logout" : "/auth/logout";
+  const { baseUrl, resolvedPath: path } = resolveApiPath("/auth/logout");
 
   try {
     response = await fetch(`${baseUrl}${path}`, {
@@ -154,6 +211,109 @@ function buildBearerHeaders(accessToken: string) {
   return {
     Authorization: `Bearer ${accessToken}`,
   };
+}
+
+function resolveApiPath(path: string) {
+  const isBrowser = typeof window !== "undefined";
+
+  return {
+    baseUrl: isBrowser ? "" : internalBaseUrl,
+    resolvedPath: isBrowser ? `/api${path}` : path,
+  };
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  const { baseUrl, resolvedPath } = resolveApiPath(path);
+
+  try {
+    response = await fetch(`${baseUrl}${resolvedPath}`, {
+      ...init,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError("Network request failed.");
+  }
+
+  if (!response.ok) {
+    const detail = await readErrorDetail(response);
+
+    throw new ApiError(detail ?? `API request failed with status ${response.status}.`, {
+      detail,
+      status: response.status,
+    });
+  }
+
+  return (await response.json()) as T;
+}
+
+function uploadVoiceIntakeInBrowser({
+  audioFile,
+  fileName,
+  languageCode,
+  durationSeconds,
+  onUploadProgress,
+}: UploadVoiceIntakeOptions): Promise<VoiceIntakeCreateResponse> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.set("audio_file", audioFile, fileName);
+
+    if (languageCode) {
+      formData.set("language_code", languageCode);
+    }
+
+    if (typeof durationSeconds === "number" && Number.isFinite(durationSeconds)) {
+      formData.set("duration_seconds", durationSeconds.toString());
+    }
+
+    const request = new XMLHttpRequest();
+    request.open("POST", "/api/voice-intakes");
+    request.responseType = "text";
+
+    request.upload.addEventListener("progress", (event) => {
+      if (!onUploadProgress || !event.lengthComputable) {
+        return;
+      }
+
+      onUploadProgress(Math.round((event.loaded / event.total) * 100));
+    });
+
+    request.addEventListener("error", () => {
+      reject(new ApiError("Network request failed."));
+    });
+
+    request.addEventListener("load", () => {
+      const payloadText = request.responseText;
+      const payload = payloadText ? safeJsonParse(payloadText) : null;
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(payload as VoiceIntakeCreateResponse);
+        return;
+      }
+
+      const detail =
+        payload && typeof payload === "object" && "detail" in payload && typeof payload.detail === "string"
+          ? payload.detail
+          : null;
+
+      reject(
+        new ApiError(detail ?? `API request failed with status ${request.status}.`, {
+          detail,
+          status: request.status || null,
+        }),
+      );
+    });
+
+    request.send(formData);
+  });
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 async function readErrorDetail(response: Response): Promise<string | null> {
