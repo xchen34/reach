@@ -144,6 +144,22 @@ def test_voice_upload_confirm_attach_and_staff_access_flow() -> None:
     assert "staff_voice_audio_accessed" in event_types
 
 
+def test_voice_upload_falls_back_to_stub_when_real_provider_lacks_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BEACON_SPEECH_TO_TEXT_PROVIDER", "openai_compatible")
+    monkeypatch.delenv("BEACON_SPEECH_TO_TEXT_OPENAI_API_KEY", raising=False)
+    get_settings.cache_clear()
+
+    upload_payload = _upload_voice()
+
+    assert upload_payload["processing_status"] == "completed"
+    assert upload_payload["transcription_text"] == (
+        "Audio received. Review and edit this transcript before submitting."
+    )
+    assert upload_payload["transcription_language_code"] == "en"
+
+
 def test_voice_staff_routes_require_bearer_authentication() -> None:
     upload_payload = _upload_voice()
     client.post(

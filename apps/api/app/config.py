@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     dev_auto_create_users: bool = True
     dev_magic_link_inbox_email: Optional[EmailStr] = None
     speech_to_text_provider: str = "development_stub"
+    speech_to_text_openai_base_url: str = "https://api.openai.com/v1"
+    speech_to_text_openai_api_key: Optional[str] = None
+    speech_to_text_openai_model: str = "gpt-4o-mini-transcribe"
+    speech_to_text_timeout_seconds: float = 30.0
     voice_storage_dir: str = "/tmp/beacon/voice_uploads"
     voice_max_upload_bytes: int = 10 * 1024 * 1024
 
