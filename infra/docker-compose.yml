@@ -28,6 +28,7 @@ services:
       BEACON_DEV_MAGIC_LINK_MODE: response
       BEACON_DEV_DEFAULT_ROLE: volunteer
       BEACON_DEV_AUTO_CREATE_USERS: "true"
+      BEACON_GOOGLE_FORM_INGEST_TOKEN: ${BEACON_GOOGLE_FORM_INGEST_TOKEN:-}
       BEACON_SPEECH_TO_TEXT_PROVIDER: development_stub
       BEACON_VOICE_STORAGE_DIR: /app/data/voice_uploads
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

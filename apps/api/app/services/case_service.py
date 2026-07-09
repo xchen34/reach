@@ -19,8 +19,10 @@ from app.models.enums import (
     AuditEventType,
     CaseActionType,
     CaseStatus,
+    IncidentType,
     ShareLinkScope,
     StaffRole,
+    UrgencyLevel,
 )
 from app.models.user import User
 from app.schemas.case import (
@@ -34,6 +36,7 @@ from app.schemas.case import (
     StaffCaseActionRequest,
     StaffCaseActionResponse,
 )
+from app.schemas.google_forms import GoogleFormIngestRequest, GoogleFormIngestResponse
 from app.schemas.staff import StaffUserSummary
 from app.services.voice_intake import VoiceIntakeService
 
@@ -116,6 +119,76 @@ class CaseService:
                 scope=share_link.scope,
             ),
             created_at=case.created_at,
+        )
+
+    def create_google_form_case(self, payload: GoogleFormIngestRequest) -> GoogleFormIngestResponse:
+        case = Case(
+            case_code=self._generate_case_code(),
+            status=CaseStatus.PENDING_REVIEW,
+            urgency=payload.urgency or self._default_urgency_for_report_kind(payload.report_kind),
+            incident_type=payload.incident_type or self._default_incident_type_for_report_kind(payload.report_kind),
+            language_code=payload.language_code,
+            location_summary=payload.location_summary,
+            needs_summary=payload.details_summary,
+            latest_public_update=payload.public_update_hint
+            or self._default_public_update_for_report_kind(payload.report_kind),
+            reporter_name=payload.reporter_name,
+            reporter_email=payload.reporter_email,
+            reporter_phone=payload.reporter_phone,
+        )
+        self.db.add(case)
+        self.db.flush()
+
+        share_token = secrets.token_urlsafe(18)
+        share_link = CaseShareLink(
+            case_id=case.id,
+            token_hash=self._hash_token(share_token),
+            scope=ShareLinkScope.STATUS_ONLY,
+        )
+        self.db.add(share_link)
+        self.db.flush()
+
+        self.db.add(
+            CaseAction(
+                case_id=case.id,
+                action_type=CaseActionType.NOTE,
+                note=self._build_google_form_import_note(payload),
+            )
+        )
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.SYSTEM,
+                case_id=case.id,
+                share_link_id=share_link.id,
+                event_type=AuditEventType.CASE_SUBMITTED,
+                metadata_json={
+                    "status": case.status.value,
+                    "source": "google_form",
+                    "report_kind": payload.report_kind,
+                    "source_form_name": payload.source_form_name,
+                    "source_entry_id": payload.source_entry_id,
+                },
+            )
+        )
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.SYSTEM,
+                case_id=case.id,
+                share_link_id=share_link.id,
+                event_type=AuditEventType.SHARE_LINK_CREATED,
+                metadata_json={"scope": share_link.scope.value, "source": "google_form"},
+            )
+        )
+        self.db.commit()
+        self.db.refresh(case)
+
+        return GoogleFormIngestResponse(
+            id=case.id,
+            case_code=case.case_code,
+            status=case.status,
+            source="google_form",
+            report_kind=payload.report_kind,
+            imported_at=case.created_at,
         )
 
     def list_cases(self) -> list[CaseListItem]:
@@ -235,6 +308,45 @@ class CaseService:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+    @staticmethod
+    def _default_incident_type_for_report_kind(report_kind: str) -> IncidentType:
+        return {
+            "safe": IncidentType.OTHER,
+            "missing": IncidentType.OTHER,
+            "update": IncidentType.OTHER,
+        }[report_kind]
+
+    @staticmethod
+    def _default_urgency_for_report_kind(report_kind: str) -> UrgencyLevel:
+        return {
+            "safe": UrgencyLevel.LOW,
+            "missing": UrgencyLevel.HIGH,
+            "update": UrgencyLevel.MEDIUM,
+        }[report_kind]
+
+    @staticmethod
+    def _default_public_update_for_report_kind(report_kind: str) -> str:
+        return {
+            "safe": "Safe check-in received. Waiting for volunteer verification.",
+            "missing": "Missing-person report received. Waiting for volunteer verification.",
+            "update": "Community update received. Waiting for volunteer verification.",
+        }[report_kind]
+
+    @staticmethod
+    def _build_google_form_import_note(payload: GoogleFormIngestRequest) -> str:
+        note_lines = [
+            f"Imported from Google Form ({payload.report_kind}).",
+        ]
+        if payload.subject_name:
+            note_lines.append(f"Subject reference: {payload.subject_name}")
+        if payload.source_form_name:
+            note_lines.append(f"Source form: {payload.source_form_name}")
+        if payload.source_entry_id:
+            note_lines.append(f"Source entry id: {payload.source_entry_id}")
+        if payload.submitted_at is not None:
+            note_lines.append(f"Submitted at: {payload.submitted_at.isoformat()}")
+        return " ".join(note_lines)
 
     def _to_case_list_item(self, case: Case) -> CaseListItem:
         assigned_staff_user = None

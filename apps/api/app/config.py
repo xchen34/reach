@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     case_intake_suggestions_openai_api_key: Optional[str] = None
     case_intake_suggestions_openai_model: str = "gpt-4.1-mini"
     case_intake_suggestions_timeout_seconds: float = 20.0
+    google_form_ingest_token: Optional[str] = None
     voice_storage_dir: str = "/tmp/beacon/voice_uploads"
     voice_max_upload_bytes: int = 10 * 1024 * 1024
 

@@ -28,6 +28,53 @@ This mirrors the real-world pattern seen in community-led disaster coordination:
 
 Create three separate forms rather than one overloaded form.
 
+## Google Form bridge
+
+Beacon now includes a minimal private ingest bridge for Google Form submissions.
+
+### Current bridge shape
+
+- hidden backend route: `POST /ingest/google-form`
+- hidden from shared OpenAPI contract
+- protected by shared header:
+  - `x-beacon-ingest-token: <BEACON_GOOGLE_FORM_INGEST_TOKEN>`
+- writes into the current `cases` table so the existing staff queue and public board adapter can see the record immediately
+
+### Current payload
+
+```json
+{
+  "report_kind": "missing",
+  "location_summary": "Tower 2 lobby near the lifts",
+  "details_summary": "Family cannot reach one resident and asks volunteers to verify their status.",
+  "language_code": "en",
+  "reporter_name": "Community Lead",
+  "reporter_email": "lead@example.com",
+  "reporter_phone": "+1 555 000 1111",
+  "subject_name": "Resident A",
+  "public_update_hint": "Missing-person report received. Waiting for volunteer verification.",
+  "source_form_name": "Missing Person Form",
+  "source_entry_id": "entry-123"
+}
+```
+
+### Suggested Apps Script pattern
+
+Use Google Apps Script attached to the response sheet, then POST a normalized payload to Beacon whenever a new row arrives.
+
+Pseudo-flow:
+
+1. Form writes to Google Sheet
+2. Apps Script reads the new row
+3. Apps Script maps row columns into Beacon's normalized JSON payload
+4. Apps Script sends `POST /ingest/google-form` with the shared ingest token
+
+This keeps Google Forms as the public intake layer while Beacon remains the internal verification and public board system.
+
+Reference starter file:
+
+- `docs/google-form-apps-script-example.js`
+
 ### 1. Safe check-in form
 
 Use when a person is reporting themselves safe or confirming another person's safety.
