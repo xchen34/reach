@@ -72,11 +72,10 @@ export const zh = {
         checkTranscriptButton: "再次检查转写",
         transcriptLabel: "检查转写内容",
         transcriptHint:
-          "如有需要，请编辑转写内容。如果您希望提交时附加该语音说明，请先确认转写文本。",
-        useTranscriptButton: "将转写内容用于报告详情",
-        confirmButton: "确认转写内容",
-        confirmingButton: "正在确认...",
-        confirmedMessage: "转写内容已确认。发送报告时会附加这条语音说明。",
+          "如有需要，请编辑转写内容，然后用它来填写报告详情。",
+        confirmButton: "使用转写内容",
+        confirmingButton: "正在添加转写内容...",
+        confirmedMessage: "转写内容已添加到报告中。",
         editedAfterConfirm: "转写内容已修改。附加前请再次确认。",
         states: {
           recording: "正在录音...",

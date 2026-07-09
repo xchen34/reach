@@ -393,7 +393,7 @@ export function AnonymousCaseSubmissionFlow({
     }
   }
 
-  async function handleConfirmTranscript() {
+  async function handleApplyTranscript() {
     if (!voiceToken) {
       setVoiceError(dictionary.home.form.voice.errors.transcriptUnavailable);
       return;
@@ -411,8 +411,10 @@ export function AnonymousCaseSubmissionFlow({
     try {
       const response = await confirmVoiceIntake(voiceToken, normalizedTranscript);
       setVoiceView(response);
-      setVoiceTranscriptDraft(response.confirmed_transcript_text ?? normalizedTranscript);
-      setConfirmedTranscript(response.confirmed_transcript_text ?? normalizedTranscript);
+      const nextTranscript = response.confirmed_transcript_text ?? normalizedTranscript;
+      setVoiceTranscriptDraft(nextTranscript);
+      setConfirmedTranscript(nextTranscript);
+      updateField("needs_summary", nextTranscript);
       setVoiceStage("confirmed");
       setVoiceStatusMessage(dictionary.home.form.voice.confirmedMessage);
     } catch (error) {
@@ -431,15 +433,6 @@ export function AnonymousCaseSubmissionFlow({
       setVoiceStage("ready");
       setVoiceStatusMessage(dictionary.home.form.voice.editedAfterConfirm);
     }
-  }
-
-  function handleUseTranscriptInReport() {
-    updateField("needs_summary", voiceTranscriptDraft);
-    setVoiceStatusMessage(
-      confirmedTranscript
-        ? dictionary.home.form.voice.confirmedMessage
-        : dictionary.home.form.voice.states.ready,
-    );
   }
 
   function handleRetryTranscript() {
@@ -715,15 +708,12 @@ export function AnonymousCaseSubmissionFlow({
               </label>
 
               <div className="button-row">
-                <button className="button-secondary" type="button" onClick={handleUseTranscriptInReport}>
-                  {dictionary.home.form.voice.useTranscriptButton}
-                </button>
                 <button
                   className="button-primary"
                   disabled={isConfirmingVoice}
                   type="button"
                   onClick={() => {
-                    void handleConfirmTranscript();
+                    void handleApplyTranscript();
                   }}
                 >
                   {isConfirmingVoice

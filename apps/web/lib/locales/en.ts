@@ -72,11 +72,10 @@ export const en = {
         checkTranscriptButton: "Check transcript again",
         transcriptLabel: "Review transcript",
         transcriptHint:
-          "Edit the transcript if needed. Confirm it before sending your report if you want the voice intake attached.",
-        useTranscriptButton: "Use transcript in report details",
-        confirmButton: "Confirm transcript for submission",
-        confirmingButton: "Confirming transcript...",
-        confirmedMessage: "Transcript confirmed. It will be attached when you send the report.",
+          "Edit the transcript if needed, then use it to fill your report details.",
+        confirmButton: "Use transcript",
+        confirmingButton: "Adding transcript...",
+        confirmedMessage: "Transcript added to your report.",
         editedAfterConfirm: "Transcript changed. Confirm it again before it can be attached.",
         states: {
           recording: "Recording audio...",

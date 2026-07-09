@@ -72,11 +72,10 @@ export const fr = {
         checkTranscriptButton: "Verifier de nouveau la transcription",
         transcriptLabel: "Relire la transcription",
         transcriptHint:
-          "Modifiez la transcription si besoin. Confirmez-la avant d'envoyer le signalement si vous voulez joindre l'audio.",
-        useTranscriptButton: "Utiliser la transcription dans le signalement",
-        confirmButton: "Confirmer la transcription",
-        confirmingButton: "Confirmation...",
-        confirmedMessage: "Transcription confirmee. Elle sera jointe quand vous enverrez le signalement.",
+          "Modifiez la transcription si besoin, puis utilisez-la pour remplir le signalement.",
+        confirmButton: "Utiliser la transcription",
+        confirmingButton: "Ajout de la transcription...",
+        confirmedMessage: "La transcription a ete ajoutee au signalement.",
         editedAfterConfirm: "La transcription a change. Confirmez-la de nouveau avant de la joindre.",
         states: {
           recording: "Enregistrement audio en cours...",
