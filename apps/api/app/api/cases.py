@@ -11,6 +11,8 @@ from app.schemas.case import (
     StaffCaseActionResponse,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
+    StaffCaseRelationRequest,
+    StaffCaseRelationResponse,
 )
 from app.schemas.intake_review import StaffCaseIntakeReviewResponse
 from app.schemas.staff_queue import StaffQueueResponse
@@ -113,6 +115,25 @@ def publish_case_update(
 ) -> StaffCasePublishResponse:
     try:
         return CaseService(db).publish_case_update(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post(
+    "/{case_id}/relations",
+    response_model=StaffCaseRelationResponse,
+    include_in_schema=False,
+)
+def create_case_relation(
+    case_id: int,
+    payload: StaffCaseRelationRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> StaffCaseRelationResponse:
+    try:
+        return CaseService(db).relate_case(case_id, session_context.user, payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:

@@ -17,6 +17,7 @@ const allowedRoutes = [
   { method: "GET", pattern: /^staff\/cases\/\d+\/audit$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/actions$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/publish$/ },
+  { method: "POST", pattern: /^staff\/cases\/\d+\/relations$/ },
 ] as const;
 
 export async function GET(request: Request, context: RouteContext) {

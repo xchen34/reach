@@ -37,6 +37,8 @@ from app.schemas.case import (
     StaffCaseActionResponse,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
+    StaffCaseRelationRequest,
+    StaffCaseRelationResponse,
 )
 from app.schemas.google_forms import GoogleFormIngestRequest, GoogleFormIngestResponse
 from app.schemas.staff import StaffUserSummary
@@ -337,6 +339,63 @@ class CaseService:
             status=case.status,
             latest_public_update=case.latest_public_update or "",
             published_at=case.updated_at,
+        )
+
+    def relate_case(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCaseRelationRequest,
+    ) -> StaffCaseRelationResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+
+        related_case = self.db.get(Case, payload.related_case_id)
+        if related_case is None:
+            raise ValueError("Related case not found.")
+
+        if related_case.id == case.id:
+            raise ValueError("A case cannot be related to itself.")
+
+        relation_note = payload.note.strip() if payload.note else None
+        if not relation_note:
+            relation_note = (
+                f"Marked case #{payload.related_case_id} as {payload.relation_type.replace('_', ' ')}."
+            )
+
+        action = CaseAction(
+            case_id=case.id,
+            actor_user_id=actor.id,
+            action_type=CaseActionType.NOTE,
+            note=relation_note,
+        )
+        self.db.add(action)
+        self.db.flush()
+
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.STAFF,
+                actor_user_id=actor.id,
+                case_id=case.id,
+                event_type=AuditEventType.CASE_ACTION_CREATED,
+                metadata_json={
+                    "action_type": "relation_marked",
+                    "related_case_id": related_case.id,
+                    "relation_type": payload.relation_type,
+                    "note": relation_note,
+                },
+            )
+        )
+        self.db.commit()
+        self.db.refresh(action)
+
+        return StaffCaseRelationResponse(
+            case_id=case.id,
+            related_case_id=related_case.id,
+            relation_type=payload.relation_type,
+            note=relation_note,
+            created_at=action.created_at,
         )
 
     def list_audit_entries(self, case_id: int) -> list[AuditLogEntryResponse]:

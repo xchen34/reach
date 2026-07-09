@@ -484,6 +484,18 @@ export const en = {
         signals: "Look for matching location, urgency, or need patterns before associating it.",
         crossCase: "Confirm with a coordinator before grouping multiple records under one event.",
       },
+      relatedCaseLabel: "Related record ID",
+      relationTypeLabel: "Relation type",
+      relationNoteLabel: "Internal relation note",
+      relationSubmit: "Save relation marker",
+      relatedLinksTitle: "Marked related records",
+      relatedCaseRequired: "Enter a valid related record ID.",
+      relationSuccess: "The related record marker was saved.",
+      relationTypes: {
+        relatedUpdate: "Related update",
+        possibleDuplicate: "Possible duplicate",
+        confirmedDuplicate: "Confirmed duplicate",
+      },
       suggestionsTitle: "AI suggestions",
       suggestionsDescription: "Structured intake outputs and future suggestions should appear here for volunteer review, never as autonomous actions.",
       suggestionItems: {

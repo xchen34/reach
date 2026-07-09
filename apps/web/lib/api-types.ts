@@ -221,6 +221,25 @@ export interface StaffCasePublishResponse {
   published_at: string;
 }
 
+export type StaffCaseRelationType =
+  | "possible_duplicate"
+  | "confirmed_duplicate"
+  | "related_update";
+
+export interface StaffCaseRelationRequest {
+  related_case_id: number;
+  relation_type: StaffCaseRelationType;
+  note?: string | null;
+}
+
+export interface StaffCaseRelationResponse {
+  case_id: number;
+  related_case_id: number;
+  relation_type: StaffCaseRelationType;
+  note: string | null;
+  created_at: string;
+}
+
 export interface StaffCaseActionResponse {
   id: number;
   case_id: number;

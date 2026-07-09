@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.enums import CaseActionType, CaseStatus, IncidentType, ShareLinkScope, UrgencyLevel
 from app.schemas.common import ApiModel
 from app.schemas.staff import StaffUserSummary
+
+StaffCaseRelationType = Literal["possible_duplicate", "confirmed_duplicate", "related_update"]
 
 
 class AnonymousCaseSubmissionRequest(BaseModel):
@@ -107,6 +109,20 @@ class StaffCasePublishResponse(ApiModel):
     status: CaseStatus
     latest_public_update: str
     published_at: datetime
+
+
+class StaffCaseRelationRequest(BaseModel):
+    related_case_id: int = Field(gt=0)
+    relation_type: StaffCaseRelationType
+    note: Optional[str] = Field(default=None, max_length=4000)
+
+
+class StaffCaseRelationResponse(ApiModel):
+    case_id: int
+    related_case_id: int
+    relation_type: StaffCaseRelationType
+    note: Optional[str] = None
+    created_at: datetime
 
 
 class AuditLogEntryResponse(ApiModel):

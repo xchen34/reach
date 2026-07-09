@@ -459,6 +459,18 @@ export const zh = {
         signals: "在关联前先核对地点、紧急程度或需求模式是否一致。",
         crossCase: "将多条记录归为同一事件前，先与协调员确认。",
       },
+      relatedCaseLabel: "关联记录 ID",
+      relationTypeLabel: "关联类型",
+      relationNoteLabel: "内部关联备注",
+      relationSubmit: "保存关联标记",
+      relatedLinksTitle: "已标记的关联记录",
+      relatedCaseRequired: "请输入有效的关联记录 ID。",
+      relationSuccess: "关联记录标记已保存。",
+      relationTypes: {
+        relatedUpdate: "相关更新",
+        possibleDuplicate: "可能重复",
+        confirmedDuplicate: "确认重复",
+      },
       suggestionsTitle: "AI 建议",
       suggestionsDescription: "结构化 intake 输出和后续建议应在此供志愿者审核，而不是自动执行。",
       suggestionItems: {

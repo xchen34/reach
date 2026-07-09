@@ -13,6 +13,7 @@ import {
   listStaffCaseAudit,
   logoutStaffSession,
   publishStaffCaseUpdate,
+  relateStaffCase,
 } from "@/lib/api";
 import {
   caseStatuses,
@@ -21,6 +22,7 @@ import {
   type CurrentStaffSession,
   type StaffCaseIntakeReviewResponse,
   type StaffCaseDetailResponse,
+  type StaffCaseRelationType,
   type StaffCaseVoiceResponse,
 } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -71,6 +73,10 @@ export function StaffCaseDetailPage({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [nextStatus, setNextStatus] = useState<CaseStatus>(caseStatuses[0]);
   const [publicUpdateDraft, setPublicUpdateDraft] = useState("");
+  const [isLinkingRelation, setIsLinkingRelation] = useState(false);
+  const [relatedCaseIdDraft, setRelatedCaseIdDraft] = useState("");
+  const [relationTypeDraft, setRelationTypeDraft] = useState<StaffCaseRelationType>("related_update");
+  const [relationNoteDraft, setRelationNoteDraft] = useState("");
   const noteFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const requestSequenceRef = useRef(0);
   const [voiceDetail, setVoiceDetail] = useState<StaffCaseVoiceResponse | null>(null);
@@ -310,6 +316,44 @@ export function StaffCaseDetailPage({
     }
   }
 
+  async function handleRelationSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (state.status !== "ready") {
+      return;
+    }
+
+    const relatedCaseId = Number.parseInt(relatedCaseIdDraft, 10);
+    setActionError(null);
+    setActionSuccess(null);
+
+    if (!Number.isInteger(relatedCaseId) || relatedCaseId <= 0) {
+      setActionError(dictionary.staff.detail.relatedCaseRequired);
+      return;
+    }
+
+    setIsLinkingRelation(true);
+
+    try {
+      await withStaffAuthorization(state.accessToken, (token) =>
+        relateStaffCase(token, caseId, {
+          related_case_id: relatedCaseId,
+          relation_type: relationTypeDraft,
+          note: relationNoteDraft.trim() || null,
+        }),
+      );
+      setRelatedCaseIdDraft("");
+      setRelationNoteDraft("");
+      setRelationTypeDraft("related_update");
+      setActionSuccess(dictionary.staff.detail.relationSuccess);
+      await loadCase();
+    } catch (error) {
+      await handleActionError(error);
+    } finally {
+      setIsLinkingRelation(false);
+    }
+  }
+
   async function handleActionError(error: unknown) {
     if (error instanceof MissingStaffSessionError) {
       redirectToLogin(router, locale, "missing");
@@ -413,6 +457,9 @@ export function StaffCaseDetailPage({
     dictionary.staff.detail.eventAssociationItems.signals,
     dictionary.staff.detail.eventAssociationItems.crossCase,
   ];
+  const relatedMarkers = auditEntries
+    .map((entry) => getRelatedMarker(entry))
+    .filter((marker): marker is RelatedMarker => marker !== null);
   const officialDataItems = [
     buildReviewChecklistItem(
       dictionary.staff.detail.officialDataItems.assignment,
@@ -712,6 +759,68 @@ export function StaffCaseDetailPage({
                   <li key={item}>{item}</li>
                 ))}
               </ul>
+              <form className="form-stack" onSubmit={handleRelationSubmit}>
+                <label className="field">
+                  <span className="field-label">{dictionary.staff.detail.relatedCaseLabel}</span>
+                  <input
+                    className="field-control"
+                    inputMode="numeric"
+                    min={1}
+                    pattern="[0-9]*"
+                    type="text"
+                    value={relatedCaseIdDraft}
+                    onChange={(event) =>
+                      setRelatedCaseIdDraft(event.target.value.replaceAll(/[^0-9]/g, ""))
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span className="field-label">{dictionary.staff.detail.relationTypeLabel}</span>
+                  <select
+                    className="field-control"
+                    value={relationTypeDraft}
+                    onChange={(event) => setRelationTypeDraft(event.target.value as StaffCaseRelationType)}
+                  >
+                    {(["related_update", "possible_duplicate", "confirmed_duplicate"] as const).map(
+                      (relationType) => (
+                        <option key={relationType} value={relationType}>
+                          {getRelationTypeLabel(dictionary, relationType)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label className="field">
+                  <span className="field-label">{dictionary.staff.detail.relationNoteLabel}</span>
+                  <textarea
+                    className="field-control field-textarea"
+                    maxLength={4000}
+                    rows={3}
+                    value={relationNoteDraft}
+                    onChange={(event) => setRelationNoteDraft(event.target.value)}
+                  />
+                </label>
+                <button className="button-secondary" disabled={isLinkingRelation} type="submit">
+                  {isLinkingRelation
+                    ? dictionary.staff.detail.submitting
+                    : dictionary.staff.detail.relationSubmit}
+                </button>
+              </form>
+              <div>
+                <h3 className="section-title staff-action-title">{dictionary.staff.detail.relatedLinksTitle}</h3>
+                {relatedMarkers.length > 0 ? (
+                  <ol className="staff-review-list">
+                    {relatedMarkers.map((marker) => (
+                      <li key={`${marker.relatedCaseId}-${marker.createdAt}-${marker.relationType}`}>
+                        #{marker.relatedCaseId} · {getRelationTypeLabel(dictionary, marker.relationType)} ·{" "}
+                        {dateFormatter.format(new Date(marker.createdAt))}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="support-copy">{dictionary.staff.detail.auditEmpty}</p>
+                )}
+              </div>
             </section>
 
             <section className="detail-card staff-sidebar-panel" aria-labelledby="staff-ai-review-title">
@@ -913,9 +1022,15 @@ async function loadOptionalIntakeReview(accessToken: string, caseId: number) {
       staff_summary_suggestion: null,
       suggested_tags: null,
       fallback_message: "",
-    } satisfies StaffCaseIntakeReviewResponse;
+  } satisfies StaffCaseIntakeReviewResponse;
   }
 }
+
+type RelatedMarker = {
+  relatedCaseId: number;
+  relationType: StaffCaseRelationType;
+  createdAt: string;
+};
 
 function TagGroup({
   label,
@@ -964,6 +1079,42 @@ function getActorLabel(dictionary: Dictionary, actorType: string) {
   }
 
   return actorType;
+}
+
+function getRelationTypeLabel(dictionary: Dictionary, relationType: StaffCaseRelationType) {
+  switch (relationType) {
+    case "related_update":
+      return dictionary.staff.detail.relationTypes.relatedUpdate;
+    case "possible_duplicate":
+      return dictionary.staff.detail.relationTypes.possibleDuplicate;
+    case "confirmed_duplicate":
+      return dictionary.staff.detail.relationTypes.confirmedDuplicate;
+  }
+}
+
+function getRelatedMarker(entry: AuditLogEntryResponse): RelatedMarker | null {
+  const metadata = entry.metadata_json;
+  if (!metadata || metadata.action_type !== "relation_marked") {
+    return null;
+  }
+
+  const relatedCaseId = metadata.related_case_id;
+  const relationType = metadata.relation_type;
+
+  if (
+    typeof relatedCaseId !== "number" ||
+    (relationType !== "related_update" &&
+      relationType !== "possible_duplicate" &&
+      relationType !== "confirmed_duplicate")
+  ) {
+    return null;
+  }
+
+  return {
+    relatedCaseId,
+    relationType,
+    createdAt: entry.created_at,
+  };
 }
 
 function hasContactDetail(caseDetail: StaffCaseDetailResponse) {

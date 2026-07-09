@@ -485,6 +485,18 @@ export const fr = {
         signals: "Comparer lieu, urgence et besoins avant toute association.",
         crossCase: "Confirmer avec un coordinateur avant de regrouper plusieurs fiches sous un meme evenement.",
       },
+      relatedCaseLabel: "ID de fiche liee",
+      relationTypeLabel: "Type de relation",
+      relationNoteLabel: "Note interne sur la relation",
+      relationSubmit: "Enregistrer le lien",
+      relatedLinksTitle: "Fiches liees marquees",
+      relatedCaseRequired: "Entrez un ID de fiche liee valide.",
+      relationSuccess: "Le marquage de fiche liee a ete enregistre.",
+      relationTypes: {
+        relatedUpdate: "Mise a jour liee",
+        possibleDuplicate: "Doublon possible",
+        confirmedDuplicate: "Doublon confirme",
+      },
       suggestionsTitle: "Suggestions IA",
       suggestionsDescription: "Les sorties structurees d'intake et les futures suggestions doivent apparaitre ici pour revue benevole, jamais comme actions autonomes.",
       suggestionItems: {
