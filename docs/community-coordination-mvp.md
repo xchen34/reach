@@ -74,6 +74,7 @@ This keeps Google Forms as the public intake layer while Beacon remains the inte
 Reference starter file:
 
 - `docs/google-form-apps-script-example.js`
+- `docs/google-form-column-mapping.md`
 
 ### 1. Safe check-in form
 

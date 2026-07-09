@@ -9,6 +9,7 @@ export interface StaffDashboardEvent {
   id: string;
   title: string;
   status: CaseStatus;
+  publishState: "awaiting_verification" | "ready_to_publish" | "published";
   caseCount: number;
   openCaseCount: number;
   unassignedCaseCount: number;
@@ -16,6 +17,7 @@ export interface StaffDashboardEvent {
   incidentType: IncidentType;
   lastUpdatedAt: string;
   summary: string;
+  latestPublicUpdate: string | null;
   relatedCases: StaffCaseListItem[];
 }
 
@@ -25,6 +27,9 @@ export interface StaffDashboardSummary {
   openCases: number;
   unassignedCases: number;
   criticalCases: number;
+  awaitingVerificationGroups: number;
+  readyToPublishGroups: number;
+  publishedGroups: number;
   lastUpdatedAt: string | null;
 }
 
@@ -76,6 +81,11 @@ export function buildStaffDashboardData(cases: StaffCaseListItem[]): StaffDashbo
     });
 
   const lastUpdatedAt = events[0]?.lastUpdatedAt ?? null;
+  const awaitingVerificationGroups = events.filter(
+    (event) => event.publishState === "awaiting_verification",
+  ).length;
+  const readyToPublishGroups = events.filter((event) => event.publishState === "ready_to_publish").length;
+  const publishedGroups = events.filter((event) => event.publishState === "published").length;
 
   return {
     source: "case-list-adapter",
@@ -86,6 +96,9 @@ export function buildStaffDashboardData(cases: StaffCaseListItem[]): StaffDashbo
       openCases: cases.filter((item) => !isClosedStatus(item.status)).length,
       unassignedCases: cases.filter((item) => item.assigned_staff_user === null).length,
       criticalCases: cases.filter((item) => item.urgency === "critical").length,
+      awaitingVerificationGroups,
+      readyToPublishGroups,
+      publishedGroups,
       lastUpdatedAt,
     },
   };
@@ -110,11 +123,13 @@ function buildEvent(key: string, cases: StaffCaseListItem[]): StaffDashboardEven
       new Date(item.updated_at).getTime() > new Date(current).getTime() ? item.updated_at : current,
     leadCase.updated_at,
   );
+  const latestPublicUpdate = resolveLatestPublicUpdate(relatedCases);
 
   return {
     id: key,
     title: leadCase.location_summary,
     status,
+    publishState: getPublishState(status),
     caseCount: relatedCases.length,
     openCaseCount: relatedCases.filter((item) => !isClosedStatus(item.status)).length,
     unassignedCaseCount: relatedCases.filter((item) => item.assigned_staff_user === null).length,
@@ -122,17 +137,22 @@ function buildEvent(key: string, cases: StaffCaseListItem[]): StaffDashboardEven
     incidentType: leadCase.incident_type,
     lastUpdatedAt,
     summary: buildEventSummary(relatedCases),
+    latestPublicUpdate,
     relatedCases,
   };
 }
 
 function buildEventSummary(cases: StaffCaseListItem[]) {
-  const latestPublicUpdate = cases.find((item) => item.latest_public_update)?.latest_public_update;
+  const latestPublicUpdate = resolveLatestPublicUpdate(cases);
   if (latestPublicUpdate) {
     return latestPublicUpdate;
   }
 
   return cases[0]?.needs_summary ?? "";
+}
+
+function resolveLatestPublicUpdate(cases: StaffCaseListItem[]) {
+  return cases.find((item) => item.latest_public_update)?.latest_public_update ?? null;
 }
 
 function buildEventKey(item: StaffCaseListItem) {
@@ -149,4 +169,16 @@ function slugify(value: string) {
 
 function isClosedStatus(status: CaseStatus) {
   return status === "safe_resolved" || status === "closed";
+}
+
+function getPublishState(status: CaseStatus): StaffDashboardEvent["publishState"] {
+  if (status === "pending_review") {
+    return "awaiting_verification";
+  }
+
+  if (status === "active" || status === "waiting_for_information") {
+    return "ready_to_publish";
+  }
+
+  return "published";
 }

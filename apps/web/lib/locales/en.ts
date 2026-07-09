@@ -335,7 +335,7 @@ export const en = {
     },
     cases: {
       title: "Verification queue",
-      description: "Review grouped incoming reports, spot likely duplicates, and open individual records for volunteer verification.",
+      description: "Review grouped incoming reports, decide what is ready for public board publication, and open individual records for volunteer verification.",
       sourceTitle: "Dashboard source",
       sourceDescription:
         "This queue currently derives grouped report cards from the existing staff case list so volunteers can work in a coordination-friendly view without changing the backend contract yet.",
@@ -343,9 +343,9 @@ export const en = {
       mockSourceDescription:
         "Mock verification data is active for demo mode. The layout still uses the same grouping adapter that will consume real staff records later.",
       mockSourceBadge: "Demo mock data",
-      summaryTitle: "Queue summary",
-      listTitle: "Grouped reports",
-      listDescription: "Each card groups related incoming reports so volunteers can verify status updates before they appear publicly.",
+      summaryTitle: "Publish queue summary",
+      listTitle: "Publish groups",
+      listDescription: "Each card groups related incoming reports so volunteers can verify them, prepare a public update, and publish a privacy-safe board status.",
       empty: "No reports have been submitted yet.",
       openCase: "Open record",
       retry: "Try again",
@@ -353,6 +353,7 @@ export const en = {
       roleLabel: "Role",
       sessionExpiresLabel: "Session expires",
       statusLabel: "Status",
+      publishStateLabel: "Publish state",
       caseCountLabel: "Record count",
       urgencyLabel: "Urgency",
       incidentTypeLabel: "Incident type",
@@ -374,6 +375,14 @@ export const en = {
         openCases: "Open records",
         unassigned: "Unassigned",
         critical: "Critical reports",
+        awaitingVerification: "Awaiting verification",
+        readyToPublish: "Ready to publish",
+        published: "Published or resolved",
+      },
+      publishStates: {
+        awaitingVerification: "Awaiting verification",
+        readyToPublish: "Ready to publish",
+        published: "Published or resolved",
       },
       errors: {
         network: "The verification queue could not reach the server. Check your connection and try again.",

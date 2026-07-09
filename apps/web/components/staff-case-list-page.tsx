@@ -264,20 +264,20 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </h2>
           <div className="detail-grid">
             <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.events}</dt>
-              <dd>{dashboard.summary.totalEvents}</dd>
+              <dt>{dictionary.staff.cases.summaryCards.awaitingVerification}</dt>
+              <dd>{dashboard.summary.awaitingVerificationGroups}</dd>
             </div>
             <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.openCases}</dt>
-              <dd>{dashboard.summary.openCases}</dd>
+              <dt>{dictionary.staff.cases.summaryCards.readyToPublish}</dt>
+              <dd>{dashboard.summary.readyToPublishGroups}</dd>
             </div>
             <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.unassigned}</dt>
-              <dd>{dashboard.summary.unassignedCases}</dd>
+              <dt>{dictionary.staff.cases.summaryCards.published}</dt>
+              <dd>{dashboard.summary.publishedGroups}</dd>
             </div>
             <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.critical}</dt>
-              <dd>{dashboard.summary.criticalCases}</dd>
+              <dt>{dictionary.staff.cases.summaryCards.totalCases}</dt>
+              <dd>{dashboard.summary.totalCases}</dd>
             </div>
           </div>
           <p className="support-copy">
@@ -297,7 +297,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               <p className="support-copy">{dictionary.staff.cases.listDescription}</p>
             </div>
             <p className="status-pill status-pill-neutral">
-              {dictionary.staff.cases.summaryCards.totalCases}: {dashboard.summary.totalCases}
+              {dictionary.staff.cases.summaryCards.openCases}: {dashboard.summary.openCases}
             </p>
           </div>
 
@@ -317,8 +317,8 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                     </div>
                     <div className="staff-event-meta">
                       <div className="detail-card">
-                        <dt>{dictionary.staff.cases.statusLabel}</dt>
-                        <dd>{dictionary.caseStatus.labels[event.status]}</dd>
+                        <dt>{dictionary.staff.cases.publishStateLabel}</dt>
+                        <dd>{getPublishStateLabel(dictionary, event.publishState)}</dd>
                       </div>
                       <div className="detail-card">
                         <dt>{dictionary.staff.cases.caseCountLabel}</dt>
@@ -347,6 +347,10 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                           ? dictionary.staff.cases.allAssigned
                           : `${event.unassignedCaseCount} ${dictionary.staff.cases.unassigned}`}
                       </dd>
+                    </div>
+                    <div className="detail-card detail-card-wide">
+                      <dt>{dictionary.staff.cases.latestUpdateLabel}</dt>
+                      <dd>{event.latestPublicUpdate ?? dictionary.staff.cases.latestUpdateFallback}</dd>
                     </div>
                   </dl>
 
@@ -391,4 +395,17 @@ function redirectToLogin(
   reason: StaffAuthReason,
 ) {
   router.replace(buildStaffLoginHref(locale, reason));
+}
+
+function getPublishStateLabel(
+  dictionary: Dictionary,
+  publishState: "awaiting_verification" | "ready_to_publish" | "published",
+) {
+  if (publishState === "awaiting_verification") {
+    return dictionary.staff.cases.publishStates.awaitingVerification;
+  }
+  if (publishState === "ready_to_publish") {
+    return dictionary.staff.cases.publishStates.readyToPublish;
+  }
+  return dictionary.staff.cases.publishStates.published;
 }

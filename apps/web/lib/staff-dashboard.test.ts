@@ -59,15 +59,20 @@ test("buildStaffDashboardData groups related cases into derived events", () => {
   assert.equal(dashboard.summary.openCases, 2);
   assert.equal(dashboard.summary.unassignedCases, 1);
   assert.equal(dashboard.summary.criticalCases, 1);
+  assert.equal(dashboard.summary.awaitingVerificationGroups, 0);
+  assert.equal(dashboard.summary.readyToPublishGroups, 1);
+  assert.equal(dashboard.summary.publishedGroups, 1);
   assert.equal(dashboard.summary.lastUpdatedAt, "2026-07-09T10:20:00.000Z");
 
   const firstEvent = dashboard.events[0];
   assert.equal(firstEvent.title, "North Hall");
   assert.equal(firstEvent.caseCount, 2);
   assert.equal(firstEvent.status, "active");
+  assert.equal(firstEvent.publishState, "ready_to_publish");
   assert.equal(firstEvent.highestUrgency, "critical");
   assert.equal(firstEvent.unassignedCaseCount, 1);
   assert.equal(firstEvent.summary, "Evacuation support is in progress.");
+  assert.equal(firstEvent.latestPublicUpdate, "Evacuation support is in progress.");
   assert.deepEqual(
     firstEvent.relatedCases.map((item) => item.case_code),
     ["C-002", "C-001"],
@@ -94,4 +99,5 @@ test("buildStaffDashboardData falls back to reported needs when no public update
   const dashboard = buildStaffDashboardData(cases);
 
   assert.equal(dashboard.events[0]?.summary, "Water supply is still unavailable");
+  assert.equal(dashboard.events[0]?.publishState, "ready_to_publish");
 });
