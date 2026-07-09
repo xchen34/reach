@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     speech_to_text_openai_api_key: Optional[str] = None
     speech_to_text_openai_model: str = "gpt-4o-mini-transcribe"
     speech_to_text_timeout_seconds: float = 30.0
+    case_intake_suggestions_provider: str = "development_stub"
+    case_intake_suggestions_openai_base_url: str = "https://api.openai.com/v1"
+    case_intake_suggestions_openai_api_key: Optional[str] = None
+    case_intake_suggestions_openai_model: str = "gpt-4.1-mini"
+    case_intake_suggestions_timeout_seconds: float = 20.0
     voice_storage_dir: str = "/tmp/beacon/voice_uploads"
     voice_max_upload_bytes: int = 10 * 1024 * 1024
 
