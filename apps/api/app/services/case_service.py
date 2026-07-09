@@ -35,6 +35,8 @@ from app.schemas.case import (
     ShareLinkSummary,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCasePublishRequest,
+    StaffCasePublishResponse,
 )
 from app.schemas.google_forms import GoogleFormIngestRequest, GoogleFormIngestResponse
 from app.schemas.staff import StaffUserSummary
@@ -286,6 +288,52 @@ class CaseService:
 
         return StaffCaseActionResponse.model_validate(action)
 
+    def publish_case_update(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCasePublishRequest,
+    ) -> StaffCasePublishResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+
+        previous_status = case.status
+        case.status = payload.to_status
+        case.latest_public_update = payload.latest_public_update.strip()
+
+        action = CaseAction(
+            case_id=case.id,
+            actor_user_id=actor.id,
+            action_type=CaseActionType.STATUS_CHANGE,
+            note=f"Published to board: {case.latest_public_update}",
+            from_status=previous_status,
+            to_status=payload.to_status,
+        )
+        self.db.add(action)
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.STAFF,
+                actor_user_id=actor.id,
+                case_id=case.id,
+                event_type=AuditEventType.CASE_ACTION_CREATED,
+                metadata_json={
+                    "action_type": "publish_update",
+                    "to_status": payload.to_status.value,
+                    "latest_public_update": case.latest_public_update,
+                },
+            )
+        )
+        self.db.commit()
+        self.db.refresh(case)
+
+        return StaffCasePublishResponse(
+            case_id=case.id,
+            status=case.status,
+            latest_public_update=case.latest_public_update or "",
+            published_at=case.updated_at,
+        )
+
     def list_audit_entries(self, case_id: int) -> list[AuditLogEntryResponse]:
         entries = self.db.scalars(
             select(AuditLogEntry)
@@ -340,6 +388,16 @@ class CaseService:
         ]
         if payload.subject_name:
             note_lines.append(f"Subject reference: {payload.subject_name}")
+        if payload.source_relationship:
+            note_lines.append(f"Source relationship: {payload.source_relationship}")
+        if payload.callback_allowed is not None:
+            note_lines.append(f"Callback allowed: {'yes' if payload.callback_allowed else 'no'}")
+        if payload.public_visibility_requested is not None:
+            note_lines.append(
+                f"Public visibility requested: {'yes' if payload.public_visibility_requested else 'no'}"
+            )
+        if payload.update_category:
+            note_lines.append(f"Update category: {payload.update_category}")
         if payload.source_form_name:
             note_lines.append(f"Source form: {payload.source_form_name}")
         if payload.source_entry_id:

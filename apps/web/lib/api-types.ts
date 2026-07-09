@@ -171,6 +171,18 @@ export interface StaffCaseActionRequest {
   target_staff_user_id?: number | null;
 }
 
+export interface StaffCasePublishRequest {
+  to_status: CaseStatus;
+  latest_public_update: string;
+}
+
+export interface StaffCasePublishResponse {
+  case_id: number;
+  status: CaseStatus;
+  latest_public_update: string;
+  published_at: string;
+}
+
 export interface StaffCaseActionResponse {
   id: number;
   case_id: number;

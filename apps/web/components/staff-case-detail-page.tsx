@@ -12,6 +12,7 @@ import {
   getStaffCaseVoice,
   listStaffCaseAudit,
   logoutStaffSession,
+  publishStaffCaseUpdate,
 } from "@/lib/api";
 import {
   caseStatuses,
@@ -69,6 +70,7 @@ export function StaffCaseDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [nextStatus, setNextStatus] = useState<CaseStatus>(caseStatuses[0]);
+  const [publicUpdateDraft, setPublicUpdateDraft] = useState("");
   const noteFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const requestSequenceRef = useRef(0);
   const [voiceDetail, setVoiceDetail] = useState<StaffCaseVoiceResponse | null>(null);
@@ -159,6 +161,7 @@ export function StaffCaseDetailPage({
         auditEntries,
       });
       setNextStatus(caseDetail.status);
+      setPublicUpdateDraft(caseDetail.latest_public_update ?? "");
       setVoiceDetail(null);
       setIntakeReview(null);
       setIsVoiceLoading(true);
@@ -261,16 +264,20 @@ export function StaffCaseDetailPage({
 
     setActionError(null);
     setActionSuccess(null);
+    if (publicUpdateDraft.trim().length < 5) {
+      setActionError(dictionary.staff.detail.publicUpdateRequired);
+      return;
+    }
     setIsSubmittingStatus(true);
 
     try {
       await withStaffAuthorization(state.accessToken, (token) =>
-        createStaffCaseAction(token, caseId, {
-          action_type: "status_change",
+        publishStaffCaseUpdate(token, caseId, {
           to_status: nextStatus,
+          latest_public_update: publicUpdateDraft.trim(),
         }),
       );
-      setActionSuccess(dictionary.staff.detail.statusSuccess);
+      setActionSuccess(dictionary.staff.detail.publishSuccess);
       await loadCase();
     } catch (error) {
       await handleActionError(error);
@@ -599,6 +606,17 @@ export function StaffCaseDetailPage({
                       ))}
                     </select>
                     <span className="field-hint">{dictionary.staff.detail.statusPrompt}</span>
+                  </label>
+                  <label className="field">
+                    <span className="field-label">{dictionary.staff.detail.publicUpdateLabel}</span>
+                    <textarea
+                      className="field-control field-textarea"
+                      maxLength={4000}
+                      rows={4}
+                      value={publicUpdateDraft}
+                      onChange={(event) => setPublicUpdateDraft(event.target.value)}
+                    />
+                    <span className="field-hint">{dictionary.staff.detail.publicUpdateHint}</span>
                   </label>
                   <button className="button-primary" disabled={isSubmittingStatus} type="submit">
                     {isSubmittingStatus ? dictionary.staff.detail.submitting : dictionary.staff.detail.statusSubmit}

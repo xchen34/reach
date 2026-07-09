@@ -33,6 +33,9 @@ def _payload(report_kind: str = "missing") -> dict:
         "reporter_name": "Community Lead",
         "reporter_email": "lead@example.com",
         "subject_name": "Resident A",
+        "source_relationship": "family_friend",
+        "callback_allowed": True,
+        "public_visibility_requested": True,
         "source_form_name": "Missing Person Form",
         "source_entry_id": "entry-123",
     }

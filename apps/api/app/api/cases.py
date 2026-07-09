@@ -9,6 +9,8 @@ from app.schemas.case import (
     CaseSubmissionResponse,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCasePublishRequest,
+    StaffCasePublishResponse,
 )
 from app.schemas.intake_review import StaffCaseIntakeReviewResponse
 from app.services.case_intake_review import CaseIntakeReviewService
@@ -84,5 +86,24 @@ def create_case_action(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post(
+    "/{case_id}/publish",
+    response_model=StaffCasePublishResponse,
+    include_in_schema=False,
+)
+def publish_case_update(
+    case_id: int,
+    payload: StaffCasePublishRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> StaffCasePublishResponse:
+    try:
+        return CaseService(db).publish_case_update(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

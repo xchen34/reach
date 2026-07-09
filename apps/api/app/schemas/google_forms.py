@@ -10,6 +10,8 @@ from app.schemas.common import ApiModel
 
 
 GoogleFormReportKind = Literal["safe", "missing", "update"]
+GoogleFormSourceRelationship = Literal["self", "family_friend", "community_member", "on_site", "other"]
+GoogleFormUpdateCategory = Literal["safe_sighting", "missing_lead", "correction", "resource_update", "other"]
 
 
 class GoogleFormIngestRequest(BaseModel):
@@ -24,6 +26,10 @@ class GoogleFormIngestRequest(BaseModel):
     reporter_phone: Optional[str] = Field(default=None, max_length=40)
     subject_name: Optional[str] = Field(default=None, max_length=120)
     public_update_hint: Optional[str] = Field(default=None, max_length=4000)
+    source_relationship: Optional[GoogleFormSourceRelationship] = None
+    callback_allowed: Optional[bool] = None
+    public_visibility_requested: Optional[bool] = None
+    update_category: Optional[GoogleFormUpdateCategory] = None
     source_form_name: Optional[str] = Field(default=None, max_length=160)
     source_entry_id: Optional[str] = Field(default=None, max_length=160)
     submitted_at: Optional[datetime] = None

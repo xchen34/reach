@@ -97,6 +97,18 @@ class StaffCaseActionResponse(ApiModel):
     created_at: datetime
 
 
+class StaffCasePublishRequest(BaseModel):
+    to_status: CaseStatus
+    latest_public_update: str = Field(min_length=5, max_length=4000)
+
+
+class StaffCasePublishResponse(ApiModel):
+    case_id: int
+    status: CaseStatus
+    latest_public_update: str
+    published_at: datetime
+
+
 class AuditLogEntryResponse(ApiModel):
     id: int
     actor_type: str

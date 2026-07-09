@@ -7,6 +7,8 @@ import type {
   StaffCaseActionResponse,
   StaffCaseDetailResponse,
   StaffCaseListItem,
+  StaffCasePublishRequest,
+  StaffCasePublishResponse,
   StaffCaseVoiceResponse,
   StaffMagicLinkRequestResponse,
   StaffSessionResponse,
@@ -126,6 +128,18 @@ export function createStaffCaseAction(
   payload: StaffCaseActionRequest,
 ) {
   return apiFetch<StaffCaseActionResponse>(`/staff/cases/${caseId}/actions`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function publishStaffCaseUpdate(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCasePublishRequest,
+) {
+  return apiFetch<StaffCasePublishResponse>(`/staff/cases/${caseId}/publish`, {
     method: "POST",
     headers: buildBearerHeaders(accessToken),
     body: JSON.stringify(payload),
