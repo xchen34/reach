@@ -53,20 +53,17 @@ export const en = {
       voice: {
         title: "Optional voice intake",
         description:
-          "You can record a short audio clip or choose an audio file. Review and confirm the transcript before it can be attached to your report.",
+          "You can record a short audio clip. Review and confirm the transcript before it can be attached to your report.",
         recordButton: "Start recording",
         stopButton: "Stop recording",
-        retryButton: "Retry upload",
         discardButton: "Discard voice",
-        fileLabel: "Audio file fallback",
-        fileHint: "Choose a short audio clip if microphone recording is unavailable or you prefer to upload a file.",
         permission: {
           label: "Microphone:",
           unknown: "Checking browser support.",
           prompt: "Ready to request microphone access.",
           granted: "Microphone access is available.",
-          denied: "Microphone access was blocked. You can still upload an audio file.",
-          unavailable: "Microphone recording is unavailable in this browser. You can still upload an audio file.",
+          denied: "Microphone access was blocked. Continue with the form below.",
+          unavailable: "Microphone recording is unavailable in this browser. Continue with the form below.",
         },
         selectedAudioLabel: "Selected audio",
         audioSizeLabel: "File size",
@@ -91,11 +88,11 @@ export const en = {
         errors: {
           network: "The audio request could not reach the server. Check your connection and try again.",
           server: "The audio request could not be completed right now. Please try again.",
-          transcriptUnavailable: "The transcript is not ready yet. Try again in a moment or upload a new clip.",
+          transcriptUnavailable: "The transcript is not ready yet. Try again in a moment or record a new clip.",
           transcriptRequired: "Review the transcript text before confirming it.",
           confirmBeforeSubmit:
             "Confirm the transcript or discard the voice clip before sending your report.",
-          emptyRecording: "No audio was captured. Try recording again or choose a file instead.",
+          emptyRecording: "No audio was captured. Try recording again or continue with the form below.",
         },
       },
       reporterName: {

@@ -53,20 +53,17 @@ export const zh = {
       voice: {
         title: "可选语音说明",
         description:
-          "您可以录制一段简短语音，或选择一个音频文件上传。只有在查看并确认转写内容后，系统才会把语音说明附加到报告中。",
+          "您可以录制一段简短语音。只有在查看并确认转写内容后，系统才会把语音说明附加到报告中。",
         recordButton: "开始录音",
         stopButton: "停止录音",
-        retryButton: "重新上传",
         discardButton: "丢弃语音",
-        fileLabel: "音频文件备选方式",
-        fileHint: "如果麦克风不可用，或您更希望上传文件，请选择一个简短音频片段。",
         permission: {
           label: "麦克风：",
           unknown: "正在检查浏览器支持情况。",
           prompt: "可以请求麦克风权限。",
           granted: "麦克风权限可用。",
-          denied: "麦克风权限被阻止。您仍然可以上传音频文件。",
-          unavailable: "当前浏览器不支持麦克风录音。您仍然可以上传音频文件。",
+          denied: "麦克风权限被阻止。请继续填写下面的表单。",
+          unavailable: "当前浏览器不支持麦克风录音。请继续填写下面的表单。",
         },
         selectedAudioLabel: "已选择音频",
         audioSizeLabel: "文件大小",
@@ -91,10 +88,10 @@ export const zh = {
         errors: {
           network: "音频请求无法连接到服务器。请检查网络后重试。",
           server: "当前无法完成音频请求。请稍后重试。",
-          transcriptUnavailable: "转写内容暂时还没有准备好。请稍后再试，或上传新的音频片段。",
+          transcriptUnavailable: "转写内容暂时还没有准备好。请稍后再试，或重新录制一段语音。",
           transcriptRequired: "请先检查转写文本，再进行确认。",
           confirmBeforeSubmit: "发送报告前，请先确认转写内容，或丢弃这段语音。",
-          emptyRecording: "没有录到音频。请重新录制，或改为选择音频文件。",
+          emptyRecording: "没有录到音频。请重新录制，或继续填写下面的表单。",
         },
       },
       reporterName: {

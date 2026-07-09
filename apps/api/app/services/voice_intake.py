@@ -37,6 +37,14 @@ ALLOWED_AUDIO_CONTENT_TYPES = {
     "audio/x-wav",
 }
 
+FALLBACK_AUDIO_CONTENT_TYPES = {
+    ".m4a": "audio/m4a",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".wav": "audio/wav",
+    ".webm": "audio/webm",
+}
+
 
 @dataclass
 class VoiceAudioAccess:
@@ -56,10 +64,11 @@ class VoiceIntakeService:
         *,
         content: bytes,
         content_type: Optional[str],
+        file_name: Optional[str],
         language_code: Optional[str],
         duration_seconds: Optional[float],
     ) -> VoiceIntakeCreateResponse:
-        resolved_content_type = self._validate_content_type(content_type)
+        resolved_content_type = self._validate_content_type(content_type, file_name=file_name)
         self._validate_content_size(content)
 
         voice_token = secrets.token_urlsafe(24)
@@ -214,10 +223,21 @@ class VoiceIntakeService:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def _validate_content_type(content_type: Optional[str]) -> str:
-        if content_type not in ALLOWED_AUDIO_CONTENT_TYPES:
-            raise ValueError("Unsupported audio format.")
-        return content_type
+    def _validate_content_type(content_type: Optional[str], *, file_name: Optional[str]) -> str:
+        normalized_content_type = (content_type or "").split(";", 1)[0].strip().lower() or None
+
+        if normalized_content_type in ALLOWED_AUDIO_CONTENT_TYPES:
+            return normalized_content_type
+
+        if normalized_content_type in {None, "application/octet-stream"} and file_name:
+            fallback_type = FALLBACK_AUDIO_CONTENT_TYPES.get(Path(file_name).suffix.lower())
+            if fallback_type:
+                return fallback_type
+
+        if normalized_content_type == "audio/mp3":
+            return "audio/mpeg"
+
+        raise ValueError("Unsupported audio format.")
 
     def _validate_content_size(self, content: bytes) -> None:
         if not content:

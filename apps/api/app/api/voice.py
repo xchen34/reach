@@ -45,6 +45,7 @@ async def upload_voice_intake(
         return service.create_voice_intake(
             content=content,
             content_type=audio_file.content_type,
+            file_name=audio_file.filename,
             language_code=form.language_code,
             duration_seconds=form.duration_seconds,
         )

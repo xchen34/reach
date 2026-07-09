@@ -76,7 +76,6 @@ export function AnonymousCaseSubmissionFlow({
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
   const transcriptPollTimeoutRef = useRef<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setCanRecord(
@@ -279,21 +278,6 @@ export function AnonymousCaseSubmissionFlow({
     }
   }
 
-  async function handleAudioSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    await prepareVoiceClip({
-      blob: file,
-      durationSeconds: await readAudioDuration(file),
-      fileName: file.name,
-    });
-  }
-
   async function prepareVoiceClip(nextClip: Omit<VoiceClip, "objectUrl">) {
     clearTranscriptPolling();
     stopRecordingTracks();
@@ -482,10 +466,6 @@ export function AnonymousCaseSubmissionFlow({
     setVoiceStatusMessage(null);
     setUploadProgress(null);
     setVoiceStage("idle");
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   }
 
   function handleResetForm() {
@@ -636,63 +616,48 @@ export function AnonymousCaseSubmissionFlow({
         <div className="voice-panel-card">
           <div className="voice-toolbar">
             <button
-              className="button-secondary"
-              disabled={!canRecord || voiceStage === "recording" || isSubmitting || isConfirmingVoice}
+              aria-label={
+                voiceStage === "recording"
+                  ? dictionary.home.form.voice.stopButton
+                  : dictionary.home.form.voice.recordButton
+              }
+              className={`voice-record-button${voiceStage === "recording" ? " is-recording" : ""}`}
+              disabled={(!canRecord && voiceStage !== "recording") || isSubmitting || isConfirmingVoice}
               type="button"
               onClick={() => {
+                if (voiceStage === "recording") {
+                  stopRecording();
+                  return;
+                }
+
                 void startRecording();
               }}
             >
-              {dictionary.home.form.voice.recordButton}
+              <VoiceRecordIcon isRecording={voiceStage === "recording"} />
             </button>
-            <button
-              className="button-secondary"
-              disabled={voiceStage !== "recording"}
-              type="button"
-              onClick={stopRecording}
-            >
-              {dictionary.home.form.voice.stopButton}
-            </button>
-            <button
-              className="button-secondary"
-              disabled={!voiceClip || voiceStage === "recording" || isSubmitting || isConfirmingVoice}
-              type="button"
-              onClick={() => {
-                void uploadCurrentClip();
-              }}
-            >
-              {dictionary.home.form.voice.retryButton}
-            </button>
-            <button
-              className="button-secondary"
-              disabled={voiceStage === "recording" && !voiceClip}
-              type="button"
-              onClick={handleDiscardVoice}
-            >
-              {dictionary.home.form.voice.discardButton}
-            </button>
+            <div className="voice-toolbar-copy">
+              <p className="voice-toolbar-label">
+                {voiceStage === "recording"
+                  ? dictionary.home.form.voice.states.recording
+                  : dictionary.home.form.voice.recordButton}
+              </p>
+              <p className="voice-toolbar-hint">
+                {voiceStage === "recording"
+                  ? dictionary.home.form.voice.stopButton
+                  : dictionary.home.form.voice.permission[microphonePermission]}
+              </p>
+              {voiceClip && voiceStage !== "recording" ? (
+                <button className="voice-inline-action" type="button" onClick={handleDiscardVoice}>
+                  {dictionary.home.form.voice.discardButton}
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <p className="voice-permission-note">
             <strong>{dictionary.home.form.voice.permission.label}</strong>{" "}
             {dictionary.home.form.voice.permission[microphonePermission]}
           </p>
-
-          <label className="field">
-            <span className="field-label">{dictionary.home.form.voice.fileLabel}</span>
-            <input
-              ref={fileInputRef}
-              accept="audio/*"
-              className="field-control"
-              disabled={voiceStage === "recording" || isSubmitting || isConfirmingVoice}
-              name="voice_audio_file"
-              type="file"
-              onChange={(event) => {
-                void handleAudioSelection(event);
-              }}
-            />
-            <span className="field-hint">{dictionary.home.form.voice.fileHint}</span>
-          </label>
 
           {voiceClip ? (
             <div className="voice-preview-card">
@@ -935,21 +900,21 @@ function getFileExtension(contentType: string) {
   return ".webm";
 }
 
-async function readAudioDuration(file: File): Promise<number | undefined> {
-  const objectUrl = URL.createObjectURL(file);
-
-  try {
-    return await new Promise<number | undefined>((resolve) => {
-      const audio = document.createElement("audio");
-
-      audio.preload = "metadata";
-      audio.src = objectUrl;
-      audio.onloadedmetadata = () => resolve(Number.isFinite(audio.duration) ? audio.duration : undefined);
-      audio.onerror = () => resolve(undefined);
-    });
-  } finally {
-    URL.revokeObjectURL(objectUrl);
+function VoiceRecordIcon({ isRecording }: { isRecording: boolean }) {
+  if (isRecording) {
+    return (
+      <svg aria-hidden="true" className="voice-record-icon" viewBox="0 0 24 24">
+        <rect x="7" y="7" width="10" height="10" rx="2.5" />
+      </svg>
+    );
   }
+
+  return (
+    <svg aria-hidden="true" className="voice-record-icon" viewBox="0 0 24 24">
+      <path d="M12 15.5a3.5 3.5 0 0 0 3.5-3.5V8.5a3.5 3.5 0 1 0-7 0V12a3.5 3.5 0 0 0 3.5 3.5Z" />
+      <path d="M6.5 11.5a.75.75 0 0 1 .75.75 4.75 4.75 0 1 0 9.5 0 .75.75 0 0 1 1.5 0 6.26 6.26 0 0 1-5.5 6.21V21a.75.75 0 0 1-1.5 0v-2.54a6.26 6.26 0 0 1-5.5-6.21.75.75 0 0 1 .75-.75Z" />
+    </svg>
+  );
 }
 
 function formatBytes(size: number) {

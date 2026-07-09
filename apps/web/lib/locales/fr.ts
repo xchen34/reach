@@ -53,20 +53,17 @@ export const fr = {
       voice: {
         title: "Message vocal optionnel",
         description:
-          "Vous pouvez enregistrer un court message audio ou choisir un fichier audio. Relisez et confirmez la transcription avant qu'elle soit jointe au signalement.",
+          "Vous pouvez enregistrer un court message audio. Relisez et confirmez la transcription avant qu'elle soit jointe au signalement.",
         recordButton: "Demarrer l'enregistrement",
         stopButton: "Arreter l'enregistrement",
-        retryButton: "Relancer l'envoi",
         discardButton: "Supprimer l'audio",
-        fileLabel: "Fichier audio de secours",
-        fileHint: "Choisissez un court extrait audio si le microphone n'est pas disponible ou si vous preferez envoyer un fichier.",
         permission: {
           label: "Microphone :",
           unknown: "Verification de la compatibilite du navigateur.",
           prompt: "Pret a demander l'acces au microphone.",
           granted: "L'acces au microphone est disponible.",
-          denied: "L'acces au microphone a ete bloque. Vous pouvez toujours envoyer un fichier audio.",
-          unavailable: "L'enregistrement par microphone n'est pas disponible dans ce navigateur. Vous pouvez toujours envoyer un fichier audio.",
+          denied: "L'acces au microphone a ete bloque. Continuez avec le formulaire ci-dessous.",
+          unavailable: "L'enregistrement par microphone n'est pas disponible dans ce navigateur. Continuez avec le formulaire ci-dessous.",
         },
         selectedAudioLabel: "Audio selectionne",
         audioSizeLabel: "Taille du fichier",
@@ -91,11 +88,11 @@ export const fr = {
         errors: {
           network: "La requete audio n'a pas pu atteindre le serveur. Verifiez votre connexion et reessayez.",
           server: "La requete audio ne peut pas etre terminee pour le moment. Reessayez plus tard.",
-          transcriptUnavailable: "La transcription n'est pas encore prete. Reessayez dans un instant ou envoyez un nouvel extrait.",
+          transcriptUnavailable: "La transcription n'est pas encore prete. Reessayez dans un instant ou enregistrez un nouvel extrait.",
           transcriptRequired: "Relisez le texte de la transcription avant de la confirmer.",
           confirmBeforeSubmit:
             "Confirmez la transcription ou supprimez l'audio avant d'envoyer le signalement.",
-          emptyRecording: "Aucun son n'a ete capture. Essayez de nouveau ou choisissez un fichier.",
+          emptyRecording: "Aucun son n'a ete capture. Essayez de nouveau ou continuez avec le formulaire ci-dessous.",
         },
       },
       reporterName: {

@@ -256,7 +256,8 @@ function uploadVoiceIntakeInBrowser({
 }: UploadVoiceIntakeOptions): Promise<VoiceIntakeCreateResponse> {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
-    formData.set("audio_file", audioFile, fileName);
+    const normalizedAudioFile = normalizeAudioUpload(audioFile, fileName);
+    formData.set("audio_file", normalizedAudioFile, normalizedAudioFile.name);
 
     if (languageCode) {
       formData.set("language_code", languageCode);
@@ -306,6 +307,78 @@ function uploadVoiceIntakeInBrowser({
 
     request.send(formData);
   });
+}
+
+function normalizeAudioUpload(audioFile: Blob, fileName: string): File {
+  const resolvedType = normalizeAudioContentType(audioFile.type, fileName);
+
+  return new File([audioFile], ensureFileExtension(fileName, resolvedType), {
+    type: resolvedType,
+    lastModified: Date.now(),
+  });
+}
+
+function normalizeAudioContentType(contentType: string, fileName: string) {
+  const canonicalType = contentType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+
+  if (canonicalType.startsWith("audio/") && canonicalType !== "audio/mp3") {
+    return canonicalType;
+  }
+
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith(".m4a")) {
+    return "audio/m4a";
+  }
+
+  if (lowerName.endsWith(".mp3")) {
+    return "audio/mpeg";
+  }
+
+  if (lowerName.endsWith(".ogg")) {
+    return "audio/ogg";
+  }
+
+  if (lowerName.endsWith(".wav")) {
+    return "audio/wav";
+  }
+
+  return "audio/webm";
+}
+
+function ensureFileExtension(fileName: string, contentType: string) {
+  const lowerName = fileName.toLowerCase();
+  const extension = getAudioFileExtension(contentType);
+
+  if (lowerName.endsWith(extension)) {
+    return fileName;
+  }
+
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex > 0) {
+    return `${fileName.slice(0, dotIndex)}${extension}`;
+  }
+
+  return `${fileName}${extension}`;
+}
+
+function getAudioFileExtension(contentType: string) {
+  if (contentType.includes("mp4") || contentType.includes("m4a")) {
+    return ".m4a";
+  }
+
+  if (contentType.includes("mpeg")) {
+    return ".mp3";
+  }
+
+  if (contentType.includes("ogg")) {
+    return ".ogg";
+  }
+
+  if (contentType.includes("wav")) {
+    return ".wav";
+  }
+
+  return ".webm";
 }
 
 function safeJsonParse(value: string): unknown {

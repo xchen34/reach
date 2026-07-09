@@ -56,6 +56,28 @@ def test_voice_upload_rejects_invalid_content_type() -> None:
     assert response.json()["detail"] == "Unsupported audio format."
 
 
+def test_voice_upload_accepts_octet_stream_when_file_extension_is_supported() -> None:
+    response = client.post(
+        "/voice-intakes",
+        files={"audio_file": ("voice.webm", b"webm-audio", "application/octet-stream")},
+        data={"language_code": "en"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["content_type"] == "audio/webm"
+
+
+def test_voice_upload_accepts_supported_content_type_with_codecs_parameter() -> None:
+    response = client.post(
+        "/voice-intakes",
+        files={"audio_file": ("voice.webm", b"webm-audio", "audio/webm;codecs=opus")},
+        data={"language_code": "en"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["content_type"] == "audio/webm"
+
+
 def test_voice_upload_rejects_files_over_size_limit() -> None:
     response = client.post(
         "/voice-intakes",

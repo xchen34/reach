@@ -195,8 +195,73 @@ textarea {
 }
 
 .voice-toolbar {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.voice-record-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #f9f6ee;
+  box-shadow: 0 10px 24px rgba(11, 95, 75, 0.22);
+}
+
+.voice-record-button:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.voice-record-button:disabled {
+  background: #9ea8a3;
+  color: #f4f1e8;
+  box-shadow: none;
+}
+
+.voice-record-button.is-recording {
+  background: #c43d31;
+  box-shadow: 0 12px 28px rgba(196, 61, 49, 0.28);
+}
+
+.voice-record-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  fill: currentColor;
+}
+
+.voice-toolbar-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.voice-toolbar-label,
+.voice-toolbar-hint {
+  margin: 0;
+}
+
+.voice-toolbar-label {
+  font-weight: 700;
+}
+
+.voice-toolbar-hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.voice-inline-action {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .voice-permission-note,
@@ -409,10 +474,6 @@ textarea {
 }
 
 @media (min-width: 720px) {
-  .voice-toolbar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .staff-toolbar,
   .staff-case-header,
   .staff-audit-row {
