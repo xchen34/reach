@@ -62,6 +62,10 @@ textarea {
   padding: 1.5rem;
 }
 
+.page-card-wide {
+  max-width: 78rem;
+}
+
 .eyebrow {
   display: inline-block;
   margin-bottom: 0.75rem;
@@ -362,6 +366,10 @@ textarea {
   background: var(--surface-alt);
 }
 
+.detail-card-plain {
+  background: rgba(255, 253, 247, 0.75);
+}
+
 .detail-card dt {
   margin-bottom: 0.4rem;
   color: var(--muted);
@@ -391,6 +399,11 @@ textarea {
   color: #7f4f00;
 }
 
+.status-pill-alert {
+  background: #f6d8d2;
+  color: #8a2319;
+}
+
 .status-pill-neutral {
   background: #ece6d7;
   color: var(--text);
@@ -410,6 +423,93 @@ textarea {
 .staff-contact-panel,
 .staff-audit-panel {
   margin-top: 1.5rem;
+}
+
+.staff-review-shell {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.staff-review-main,
+.staff-review-sidebar {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.staff-review-panel,
+.staff-sidebar-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.staff-review-hero {
+  display: grid;
+  gap: 1.25rem;
+  background:
+    linear-gradient(180deg, rgba(221, 238, 232, 0.72) 0%, rgba(255, 253, 247, 0.96) 100%);
+}
+
+.staff-review-hero-header,
+.staff-section-heading,
+.staff-chip-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.staff-review-copy,
+.staff-narrative-text {
+  margin: 0;
+}
+
+.staff-narrative-grid,
+.staff-checklist-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.staff-narrative-text {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.staff-inline-status {
+  display: flex;
+  align-items: flex-start;
+}
+
+.staff-action-card {
+  align-content: start;
+}
+
+.staff-mini-facts {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.staff-mini-facts dt {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.staff-mini-facts dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.staff-checklist {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+  margin: 0;
+  color: var(--text);
+}
+
+.staff-checklist li {
+  padding-left: 0.15rem;
 }
 
 .staff-toolbar {
@@ -528,6 +628,10 @@ textarea {
   margin-top: 0.35rem;
 }
 
+.staff-checklist-grid .detail-card {
+  height: 100%;
+}
+
 .metadata-block {
   margin: 0;
   padding: 0.85rem;
@@ -544,7 +648,10 @@ textarea {
   .staff-section-header,
   .staff-case-header,
   .staff-audit-row,
-  .staff-related-case-row {
+  .staff-related-case-row,
+  .staff-review-hero-header,
+  .staff-section-heading,
+  .staff-chip-row {
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
@@ -573,6 +680,18 @@ textarea {
 
   .staff-review-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .staff-narrative-grid,
+  .staff-checklist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .staff-review-shell {
+    grid-template-columns: minmax(0, 1.7fr) minmax(18rem, 0.95fr);
+    align-items: start;
   }
 }
 
