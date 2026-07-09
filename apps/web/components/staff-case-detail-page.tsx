@@ -32,6 +32,7 @@ import {
   type StaffAuthReason,
   withStaffAuthorization,
 } from "@/lib/staff-session";
+import { buildAiDraft } from "@/lib/staff-intake-review";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 type StaffCaseDetailPageProps = {
@@ -48,8 +49,6 @@ type DetailState =
       session: CurrentStaffSession;
       caseDetail: StaffCaseDetailResponse;
       auditEntries: AuditLogEntryResponse[];
-      voiceDetail: StaffCaseVoiceResponse | null;
-      intakeReview: StaffCaseIntakeReviewResponse;
     }
   | { status: "not-found" }
   | { status: "error"; message: string };
@@ -71,6 +70,11 @@ export function StaffCaseDetailPage({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [nextStatus, setNextStatus] = useState<CaseStatus>(caseStatuses[0]);
   const noteFieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const requestSequenceRef = useRef(0);
+  const [voiceDetail, setVoiceDetail] = useState<StaffCaseVoiceResponse | null>(null);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [intakeReview, setIntakeReview] = useState<StaffCaseIntakeReviewResponse | null>(null);
+  const [isIntakeReviewLoading, setIsIntakeReviewLoading] = useState(false);
 
   const dateFormatter = useMemo(
     () =>
@@ -81,8 +85,59 @@ export function StaffCaseDetailPage({
     [locale],
   );
 
+  const loadSupplementalCaseData = useCallback(
+    async (accessToken: string, requestSequence: number) => {
+      const guard = <T,>(callback: () => T) => {
+        if (requestSequence === requestSequenceRef.current) {
+          callback();
+        }
+      };
+
+      void loadOptionalVoiceDetail(accessToken, caseId)
+        .then((nextVoiceDetail) => {
+          guard(() => setVoiceDetail(nextVoiceDetail));
+        })
+        .catch((error: unknown) => {
+          if (error instanceof MissingStaffSessionError) {
+            guard(() => redirectToLogin(router, locale, "missing"));
+            return;
+          }
+          if (error instanceof UnauthorizedStaffSessionError) {
+            guard(() => redirectToLogin(router, locale, error.reason));
+            return;
+          }
+          guard(() => setVoiceDetail(null));
+        })
+        .finally(() => {
+          guard(() => setIsVoiceLoading(false));
+        });
+
+      void loadOptionalIntakeReview(accessToken, caseId)
+        .then((nextIntakeReview) => {
+          guard(() => setIntakeReview(nextIntakeReview));
+        })
+        .catch((error: unknown) => {
+          if (error instanceof MissingStaffSessionError) {
+            guard(() => redirectToLogin(router, locale, "missing"));
+            return;
+          }
+          if (error instanceof UnauthorizedStaffSessionError) {
+            guard(() => redirectToLogin(router, locale, error.reason));
+            return;
+          }
+          guard(() => setIntakeReview(null));
+        })
+        .finally(() => {
+          guard(() => setIsIntakeReviewLoading(false));
+        });
+    },
+    [caseId, locale, router],
+  );
+
   const loadCase = useCallback(async () => {
     const accessToken = readStoredStaffAccessToken();
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
 
     try {
       const token = accessToken;
@@ -91,11 +146,9 @@ export function StaffCaseDetailPage({
       }
 
       const session = await withStaffAuthorization(token, getCurrentStaffSession);
-      const [caseDetail, auditEntries, voiceDetail, intakeReview] = await Promise.all([
+      const [caseDetail, auditEntries] = await Promise.all([
         withStaffAuthorization(token, (staffAccessToken) => getStaffCaseDetail(staffAccessToken, caseId)),
         withStaffAuthorization(token, (staffAccessToken) => listStaffCaseAudit(staffAccessToken, caseId)),
-        loadOptionalVoiceDetail(token, caseId),
-        loadOptionalIntakeReview(token, caseId),
       ]);
 
       setState({
@@ -104,11 +157,18 @@ export function StaffCaseDetailPage({
         session,
         caseDetail,
         auditEntries,
-        voiceDetail,
-        intakeReview,
       });
       setNextStatus(caseDetail.status);
+      setVoiceDetail(null);
+      setIntakeReview(null);
+      setIsVoiceLoading(true);
+      setIsIntakeReviewLoading(true);
+      void loadSupplementalCaseData(token, requestSequence);
     } catch (error) {
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
       if (error instanceof MissingStaffSessionError) {
         redirectToLogin(router, locale, "missing");
         return;
@@ -135,6 +195,7 @@ export function StaffCaseDetailPage({
     caseId,
     dictionary.staff.detail.errors.network,
     dictionary.staff.detail.errors.server,
+    loadSupplementalCaseData,
     locale,
     router,
   ]);
@@ -277,11 +338,11 @@ export function StaffCaseDetailPage({
   }
 
   function handleApplyAiDraft() {
-    if (state.status !== "ready" || state.intakeReview.status !== "ready") {
+    if (state.status !== "ready" || !intakeReview || intakeReview.status !== "ready") {
       return;
     }
 
-    const aiDraft = buildAiDraft(state.intakeReview);
+    const aiDraft = buildAiDraft(intakeReview);
     setNote((current) => (current.trim() ? `${current.trim()}\n\n${aiDraft}` : aiDraft));
     setNoteError(null);
     setActionError(null);
@@ -335,7 +396,7 @@ export function StaffCaseDetailPage({
     );
   }
 
-  const { caseDetail, auditEntries, session, voiceDetail, intakeReview } = state;
+  const { caseDetail, auditEntries, session } = state;
 
   return (
     <main className="page-shell">
@@ -443,7 +504,9 @@ export function StaffCaseDetailPage({
           <h2 className="section-title" id="staff-voice-title">
             {dictionary.staff.detail.voice.title}
           </h2>
-          {voiceDetail ? (
+          {isVoiceLoading ? (
+            <p className="support-copy">{dictionary.staff.session.loading}</p>
+          ) : voiceDetail ? (
             <div className="detail-grid">
               <div className="detail-card">
                 <dt>{dictionary.staff.detail.voice.transcriptStateLabel}</dt>
@@ -479,37 +542,45 @@ export function StaffCaseDetailPage({
               </h2>
               <p className="support-copy section-copy">{dictionary.staff.detail.aiReview.description}</p>
             </div>
-            {intakeReview.status === "ready" ? (
+            {intakeReview?.status === "ready" ? (
               <button className="button-secondary" type="button" onClick={handleApplyAiDraft}>
                 {dictionary.staff.detail.aiReview.applyDraft}
               </button>
             ) : null}
           </div>
 
-          <p className="info-banner" role="status">
-            {intakeReview.disclaimer}
-          </p>
+          {intakeReview ? (
+            <p className="info-banner" role="status">
+              {intakeReview.disclaimer}
+            </p>
+          ) : null}
 
           <div className="detail-grid">
             <div className="detail-card">
               <dt>{dictionary.staff.detail.aiReview.statusLabel}</dt>
               <dd>
-                {intakeReview.status === "ready"
+                {isIntakeReviewLoading
+                  ? dictionary.staff.detail.aiReview.loading
+                  : intakeReview?.status === "ready"
                   ? dictionary.staff.detail.aiReview.ready
                   : dictionary.staff.detail.aiReview.unavailable}
               </dd>
             </div>
             <div className="detail-card detail-card-wide">
               <dt>{dictionary.staff.detail.aiReview.sourceInputsLabel}</dt>
-              <dd>{intakeReview.source_inputs.join(", ")}</dd>
+              <dd>{intakeReview?.source_inputs.join(", ") || dictionary.staff.detail.voice.notAvailable}</dd>
             </div>
             <div className="detail-card detail-card-wide">
               <dt>{dictionary.staff.detail.aiReview.sourcePreviewLabel}</dt>
-              <dd>{intakeReview.source_preview}</dd>
+              <dd>{intakeReview?.source_preview || dictionary.staff.detail.voice.notAvailable}</dd>
             </div>
           </div>
 
-          {intakeReview.status === "ready" && intakeReview.staff_summary_suggestion && intakeReview.suggested_tags ? (
+          {isIntakeReviewLoading ? (
+            <p className="support-copy">{dictionary.staff.session.loading}</p>
+          ) : intakeReview?.status === "ready" &&
+            intakeReview.staff_summary_suggestion &&
+            intakeReview.suggested_tags ? (
             <div className="staff-review-stack">
               <div className="detail-card form-stack">
                 <dt>{dictionary.staff.detail.aiReview.summaryTitle}</dt>
@@ -555,7 +626,9 @@ export function StaffCaseDetailPage({
               </div>
             </div>
           ) : (
-            <p className="support-copy">{intakeReview.fallback_message ?? dictionary.staff.detail.aiReview.unavailableBody}</p>
+            <p className="support-copy">
+              {intakeReview?.fallback_message ?? dictionary.staff.detail.aiReview.unavailableBody}
+            </p>
           )}
         </section>
 
@@ -667,10 +740,13 @@ async function loadOptionalVoiceDetail(accessToken: string, caseId: number) {
   try {
     return await withStaffAuthorization(accessToken, (token) => getStaffCaseVoice(token, caseId));
   } catch (error) {
+    if (error instanceof MissingStaffSessionError || error instanceof UnauthorizedStaffSessionError) {
+      throw error;
+    }
     if (error instanceof ApiError && error.status === 404) {
       return null;
     }
-    throw error;
+    return null;
   }
 }
 
@@ -696,36 +772,6 @@ async function loadOptionalIntakeReview(accessToken: string, caseId: number) {
       fallback_message: "AI review is unavailable right now.",
     } satisfies StaffCaseIntakeReviewResponse;
   }
-}
-
-function buildAiDraft(review: StaffCaseIntakeReviewResponse) {
-  if (review.status !== "ready" || !review.staff_summary_suggestion || !review.suggested_tags) {
-    return "";
-  }
-
-  const sections = [
-    "AI review confirmed by staff.",
-    `Headline: ${review.staff_summary_suggestion.headline}`,
-    `Situation overview: ${review.staff_summary_suggestion.situation_overview}`,
-    `Urgency note: ${review.staff_summary_suggestion.urgency_note}`,
-    `Urgency cues: ${joinOrNone(review.suggested_tags.urgency_cues)}`,
-    `Missing-person mentions: ${joinOrNone(review.suggested_tags.missing_person_mentions)}`,
-    `Incident/resource types: ${joinOrNone(review.suggested_tags.incident_or_resource_types)}`,
-    `Follow-up needs: ${joinOrNone(review.suggested_tags.follow_up_needs)}`,
-  ];
-
-  if (review.staff_summary_suggestion.recommended_follow_up.length > 0) {
-    sections.push(
-      "Recommended follow-up:",
-      ...review.staff_summary_suggestion.recommended_follow_up.map((item) => `- ${item}`),
-    );
-  }
-
-  return sections.join("\n");
-}
-
-function joinOrNone(values: string[]) {
-  return values.length > 0 ? values.join(", ") : "none";
 }
 
 function TagGroup({

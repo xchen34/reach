@@ -290,6 +290,7 @@ export const en = {
         applyDraft: "Copy into note draft",
         draftReady: "AI review text was copied into the internal note draft.",
         statusLabel: "AI review status",
+        loading: "Loading suggestion...",
         ready: "Suggestion ready",
         unavailable: "Unavailable",
         unavailableBody:

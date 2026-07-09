@@ -290,6 +290,7 @@ export const fr = {
         applyDraft: "Copier dans le brouillon",
         draftReady: "Le texte de revue IA a ete copie dans la note interne.",
         statusLabel: "Statut de la revue IA",
+        loading: "Chargement de la suggestion...",
         ready: "Suggestion prete",
         unavailable: "Indisponible",
         unavailableBody:

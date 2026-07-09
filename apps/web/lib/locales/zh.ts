@@ -278,6 +278,7 @@ export const zh = {
         applyDraft: "复制到备注草稿",
         draftReady: "AI 审阅内容已复制到内部备注草稿。",
         statusLabel: "AI 审阅状态",
+        loading: "正在加载建议...",
         ready: "建议已生成",
         unavailable: "不可用",
         unavailableBody: "当前无法生成 AI 审阅。请直接依据原始提交内容和转写继续处理。",
