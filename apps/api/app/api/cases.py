@@ -13,8 +13,10 @@ from app.schemas.case import (
     StaffCasePublishResponse,
 )
 from app.schemas.intake_review import StaffCaseIntakeReviewResponse
+from app.schemas.staff_queue import StaffQueueResponse
 from app.services.case_intake_review import CaseIntakeReviewService
 from app.services.case_service import CaseService
+from app.services.staff_queue_service import StaffQueueService
 
 
 router = APIRouter(tags=["cases"])
@@ -43,6 +45,14 @@ def list_cases(
     _: object = Depends(require_staff_session),
 ) -> list[CaseListItem]:
     return CaseService(db).list_cases()
+
+
+@staff_router.get("/queue", response_model=StaffQueueResponse, include_in_schema=False)
+def get_publish_queue(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_staff_session),
+) -> StaffQueueResponse:
+    return StaffQueueService(db).get_publish_queue()
 
 
 @staff_router.get("/{case_id}", response_model=CaseDetailResponse)

@@ -114,6 +114,44 @@ export interface StaffCaseListItem {
   updated_at: string;
 }
 
+export interface StaffQueueGroup {
+  id: string;
+  title: string;
+  status: CaseStatus;
+  publish_state: "awaiting_verification" | "ready_to_publish" | "published";
+  subject_name: string | null;
+  source_relationship: string | null;
+  update_chain_count: number;
+  report_kind: string | null;
+  case_count: number;
+  open_case_count: number;
+  unassigned_case_count: number;
+  highest_urgency: UrgencyLevel;
+  incident_type: IncidentType;
+  last_updated_at: string;
+  summary: string;
+  latest_public_update: string | null;
+  related_cases: StaffCaseListItem[];
+}
+
+export interface StaffQueueSummary {
+  total_events: number;
+  total_cases: number;
+  open_cases: number;
+  unassigned_cases: number;
+  critical_cases: number;
+  awaiting_verification_groups: number;
+  ready_to_publish_groups: number;
+  published_groups: number;
+  last_updated_at: string | null;
+}
+
+export interface StaffQueueResponse {
+  source: "staff-queue-adapter";
+  events: StaffQueueGroup[];
+  summary: StaffQueueSummary;
+}
+
 export interface StaffCaseDetailResponse extends StaffCaseListItem {
   language_code: string;
   reporter_name: string | null;

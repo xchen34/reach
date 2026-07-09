@@ -9,6 +9,7 @@ import type {
   StaffCaseListItem,
   StaffCasePublishRequest,
   StaffCasePublishResponse,
+  StaffQueueResponse,
   StaffCaseVoiceResponse,
   StaffMagicLinkRequestResponse,
   StaffSessionResponse,
@@ -94,6 +95,12 @@ export function getCurrentStaffSession(accessToken: string) {
 
 export function listStaffCases(accessToken: string) {
   return apiFetch<StaffCaseListItem[]>("/staff/cases", {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffPublishQueue(accessToken: string) {
+  return apiFetch<StaffQueueResponse>("/staff/cases/queue", {
     headers: buildBearerHeaders(accessToken),
   });
 }

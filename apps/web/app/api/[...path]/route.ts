@@ -10,6 +10,7 @@ const allowedRoutes = [
   { method: "POST", pattern: /^auth\/logout$/ },
   { method: "GET", pattern: /^staff\/me$/ },
   { method: "GET", pattern: /^staff\/cases$/ },
+  { method: "GET", pattern: /^staff\/cases\/queue$/ },
   { method: "GET", pattern: /^staff\/cases\/\d+$/ },
   { method: "GET", pattern: /^staff\/cases\/\d+\/voice$/ },
   { method: "GET", pattern: /^staff\/cases\/\d+\/intake-review$/ },
