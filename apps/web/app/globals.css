@@ -121,6 +121,38 @@ textarea {
   border-color: #98c7b8;
 }
 
+.community-home-toolbar,
+.community-entry-header {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+.community-entry-section {
+  margin-top: 2rem;
+}
+
+.community-action-card {
+  display: grid;
+  gap: 1rem;
+  align-content: space-between;
+}
+
+.community-action-title {
+  margin-bottom: 0.5rem;
+}
+
+.community-action-copy {
+  margin-top: 0;
+}
+
+.community-guidelines-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
 .section-grid,
 .detail-grid {
   display: grid;
@@ -725,5 +757,12 @@ textarea {
   .button-primary,
   .button-secondary {
     width: 100%;
+  }
+}
+
+@media (min-width: 720px) {
+  .community-home-toolbar,
+  .community-entry-header {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }

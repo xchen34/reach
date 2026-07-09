@@ -1,6 +1,6 @@
 # Beacon
 
-Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting and coordination platform. This repository currently implements the Phase 1 backend domain foundation plus a Phase 1.5 voice-intake backend foundation on top of the Phase 0 infrastructure.
+Beacon is being repositioned toward a community coordination workflow for safe check-ins, missing-person reports, and verified public updates during crises. Google Forms can remain the intake layer; Beacon focuses on verification, internal coordination, and public presentation.
 
 ## Current scope
 
@@ -13,6 +13,7 @@ Beacon is an accessibility-first, offline-aware, AI-assisted crisis reporting an
 - Voice upload, transcript confirmation, and staff-only voice access contract foundation
 - OpenAPI contract file at `docs/openapi.yaml`
 - Local Docker Compose workflow
+- Community coordination MVP design notes at `docs/community-coordination-mvp.md`
 
 ## Not included yet
 

@@ -3,10 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Beacon",
-  description: "Accessibility-first crisis reporting foundation",
-  icons: {
-    icon: "/icon.svg",
-  },
+  description: "Community coordination workspace for safe check-ins, missing reports, and public status updates",
 };
 
 export default function RootLayout({
