@@ -10,6 +10,8 @@ from app.schemas.case import (
     StaffCaseActionRequest,
     StaffCaseActionResponse,
 )
+from app.schemas.intake_review import StaffCaseIntakeReviewResponse
+from app.services.case_intake_review import CaseIntakeReviewService
 from app.services.case_service import CaseService
 
 
@@ -51,6 +53,22 @@ def get_case_detail(
     if case is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found.")
     return case
+
+
+@staff_router.get(
+    "/{case_id}/intake-review",
+    response_model=StaffCaseIntakeReviewResponse,
+    include_in_schema=False,
+)
+def get_case_intake_review(
+    case_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_staff_session),
+) -> StaffCaseIntakeReviewResponse:
+    review = CaseIntakeReviewService(db).get_staff_review(case_id)
+    if review is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found.")
+    return review
 
 
 @staff_router.post("/{case_id}/actions", response_model=StaffCaseActionResponse)

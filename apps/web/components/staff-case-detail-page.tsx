@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ApiError,
   createStaffCaseAction,
   getCurrentStaffSession,
+  getStaffCaseIntakeReview,
   getStaffCaseDetail,
+  getStaffCaseVoice,
   listStaffCaseAudit,
   logoutStaffSession,
 } from "@/lib/api";
@@ -16,7 +18,9 @@ import {
   type AuditLogEntryResponse,
   type CaseStatus,
   type CurrentStaffSession,
+  type StaffCaseIntakeReviewResponse,
   type StaffCaseDetailResponse,
+  type StaffCaseVoiceResponse,
 } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import {
@@ -44,6 +48,8 @@ type DetailState =
       session: CurrentStaffSession;
       caseDetail: StaffCaseDetailResponse;
       auditEntries: AuditLogEntryResponse[];
+      voiceDetail: StaffCaseVoiceResponse | null;
+      intakeReview: StaffCaseIntakeReviewResponse;
     }
   | { status: "not-found" }
   | { status: "error"; message: string };
@@ -64,6 +70,7 @@ export function StaffCaseDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [nextStatus, setNextStatus] = useState<CaseStatus>(caseStatuses[0]);
+  const noteFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   const dateFormatter = useMemo(
     () =>
@@ -84,12 +91,12 @@ export function StaffCaseDetailPage({
       }
 
       const session = await withStaffAuthorization(token, getCurrentStaffSession);
-      const caseDetail = await withStaffAuthorization(token, (staffAccessToken) =>
-        getStaffCaseDetail(staffAccessToken, caseId),
-      );
-      const auditEntries = await withStaffAuthorization(token, (staffAccessToken) =>
-        listStaffCaseAudit(staffAccessToken, caseId),
-      );
+      const [caseDetail, auditEntries, voiceDetail, intakeReview] = await Promise.all([
+        withStaffAuthorization(token, (staffAccessToken) => getStaffCaseDetail(staffAccessToken, caseId)),
+        withStaffAuthorization(token, (staffAccessToken) => listStaffCaseAudit(staffAccessToken, caseId)),
+        loadOptionalVoiceDetail(token, caseId),
+        loadOptionalIntakeReview(token, caseId),
+      ]);
 
       setState({
         status: "ready",
@@ -97,6 +104,8 @@ export function StaffCaseDetailPage({
         session,
         caseDetail,
         auditEntries,
+        voiceDetail,
+        intakeReview,
       });
       setNextStatus(caseDetail.status);
     } catch (error) {
@@ -267,6 +276,19 @@ export function StaffCaseDetailPage({
     setActionError(dictionary.staff.detail.errors.action);
   }
 
+  function handleApplyAiDraft() {
+    if (state.status !== "ready" || state.intakeReview.status !== "ready") {
+      return;
+    }
+
+    const aiDraft = buildAiDraft(state.intakeReview);
+    setNote((current) => (current.trim() ? `${current.trim()}\n\n${aiDraft}` : aiDraft));
+    setNoteError(null);
+    setActionError(null);
+    setActionSuccess(dictionary.staff.detail.aiReview.draftReady);
+    noteFieldRef.current?.focus();
+  }
+
   if (state.status === "loading") {
     return (
       <main className="page-shell">
@@ -313,7 +335,7 @@ export function StaffCaseDetailPage({
     );
   }
 
-  const { caseDetail, auditEntries, session } = state;
+  const { caseDetail, auditEntries, session, voiceDetail, intakeReview } = state;
 
   return (
     <main className="page-shell">
@@ -417,6 +439,126 @@ export function StaffCaseDetailPage({
           </div>
         </section>
 
+        <section className="staff-contact-panel" aria-labelledby="staff-voice-title">
+          <h2 className="section-title" id="staff-voice-title">
+            {dictionary.staff.detail.voice.title}
+          </h2>
+          {voiceDetail ? (
+            <div className="detail-grid">
+              <div className="detail-card">
+                <dt>{dictionary.staff.detail.voice.transcriptStateLabel}</dt>
+                <dd>{voiceDetail.transcript_state}</dd>
+              </div>
+              <div className="detail-card">
+                <dt>{dictionary.staff.detail.voice.languageLabel}</dt>
+                <dd>{voiceDetail.transcription_language_code ?? caseDetail.language_code}</dd>
+              </div>
+              <div className="detail-card">
+                <dt>{dictionary.staff.detail.voice.confidenceLabel}</dt>
+                <dd>
+                  {typeof voiceDetail.transcription_confidence === "number"
+                    ? `${Math.round(voiceDetail.transcription_confidence * 100)}%`
+                    : dictionary.staff.detail.voice.notAvailable}
+                </dd>
+              </div>
+              <div className="detail-card detail-card-wide">
+                <dt>{dictionary.staff.detail.voice.transcriptLabel}</dt>
+                <dd>{voiceDetail.confirmed_transcript_text ?? voiceDetail.transcription_text}</dd>
+              </div>
+            </div>
+          ) : (
+            <p className="support-copy">{dictionary.staff.detail.voice.empty}</p>
+          )}
+        </section>
+
+        <section className="staff-contact-panel" aria-labelledby="staff-ai-review-title">
+          <div className="staff-section-header">
+            <div>
+              <h2 className="section-title" id="staff-ai-review-title">
+                {dictionary.staff.detail.aiReview.title}
+              </h2>
+              <p className="support-copy section-copy">{dictionary.staff.detail.aiReview.description}</p>
+            </div>
+            {intakeReview.status === "ready" ? (
+              <button className="button-secondary" type="button" onClick={handleApplyAiDraft}>
+                {dictionary.staff.detail.aiReview.applyDraft}
+              </button>
+            ) : null}
+          </div>
+
+          <p className="info-banner" role="status">
+            {intakeReview.disclaimer}
+          </p>
+
+          <div className="detail-grid">
+            <div className="detail-card">
+              <dt>{dictionary.staff.detail.aiReview.statusLabel}</dt>
+              <dd>
+                {intakeReview.status === "ready"
+                  ? dictionary.staff.detail.aiReview.ready
+                  : dictionary.staff.detail.aiReview.unavailable}
+              </dd>
+            </div>
+            <div className="detail-card detail-card-wide">
+              <dt>{dictionary.staff.detail.aiReview.sourceInputsLabel}</dt>
+              <dd>{intakeReview.source_inputs.join(", ")}</dd>
+            </div>
+            <div className="detail-card detail-card-wide">
+              <dt>{dictionary.staff.detail.aiReview.sourcePreviewLabel}</dt>
+              <dd>{intakeReview.source_preview}</dd>
+            </div>
+          </div>
+
+          {intakeReview.status === "ready" && intakeReview.staff_summary_suggestion && intakeReview.suggested_tags ? (
+            <div className="staff-review-stack">
+              <div className="detail-card form-stack">
+                <dt>{dictionary.staff.detail.aiReview.summaryTitle}</dt>
+                <dd>{intakeReview.staff_summary_suggestion.headline}</dd>
+                <p className="support-copy">{intakeReview.staff_summary_suggestion.situation_overview}</p>
+                <p className="support-copy">{intakeReview.staff_summary_suggestion.urgency_note}</p>
+                <div>
+                  <p className="field-label">{dictionary.staff.detail.aiReview.followUpTitle}</p>
+                  {intakeReview.staff_summary_suggestion.recommended_follow_up.length > 0 ? (
+                    <ul className="staff-review-list">
+                      {intakeReview.staff_summary_suggestion.recommended_follow_up.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="support-copy">{dictionary.staff.detail.aiReview.emptyTagGroup}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="detail-card form-stack">
+                <dt>{dictionary.staff.detail.aiReview.tagsTitle}</dt>
+                <TagGroup
+                  label={dictionary.staff.detail.aiReview.urgencyTagsLabel}
+                  values={intakeReview.suggested_tags.urgency_cues}
+                  emptyLabel={dictionary.staff.detail.aiReview.emptyTagGroup}
+                />
+                <TagGroup
+                  label={dictionary.staff.detail.aiReview.missingPersonTagsLabel}
+                  values={intakeReview.suggested_tags.missing_person_mentions}
+                  emptyLabel={dictionary.staff.detail.aiReview.emptyTagGroup}
+                />
+                <TagGroup
+                  label={dictionary.staff.detail.aiReview.incidentTagsLabel}
+                  values={intakeReview.suggested_tags.incident_or_resource_types}
+                  emptyLabel={dictionary.staff.detail.aiReview.emptyTagGroup}
+                />
+                <TagGroup
+                  label={dictionary.staff.detail.aiReview.followUpTagsLabel}
+                  values={intakeReview.suggested_tags.follow_up_needs}
+                  emptyLabel={dictionary.staff.detail.aiReview.emptyTagGroup}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="support-copy">{intakeReview.fallback_message ?? dictionary.staff.detail.aiReview.unavailableBody}</p>
+          )}
+        </section>
+
         <section className="staff-actions-panel" aria-labelledby="staff-actions-title">
           <h2 className="section-title" id="staff-actions-title">
             {dictionary.staff.detail.actionsTitle}
@@ -438,6 +580,7 @@ export function StaffCaseDetailPage({
               <label className="field">
                 <span className="field-label">{dictionary.staff.detail.noteLabel}</span>
                 <textarea
+                  ref={noteFieldRef}
                   className="field-control field-textarea"
                   maxLength={4000}
                   rows={5}
@@ -518,6 +661,102 @@ export function StaffCaseDetailPage({
       </div>
     </main>
   );
+}
+
+async function loadOptionalVoiceDetail(accessToken: string, caseId: number) {
+  try {
+    return await withStaffAuthorization(accessToken, (token) => getStaffCaseVoice(token, caseId));
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function loadOptionalIntakeReview(accessToken: string, caseId: number) {
+  try {
+    return await withStaffAuthorization(accessToken, (token) => getStaffCaseIntakeReview(token, caseId));
+  } catch (error) {
+    if (error instanceof MissingStaffSessionError || error instanceof UnauthorizedStaffSessionError) {
+      throw error;
+    }
+    if (error instanceof ApiError && error.status === 404) {
+      throw error;
+    }
+    return {
+      status: "unavailable",
+      suggestion_only: true,
+      source_inputs: [],
+      source_preview: "",
+      disclaimer:
+        "AI review is suggestion-only. A staff member must verify the original intake before any official note or status update is recorded.",
+      staff_summary_suggestion: null,
+      suggested_tags: null,
+      fallback_message: "AI review is unavailable right now.",
+    } satisfies StaffCaseIntakeReviewResponse;
+  }
+}
+
+function buildAiDraft(review: StaffCaseIntakeReviewResponse) {
+  if (review.status !== "ready" || !review.staff_summary_suggestion || !review.suggested_tags) {
+    return "";
+  }
+
+  const sections = [
+    "AI review confirmed by staff.",
+    `Headline: ${review.staff_summary_suggestion.headline}`,
+    `Situation overview: ${review.staff_summary_suggestion.situation_overview}`,
+    `Urgency note: ${review.staff_summary_suggestion.urgency_note}`,
+    `Urgency cues: ${joinOrNone(review.suggested_tags.urgency_cues)}`,
+    `Missing-person mentions: ${joinOrNone(review.suggested_tags.missing_person_mentions)}`,
+    `Incident/resource types: ${joinOrNone(review.suggested_tags.incident_or_resource_types)}`,
+    `Follow-up needs: ${joinOrNone(review.suggested_tags.follow_up_needs)}`,
+  ];
+
+  if (review.staff_summary_suggestion.recommended_follow_up.length > 0) {
+    sections.push(
+      "Recommended follow-up:",
+      ...review.staff_summary_suggestion.recommended_follow_up.map((item) => `- ${item}`),
+    );
+  }
+
+  return sections.join("\n");
+}
+
+function joinOrNone(values: string[]) {
+  return values.length > 0 ? values.join(", ") : "none";
+}
+
+function TagGroup({
+  label,
+  values,
+  emptyLabel,
+}: {
+  label: string;
+  values: string[];
+  emptyLabel: string;
+}) {
+  return (
+    <div>
+      <p className="field-label">{label}</p>
+      {values.length > 0 ? (
+        <ul className="staff-tag-list">
+          {values.map((value) => (
+            <li className="staff-tag-chip" key={value}>
+              {formatTagLabel(value)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="support-copy">{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
+function formatTagLabel(value: string) {
+  return value.replace(/_/g, " ");
 }
 
 function redirectToLogin(

@@ -423,6 +423,11 @@ textarea {
   gap: 0.75rem;
 }
 
+.staff-section-header {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .staff-headline,
 .staff-case-title,
 .staff-action-title {
@@ -463,6 +468,39 @@ textarea {
   gap: 1rem;
 }
 
+.staff-review-stack {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.staff-review-list,
+.staff-tag-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.staff-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-tag-chip {
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: #e8f0ea;
+  color: #184a39;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.section-copy {
+  margin-top: 0.35rem;
+}
+
 .metadata-block {
   margin: 0;
   padding: 0.85rem;
@@ -486,12 +524,21 @@ textarea {
     justify-items: end;
   }
 
+  .staff-section-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
   .staff-link-button {
     width: auto;
   }
 
   .staff-action-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .staff-review-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

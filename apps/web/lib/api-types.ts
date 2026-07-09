@@ -134,6 +134,49 @@ export interface StaffCaseDetailResponse extends StaffCaseListItem {
   reporter_phone: string | null;
 }
 
+export interface StaffCaseVoiceResponse {
+  id: number;
+  case_id: number;
+  processing_status: VoiceProcessingStatus;
+  content_type: string;
+  size_bytes: number;
+  duration_seconds: number | null;
+  transcription_text: string | null;
+  transcription_language_code: string | null;
+  transcription_confidence: number | null;
+  confirmed_transcript_text: string | null;
+  transcript_state: VoiceTranscriptState;
+  retention_state: VoiceRetentionState;
+  audio_available: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffSuggestedCaseIntakeSummary {
+  headline: string;
+  situation_overview: string;
+  urgency_note: string;
+  recommended_follow_up: string[];
+}
+
+export interface StaffSuggestedCaseIntakeTags {
+  urgency_cues: string[];
+  missing_person_mentions: string[];
+  incident_or_resource_types: string[];
+  follow_up_needs: string[];
+}
+
+export interface StaffCaseIntakeReviewResponse {
+  status: "ready" | "unavailable";
+  suggestion_only: boolean;
+  source_inputs: string[];
+  source_preview: string;
+  disclaimer: string;
+  staff_summary_suggestion: StaffSuggestedCaseIntakeSummary | null;
+  suggested_tags: StaffSuggestedCaseIntakeTags | null;
+  fallback_message: string | null;
+}
+
 export interface StaffCaseActionRequest {
   action_type: CaseActionType;
   note?: string | null;

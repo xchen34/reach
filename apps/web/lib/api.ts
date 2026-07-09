@@ -3,10 +3,12 @@ import type {
   AnonymousCaseSubmissionRequest,
   CaseSubmissionResponse,
   CurrentStaffSession,
+  StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
   StaffCaseActionResponse,
   StaffCaseDetailResponse,
   StaffCaseListItem,
+  StaffCaseVoiceResponse,
   StaffMagicLinkRequestResponse,
   StaffSessionResponse,
   ShareLinkCaseView,
@@ -161,6 +163,18 @@ export function listStaffCases(accessToken: string) {
 
 export function getStaffCaseDetail(accessToken: string, caseId: number) {
   return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}`, {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffCaseVoice(accessToken: string, caseId: number) {
+  return apiFetch<StaffCaseVoiceResponse>(`/staff/cases/${caseId}/voice`, {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffCaseIntakeReview(accessToken: string, caseId: number) {
+  return apiFetch<StaffCaseIntakeReviewResponse>(`/staff/cases/${caseId}/intake-review`, {
     headers: buildBearerHeaders(accessToken),
   });
 }

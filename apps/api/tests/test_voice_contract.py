@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import app.services.case_intake_review as case_intake_review_service
 from app.config import get_settings
 from app.db import Base
 from app.deps import get_db
@@ -154,6 +155,15 @@ def test_voice_upload_confirm_attach_and_staff_access_flow() -> None:
     assert voice_payload["audio_available"] is True
     assert voice_payload["confirmed_transcript_text"].startswith("There is smoke")
 
+    review_response = client.get(f"/staff/cases/{case_payload['id']}/intake-review", headers=headers)
+    assert review_response.status_code == 200
+    review_payload = review_response.json()
+    assert review_payload["status"] == "ready"
+    assert review_payload["suggestion_only"] is True
+    assert review_payload["staff_summary_suggestion"]["headline"].startswith("Suggestion only")
+    assert "confirmed voice transcript" in review_payload["source_inputs"]
+    assert "fire" in review_payload["suggested_tags"]["incident_or_resource_types"]
+
     audio_response = client.get(f"/staff/cases/{case_payload['id']}/voice/audio", headers=headers)
     assert audio_response.status_code == 200
     assert audio_response.headers["content-type"].startswith("audio/wav")
@@ -207,6 +217,41 @@ def test_voice_staff_routes_require_bearer_authentication() -> None:
     assert metadata_response.status_code == 401
     assert metadata_response.json()["detail"] == "Missing bearer token."
 
+    review_response = client.get(f"/staff/cases/{case_id}/intake-review")
+    assert review_response.status_code == 401
+    assert review_response.json()["detail"] == "Missing bearer token."
+
     audio_response = client.get(f"/staff/cases/{case_id}/voice/audio")
     assert audio_response.status_code == 401
     assert audio_response.json()["detail"] == "Missing bearer token."
+
+
+def test_intake_review_degrades_when_provider_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case_response = client.post(
+        "/cases",
+        json={
+            "incident_type": "other",
+            "urgency": "medium",
+            "location_summary": "Community center lobby",
+            "needs_summary": "Need information about overnight shelter and transportation.",
+        },
+    )
+    assert case_response.status_code == 201
+    case_id = case_response.json()["id"]
+    headers = _authenticate_staff("review-failure@example.com")
+
+    def raise_error(*, content: str) -> None:
+        raise RuntimeError(f"boom: {content}")
+
+    monkeypatch.setattr(case_intake_review_service, "generate_case_intake_suggestions", raise_error)
+
+    review_response = client.get(f"/staff/cases/{case_id}/intake-review", headers=headers)
+    assert review_response.status_code == 200
+    review_payload = review_response.json()
+    assert review_payload["status"] == "unavailable"
+    assert review_payload["suggestion_only"] is True
+    assert review_payload["staff_summary_suggestion"] is None
+    assert review_payload["suggested_tags"] is None
+    assert review_payload["fallback_message"]

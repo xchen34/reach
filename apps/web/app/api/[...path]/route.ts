@@ -14,6 +14,8 @@ const allowedRoutes = [
   { method: "GET", pattern: /^staff\/me$/ },
   { method: "GET", pattern: /^staff\/cases$/ },
   { method: "GET", pattern: /^staff\/cases\/\d+$/ },
+  { method: "GET", pattern: /^staff\/cases\/\d+\/voice$/ },
+  { method: "GET", pattern: /^staff\/cases\/\d+\/intake-review$/ },
   { method: "GET", pattern: /^staff\/cases\/\d+\/audit$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/actions$/ },
 ] as const;
