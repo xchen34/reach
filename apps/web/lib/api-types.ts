@@ -38,53 +38,6 @@ export type PublicBoardStatus =
   | "safe_confirmed"
   | "archived";
 
-export interface AnonymousCaseSubmissionRequest {
-  incident_type: IncidentType;
-  urgency: UrgencyLevel;
-  language_code: string;
-  location_summary: string;
-  needs_summary: string;
-  voice_intake_token?: string | null;
-  reporter_name?: string | null;
-  reporter_email?: string | null;
-  reporter_phone?: string | null;
-}
-
-export interface VoiceIntakeView {
-  id: number;
-  processing_status: VoiceProcessingStatus;
-  content_type: string;
-  size_bytes: number;
-  duration_seconds: number | null;
-  transcription_text: string | null;
-  transcription_language_code: string | null;
-  transcription_confidence: number | null;
-  confirmed_transcript_text: string | null;
-  transcript_state: VoiceTranscriptState;
-  retention_state: VoiceRetentionState;
-  attached_to_case: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface VoiceIntakeCreateResponse extends VoiceIntakeView {
-  voice_intake_token: string;
-}
-
-export interface ShareLinkSummary {
-  token: string;
-  url: string;
-  scope: ShareLinkScope;
-}
-
-export interface CaseSubmissionResponse {
-  id: number;
-  case_code: string;
-  status: CaseStatus;
-  share_link: ShareLinkSummary;
-  created_at: string;
-}
-
 export interface ShareLinkCaseView {
   case_code: string;
   status: CaseStatus;

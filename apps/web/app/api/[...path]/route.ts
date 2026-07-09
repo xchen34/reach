@@ -3,10 +3,6 @@ const internalBaseUrl = process.env.API_INTERNAL_BASE_URL ?? publicBaseUrl;
 
 const forwardedHeaderNames = ["authorization", "content-type"] as const;
 const allowedRoutes = [
-  { method: "POST", pattern: /^cases$/ },
-  { method: "POST", pattern: /^voice-intakes$/ },
-  { method: "POST", pattern: /^voice-intakes\/retrieve$/ },
-  { method: "POST", pattern: /^voice-intakes\/confirm$/ },
   { method: "GET", pattern: /^board$/ },
   { method: "GET", pattern: /^share\/[^/]+$/ },
   { method: "POST", pattern: /^auth\/request-magic-link$/ },
