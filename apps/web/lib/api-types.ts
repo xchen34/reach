@@ -31,6 +31,12 @@ export type ShareLinkScope = "status_only";
 export type VoiceProcessingStatus = (typeof voiceProcessingStatuses)[number];
 export type VoiceTranscriptState = (typeof voiceTranscriptStates)[number];
 export type VoiceRetentionState = (typeof voiceRetentionStates)[number];
+export type PublicBoardStatus =
+  | "unverified"
+  | "responding"
+  | "needs_follow_up"
+  | "safe_confirmed"
+  | "archived";
 
 export interface AnonymousCaseSubmissionRequest {
   incident_type: IncidentType;
@@ -86,6 +92,34 @@ export interface ShareLinkCaseView {
   needs_summary: string;
   latest_public_update: string | null;
   created_at: string;
+}
+
+export interface PublicBoardRecord {
+  case_code: string;
+  board_status: PublicBoardStatus;
+  urgency: UrgencyLevel;
+  incident_type: IncidentType;
+  language_code: string;
+  location_summary: string;
+  needs_summary: string;
+  latest_public_update: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicBoardSummary {
+  total_records: number;
+  unverified: number;
+  responding: number;
+  needs_follow_up: number;
+  safe_confirmed: number;
+  archived: number;
+}
+
+export interface PublicBoardResponse {
+  source_mode: "derived_from_cases";
+  records: PublicBoardRecord[];
+  summary: PublicBoardSummary;
 }
 
 export interface StaffUserSummary {

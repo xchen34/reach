@@ -3,6 +3,7 @@ import type {
   AnonymousCaseSubmissionRequest,
   CaseSubmissionResponse,
   CurrentStaffSession,
+  PublicBoardResponse,
   StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
   StaffCaseActionResponse,
@@ -133,6 +134,10 @@ export function confirmVoiceIntake(voiceIntakeToken: string, confirmedTranscript
 
 export function getSharedCase(token: string) {
   return apiFetch<ShareLinkCaseView>(`/share/${encodeURIComponent(token)}`);
+}
+
+export function getPublicBoard() {
+  return apiFetch<PublicBoardResponse>("/board");
 }
 
 export function requestStaffMagicLink(email: string) {

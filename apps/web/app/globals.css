@@ -153,6 +153,56 @@ textarea {
   gap: 0.75rem;
 }
 
+.community-board-records {
+  display: grid;
+  gap: 1rem;
+}
+
+.community-board-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.community-board-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.community-board-code {
+  margin: 0;
+}
+
+.community-board-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.9rem;
+  margin: 0;
+}
+
+.community-board-meta dt {
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.community-board-meta dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.community-board-update {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.community-board-subtitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .section-grid,
 .detail-grid {
   display: grid;

@@ -7,6 +7,7 @@ const allowedRoutes = [
   { method: "POST", pattern: /^voice-intakes$/ },
   { method: "POST", pattern: /^voice-intakes\/retrieve$/ },
   { method: "POST", pattern: /^voice-intakes\/confirm$/ },
+  { method: "GET", pattern: /^board$/ },
   { method: "GET", pattern: /^share\/[^/]+$/ },
   { method: "POST", pattern: /^auth\/request-magic-link$/ },
   { method: "POST", pattern: /^auth\/verify-magic-link$/ },

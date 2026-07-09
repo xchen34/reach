@@ -208,10 +208,32 @@ export const fr = {
       "Ce tableau est mis a jour manuellement et peut avoir du retard sur la situation reelle. Si une personne est en danger immediat, contactez les secours officiels sans attendre.",
     actionsTitle: "Role du tableau public",
     actionsDescription:
-      "Le tableau public Beacon doit afficher les mises a jour approuvees et respectueuses de la vie privee apres verification par des benevoles. Tant que le flux direct reste externe, cette page fixe la structure et le langage du tableau.",
+      "Le tableau public Beacon doit afficher les mises a jour approuvees et respectueuses de la vie privee apres verification par des benevoles. Cette page lit maintenant le flux du tableau directement depuis l'adaptateur backend de Beacon.",
     backHome: "Retour aux liens d'intake",
     openMirror: "Ouvrir le miroir externe",
     statusLegendTitle: "Legende des statuts",
+    liveTitle: "Fiches publiques en direct",
+    liveDescription:
+      "Ces fiches proviennent de la file d'intake Beacon actuelle et n'exposent que des champs adaptes a un tableau public de coordination.",
+    sourceModeDerived: "Source actuelle : derivee de la file de dossiers Beacon existante.",
+    loading: "Chargement des fiches publiques...",
+    loadError:
+      "Le flux public du tableau ne peut pas etre charge pour le moment. Vous pouvez toujours utiliser les liens d'intake et le miroir externe pendant le retablissement.",
+    empty: "Aucune fiche publique n'est disponible pour le moment.",
+    recordCodeLabel: "Code de fiche",
+    urgencyLabel: "Urgence",
+    incidentTypeLabel: "Type d'incident",
+    createdAtLabel: "Envoye le",
+    updatedAtLabel: "Derniere revue",
+    latestUpdateLabel: "Derniere mise a jour publique",
+    latestUpdateFallback: "Aucune mise a jour publique pour le moment.",
+    summary: {
+      totalRecords: "Fiches sur le tableau",
+      unverified: "Non verifie",
+      responding: "En cours",
+      needsFollowUp: "Suivi necessaire",
+      safeConfirmed: "Securite confirmee",
+    },
     principlesTitle: "Principes de verification",
     principles: [
       "Laissez une information au statut non verifie tant qu'un benevole n'a pas assez d'elements pour la confirmer.",
@@ -237,13 +259,17 @@ export const fr = {
         label: "Securite confirmee",
         description: "Les benevoles disposent d'assez d'elements pour affirmer que la personne est en securite.",
       },
-      missingReported: {
-        label: "Disparition signalee",
-        description: "La personne est toujours recherchee ou ne peut pas encore etre jointe avec confiance.",
+      responding: {
+        label: "En cours",
+        description: "Les benevoles examinent activement ce signalement ou coordonnent une reponse, sans resolution finale pour l'instant.",
       },
       needsFollowUp: {
         label: "Suivi necessaire",
         description: "Le signalement contient des informations utiles mais demande encore de la verification ou de la coordination.",
+      },
+      archived: {
+        label: "Archive",
+        description: "Le signalement est clos et reste normalement masque du tableau public sauf demande expresse des archives.",
       },
     },
   },

@@ -208,10 +208,31 @@ export const en = {
       "This board is manually maintained and may lag behind real-world events. If someone is in immediate danger, contact official emergency responders now.",
     actionsTitle: "Public board role",
     actionsDescription:
-      "Beacon's public board is where approved, privacy-safe updates should appear after volunteer verification. While the live feed is still external, this page defines the structure and language of that board.",
+      "Beacon's public board is where approved, privacy-safe updates should appear after volunteer verification. This page now reads the current public board feed directly from Beacon's backend adapter.",
     backHome: "Back to intake links",
     openMirror: "Open external board mirror",
     statusLegendTitle: "Status legend",
+    liveTitle: "Live board records",
+    liveDescription:
+      "These records are derived from the current Beacon intake queue and only expose fields that are appropriate for a public coordination board.",
+    sourceModeDerived: "Current source: derived from the existing Beacon case queue.",
+    loading: "Loading current board records...",
+    loadError: "The live board feed could not be loaded right now. You can still use the intake links and external mirror while volunteers recover the feed.",
+    empty: "No public-safe board records are available yet.",
+    recordCodeLabel: "Record code",
+    urgencyLabel: "Urgency",
+    incidentTypeLabel: "Incident type",
+    createdAtLabel: "Submitted",
+    updatedAtLabel: "Last reviewed",
+    latestUpdateLabel: "Latest public update",
+    latestUpdateFallback: "No public update has been posted yet.",
+    summary: {
+      totalRecords: "Records in board",
+      unverified: "Unverified",
+      responding: "Responding",
+      needsFollowUp: "Needs follow-up",
+      safeConfirmed: "Safe confirmed",
+    },
     principlesTitle: "Verification principles",
     principles: [
       "Mark information as unverified until a volunteer has enough evidence to confirm it.",
@@ -237,13 +258,17 @@ export const en = {
         label: "Safe confirmed",
         description: "Volunteers have enough evidence to state that the person is safe.",
       },
-      missingReported: {
-        label: "Missing reported",
-        description: "The person is still being sought or cannot yet be reached with confidence.",
+      responding: {
+        label: "Responding",
+        description: "Volunteers are actively reviewing or coordinating around this report, but it is not yet resolved.",
       },
       needsFollowUp: {
         label: "Needs follow-up",
         description: "The report contains useful information, but more verification or coordination is still required.",
+      },
+      archived: {
+        label: "Archived",
+        description: "The report is closed and normally hidden from the public board unless archived records are requested.",
       },
     },
   },
