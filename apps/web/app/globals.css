@@ -438,8 +438,25 @@ textarea {
   margin-top: 2rem;
 }
 
+.staff-dashboard-source,
+.staff-section-header,
+.staff-related-case-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staff-dashboard-source {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #f8f3e8;
+}
+
 .staff-case-stack,
-.staff-audit-list {
+.staff-audit-list,
+.staff-related-case-list {
   display: grid;
   gap: 1rem;
   padding: 0;
@@ -447,7 +464,8 @@ textarea {
   list-style: none;
 }
 
-.staff-case-card {
+.staff-case-card,
+.staff-event-card {
   display: grid;
   gap: 1rem;
 }
@@ -461,6 +479,15 @@ textarea {
 
 .staff-link-button {
   width: 100%;
+}
+
+.staff-event-meta {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.staff-related-case-copy {
+  margin: 0.5rem 0 0;
 }
 
 .staff-action-grid {
@@ -513,8 +540,11 @@ textarea {
 
 @media (min-width: 720px) {
   .staff-toolbar,
+  .staff-dashboard-source,
+  .staff-section-header,
   .staff-case-header,
-  .staff-audit-row {
+  .staff-audit-row,
+  .staff-related-case-row {
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
@@ -531,6 +561,10 @@ textarea {
 
   .staff-link-button {
     width: auto;
+  }
+
+  .staff-event-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .staff-action-grid {

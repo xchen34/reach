@@ -1,0 +1,77 @@
+import type { CurrentStaffSession, StaffCaseListItem } from "./api-types";
+
+export const mockStaffDashboardSession: CurrentStaffSession = {
+  user: {
+    id: 9001,
+    email: "demo.coordinator@beacon.local",
+    role: "coordinator",
+  },
+  session_expires_at: "2026-07-09T18:00:00.000Z",
+};
+
+export const mockStaffDashboardCases: StaffCaseListItem[] = [
+  {
+    id: 101,
+    case_code: "EVT-101",
+    status: "active",
+    urgency: "critical",
+    incident_type: "fire",
+    location_summary: "North Hall",
+    needs_summary: "Evacuation support is needed across the main corridor.",
+    latest_public_update: "Evacuation support is in progress.",
+    assigned_staff_user: {
+      id: 12,
+      email: "north.response@beacon.local",
+      role: "volunteer",
+    },
+    created_at: "2026-07-09T09:00:00.000Z",
+    updated_at: "2026-07-09T09:22:00.000Z",
+  },
+  {
+    id: 102,
+    case_code: "EVT-102",
+    status: "pending_review",
+    urgency: "high",
+    incident_type: "fire",
+    location_summary: "North Hall",
+    needs_summary: "Smoke reported near the west-side exit.",
+    latest_public_update: null,
+    assigned_staff_user: null,
+    created_at: "2026-07-09T09:05:00.000Z",
+    updated_at: "2026-07-09T09:18:00.000Z",
+  },
+  {
+    id: 103,
+    case_code: "EVT-103",
+    status: "waiting_for_information",
+    urgency: "medium",
+    incident_type: "shelter",
+    location_summary: "South Shelter",
+    needs_summary: "Families are waiting for bedding and water restock.",
+    latest_public_update: "Supplies are being routed from the logistics team.",
+    assigned_staff_user: {
+      id: 13,
+      email: "shelter.lead@beacon.local",
+      role: "coordinator",
+    },
+    created_at: "2026-07-09T08:40:00.000Z",
+    updated_at: "2026-07-09T09:10:00.000Z",
+  },
+  {
+    id: 104,
+    case_code: "EVT-104",
+    status: "closed",
+    urgency: "low",
+    incident_type: "medical",
+    location_summary: "East Gate",
+    needs_summary: "Medication pickup was completed.",
+    latest_public_update: "Reporter confirmed they are safe.",
+    assigned_staff_user: {
+      id: 14,
+      email: "medical.followup@beacon.local",
+      role: "volunteer",
+    },
+    created_at: "2026-07-09T07:55:00.000Z",
+    updated_at: "2026-07-09T08:20:00.000Z",
+  },
+];
