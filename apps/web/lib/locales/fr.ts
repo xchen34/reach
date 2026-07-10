@@ -29,6 +29,12 @@ export const fr = {
       "Chaque signalement s'ouvre dans un Google Form afin que les benevoles conservent un mode de collecte rapide et simple pendant un incident actif.",
     formPending:
       "Configurez ce lien Google Form dans l'environnement web avant de l'utiliser en production.",
+    workflowTitle: "Flux de travail",
+    workflowSteps: [
+      "Collecter les signalements via des formulaires partages.",
+      "Les verifier dans l'espace equipe.",
+      "Publier des mises a jour respectueuses de la vie privee sur le tableau public.",
+    ],
     guidelinesTitle: "Avant de soumettre",
     guidelines: [
       "Privilegiez les informations de premiere main et indiquez l'heure a laquelle vous les avez obtenues.",

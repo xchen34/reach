@@ -6,7 +6,6 @@ import type {
   StaffCaseActionRequest,
   StaffCaseActionResponse,
   StaffCaseDetailResponse,
-  StaffCaseListItem,
   StaffCasePublishRequest,
   StaffCasePublishResponse,
   StaffCaseRelationRequest,
@@ -91,12 +90,6 @@ export function verifyStaffMagicLink(token: string) {
 
 export function getCurrentStaffSession(accessToken: string) {
   return apiFetch<CurrentStaffSession>("/staff/me", {
-    headers: buildBearerHeaders(accessToken),
-  });
-}
-
-export function listStaffCases(accessToken: string) {
-  return apiFetch<StaffCaseListItem[]>("/staff/cases", {
     headers: buildBearerHeaders(accessToken),
   });
 }

@@ -42,20 +42,33 @@ export function CommunityCoordinationHome({
 
   return (
     <main className="page-shell">
-      <div className="page-card page-card-wide">
-        <span className="eyebrow">{dictionary.home.eyebrow}</span>
-        <h1 className="headline">{dictionary.home.title}</h1>
-        <p className="lede">{dictionary.home.description}</p>
+      <div className="page-card page-card-wide community-home-shell">
+        <div className="community-home-header">
+          <div>
+            <span className="eyebrow">{dictionary.home.eyebrow}</span>
+            <h1 className="headline headline-compact">{dictionary.home.title}</h1>
+            <p className="lede">{dictionary.home.description}</p>
+          </div>
+          <div className="community-home-toolbar">
+            <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
+            <Link className="button-secondary" href={`/${locale}/staff/login`}>
+              {dictionary.home.staffCta}
+            </Link>
+          </div>
+        </div>
         <p className="error-banner" role="alert">
           {dictionary.home.emergencyNotice}
         </p>
-        <p className="support-copy compact-lede">{dictionary.home.privacy}</p>
-
-        <div className="community-home-toolbar">
-          <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
-          <Link className="button-secondary" href={`/${locale}/staff/login`}>
-            {dictionary.home.staffCta}
-          </Link>
+        <div className="community-home-intro">
+          <p className="support-copy compact-lede">{dictionary.home.privacy}</p>
+          <div className="detail-card community-process-card">
+            <p className="community-process-label">{dictionary.home.workflowTitle}</p>
+            <ol className="community-process-list">
+              {dictionary.home.workflowSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
         </div>
 
         <section className="community-entry-section" aria-labelledby="community-entry-title">
@@ -74,7 +87,7 @@ export function CommunityCoordinationHome({
           <div className="section-grid">
             {actions.map((action) => (
               <article className="detail-card community-action-card" key={action.key}>
-                <div>
+                <div className="community-action-body">
                   <h3 className="section-title community-action-title">{action.title}</h3>
                   <p className="support-copy community-action-copy">{action.description}</p>
                 </div>

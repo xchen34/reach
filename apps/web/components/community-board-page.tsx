@@ -87,11 +87,11 @@ export function CommunityBoardPage({
 
   return (
     <main className="page-shell">
-      <div className="page-card page-card-wide">
-        <div className="community-home-toolbar">
+      <div className="page-card page-card-wide community-board-shell">
+        <div className="community-home-toolbar community-board-header">
           <div>
             <span className="eyebrow">{dictionary.board.eyebrow}</span>
-            <h1 className="headline">{dictionary.board.title}</h1>
+            <h1 className="headline headline-compact">{dictionary.board.title}</h1>
             <p className="lede">{dictionary.board.description}</p>
           </div>
           <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
@@ -153,7 +153,7 @@ export function CommunityBoardPage({
 
           {boardData ? (
             <>
-              <div className="section-grid">
+              <div className="section-grid board-summary-grid">
                 <article className="detail-card">
                   <dt>{dictionary.board.summary.totalRecords}</dt>
                   <dd>{boardData.summary.total_records}</dd>
@@ -176,7 +176,7 @@ export function CommunityBoardPage({
                 </article>
               </div>
 
-              <p className="field-hint">{resolveSourceMode(dictionary, boardData.source_mode)}</p>
+              <p className="field-hint board-source-note">{resolveSourceMode(dictionary, boardData.source_mode)}</p>
 
               {boardData.records.length === 0 ? (
                 <p className="info-banner">{dictionary.board.empty}</p>

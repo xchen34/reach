@@ -27,6 +27,12 @@ export const zh = {
     entryDescription:
       "每个入口都会打开一个 Google Form，让志愿者在突发事件期间继续使用快速、低门槛的收集方式。",
     formPending: "请先在前端环境变量中配置这个 Google Form 链接，再用于正式场景。",
+    workflowTitle: "处理流程",
+    workflowSteps: [
+      "通过共享表单收集上报。",
+      "在工作人员后台进行核实。",
+      "将保护隐私的更新发布到公开信息板。",
+    ],
     guidelinesTitle: "提交前请先确认",
     guidelines: [
       "尽量提供第一手信息，并写明你获知该信息的时间。",

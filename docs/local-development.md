@@ -10,20 +10,45 @@
 Run:
 
 ```bash
-docker compose -f infra/docker-compose.yml up --build
+docker compose -f infra/docker-compose.yml up -d db api
 ```
 
 In another shell, apply migrations:
 
 ```bash
-docker compose -f infra/docker-compose.yml exec api alembic upgrade head
+docker compose -f infra/docker-compose.yml exec -T api alembic upgrade head
+```
+
+Then start the web app on the host machine:
+
+```bash
+cd apps/web
+rm -rf .next
+npm run dev
 ```
 
 ## Services
 
-- Web: `http://localhost:3000`
+- Web: `http://127.0.0.1:3000`
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
+
+## Why web runs on the host by default
+
+For this project, the most stable development setup is:
+
+- Docker for `db` and `api`
+- host machine for `web`
+
+Running Next.js dev inside the Docker `web` service and also on the host can corrupt `.next` and cause broken chunk/manifest errors. The compose file now keeps `web` behind an opt-in profile so it does not start by default.
+
+If you explicitly want the frontend in Docker, run:
+
+```bash
+docker compose -f infra/docker-compose.yml --profile web up -d web
+```
+
+Do not run host `npm run dev` at the same time as Docker `web`.
 
 ## Voice intake storage
 

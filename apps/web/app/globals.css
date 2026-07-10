@@ -1,15 +1,15 @@
 :root {
   color-scheme: light;
-  --bg: #f4f1e8;
-  --surface: #fffdf7;
-  --surface-alt: #ece6d7;
-  --text: #1e1b16;
-  --muted: #57524a;
-  --accent: #0b5f4b;
-  --accent-strong: #074738;
-  --border: #c9bfaa;
+  --bg: #efe9dc;
+  --surface: #fbf8f1;
+  --surface-alt: #f1eadc;
+  --text: #1f1a14;
+  --muted: #5f564c;
+  --accent: #1b5a4b;
+  --accent-strong: #123f35;
+  --border: #c7bcac;
   --focus: #0d47a1;
-  --shadow: 0 10px 30px rgba(42, 35, 24, 0.08);
+  --shadow: 0 8px 24px rgba(34, 29, 22, 0.06);
 }
 
 * {
@@ -20,9 +20,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background:
-    radial-gradient(circle at top left, rgba(11, 95, 75, 0.08), transparent 30%),
-    linear-gradient(180deg, #f6f2e9 0%, #efe8dc 100%);
+  background: linear-gradient(180deg, #f3eee4 0%, #ece4d6 100%);
   color: var(--text);
   font-family: Georgia, "Times New Roman", serif;
 }
@@ -55,9 +53,9 @@ textarea {
 .page-card {
   max-width: 52rem;
   margin: 0 auto;
-  background: rgba(255, 253, 247, 0.96);
+  background: rgba(251, 248, 241, 0.97);
   border: 1px solid var(--border);
-  border-radius: 1.5rem;
+  border-radius: 1rem;
   box-shadow: var(--shadow);
   padding: 1.5rem;
 }
@@ -78,15 +76,19 @@ textarea {
 
 .headline {
   margin: 0 0 1rem;
-  font-size: clamp(2rem, 5vw, 3.6rem);
-  line-height: 1.05;
+  font-size: clamp(1.95rem, 4.4vw, 3.15rem);
+  line-height: 1.08;
+}
+
+.headline-compact {
+  max-width: 14ch;
 }
 
 .lede {
-  max-width: 38rem;
+  max-width: 34rem;
   margin: 0 0 1.5rem;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .compact-lede {
@@ -109,7 +111,7 @@ textarea {
   min-width: 7rem;
   min-height: 3rem;
   padding: 0.75rem 1rem;
-  border-radius: 999px;
+  border-radius: 0.7rem;
   border: 1px solid var(--border);
   background: var(--surface);
   font-weight: 700;
@@ -121,6 +123,16 @@ textarea {
   border-color: #98c7b8;
 }
 
+.community-home-shell {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.community-home-header {
+  display: grid;
+  gap: 1rem;
+}
+
 .community-home-toolbar,
 .community-entry-header {
   display: grid;
@@ -128,22 +140,60 @@ textarea {
   align-items: start;
 }
 
+.community-home-intro {
+  display: grid;
+  gap: 1rem;
+}
+
+.community-board-shell,
+.staff-dashboard-shell {
+  display: grid;
+  gap: 1.5rem;
+}
+
 .community-entry-section {
-  margin-top: 2rem;
+  margin-top: 0.5rem;
 }
 
 .community-action-card {
   display: grid;
   gap: 1rem;
   align-content: space-between;
+  background: linear-gradient(180deg, rgba(251, 248, 241, 0.68), rgba(241, 234, 220, 0.96));
+}
+
+.community-action-body {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .community-action-title {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  font-size: 1.18rem;
 }
 
 .community-action-copy {
   margin-top: 0;
+}
+
+.community-process-card {
+  background: rgba(255, 251, 243, 0.78);
+}
+
+.community-process-label {
+  margin: 0 0 0.65rem;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.community-process-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
 }
 
 .community-guidelines-list {
@@ -158,9 +208,25 @@ textarea {
   gap: 1rem;
 }
 
+.board-summary-grid .detail-card,
+.staff-summary-grid .detail-card {
+  background: rgba(255, 251, 243, 0.9);
+}
+
+.board-summary-grid dd,
+.staff-summary-grid dd {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.board-source-note {
+  margin-top: 0.75rem;
+}
+
 .community-board-card {
   display: grid;
   gap: 1rem;
+  background: rgba(255, 251, 243, 0.9);
 }
 
 .community-board-card-header {
@@ -196,6 +262,8 @@ textarea {
 .community-board-update {
   display: grid;
   gap: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(199, 188, 172, 0.9);
 }
 
 .community-board-subtitle {
@@ -217,7 +285,7 @@ textarea {
 
 .section-title {
   margin: 0 0 1rem;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
 }
 
 .form-stack {
@@ -411,9 +479,9 @@ textarea {
   align-items: center;
   justify-content: center;
   min-width: 12rem;
-  min-height: 3.25rem;
-  padding: 0.8rem 1.2rem;
-  border-radius: 999px;
+  min-height: 3rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 0.75rem;
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
@@ -444,7 +512,7 @@ textarea {
 .detail-card {
   padding: 1rem;
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 0.8rem;
   background: var(--surface-alt);
 }
 
@@ -470,7 +538,7 @@ textarea {
 .status-pill {
   display: inline-block;
   padding: 0.4rem 0.7rem;
-  border-radius: 999px;
+  border-radius: 0.65rem;
   background: #ddeee8;
   color: #0b4d3d;
   font-weight: 700;
@@ -493,6 +561,7 @@ textarea {
 
 .support-copy {
   color: var(--muted);
+  line-height: 1.55;
 }
 
 .break-all {
@@ -632,8 +701,8 @@ textarea {
   margin-top: 1.5rem;
   padding: 1rem;
   border: 1px solid var(--border);
-  border-radius: 1rem;
-  background: #f8f3e8;
+  border-radius: 0.8rem;
+  background: rgba(255, 251, 243, 0.82);
 }
 
 .staff-case-stack,
@@ -652,6 +721,10 @@ textarea {
   gap: 1rem;
 }
 
+.staff-event-card {
+  background: rgba(255, 251, 243, 0.92);
+}
+
 .staff-case-header,
 .staff-audit-row {
   display: flex;
@@ -666,6 +739,11 @@ textarea {
 .staff-event-meta {
   display: grid;
   gap: 0.75rem;
+}
+
+.staff-event-meta .detail-card,
+.staff-session-grid .detail-card {
+  background: rgba(255, 251, 243, 0.82);
 }
 
 .staff-related-case-copy {
@@ -699,7 +777,7 @@ textarea {
 
 .staff-tag-chip {
   padding: 0.45rem 0.7rem;
-  border-radius: 999px;
+  border-radius: 0.6rem;
   background: #e8f0ea;
   color: #184a39;
   font-size: 0.92rem;
@@ -797,7 +875,7 @@ textarea {
 
   .page-card {
     padding: 1.25rem;
-    border-radius: 1.25rem;
+    border-radius: 0.9rem;
   }
 
   .button-row {
@@ -811,8 +889,34 @@ textarea {
 }
 
 @media (min-width: 720px) {
+  .community-board-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .community-home-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .community-home-intro {
+    grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.9fr);
+    align-items: start;
+  }
+
   .community-home-toolbar,
   .community-entry-header {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .board-summary-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .staff-session-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .staff-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

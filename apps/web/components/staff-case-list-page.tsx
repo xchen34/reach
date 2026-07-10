@@ -202,11 +202,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
   return (
     <main className="page-shell">
-      <div className="page-card">
+      <div className="page-card page-card-wide staff-dashboard-shell">
         <div className="staff-toolbar">
           <div>
             <span className="eyebrow">{dictionary.staff.eyebrow}</span>
-            <h1 className="headline staff-headline">{dictionary.staff.cases.title}</h1>
+            <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.title}</h1>
             <p className="lede">{dictionary.staff.cases.description}</p>
           </div>
           <div className="staff-toolbar-actions">
@@ -225,7 +225,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </div>
         </div>
 
-        <section className="detail-grid">
+        <section className="detail-grid staff-session-grid">
           <div className="detail-card">
             <dt>{dictionary.staff.cases.staffMemberLabel}</dt>
             <dd>{state.session.user.email}</dd>
@@ -262,7 +262,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           <h2 className="section-title" id="staff-dashboard-summary-title">
             {dictionary.staff.cases.summaryTitle}
           </h2>
-          <div className="detail-grid">
+          <div className="detail-grid staff-summary-grid">
             <div className="detail-card">
               <dt>{dictionary.staff.cases.summaryCards.awaitingVerification}</dt>
               <dd>{dashboard.summary.awaiting_verification_groups}</dd>

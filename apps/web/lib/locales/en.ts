@@ -29,6 +29,12 @@ export const en = {
       "Each report opens in a Google Form so volunteers can keep using a fast, low-friction collection flow during active incidents.",
     formPending:
       "Set this Google Form link in the web environment before using this entry in production.",
+    workflowTitle: "Workflow",
+    workflowSteps: [
+      "Collect reports through shared forms.",
+      "Verify them in the staff workspace.",
+      "Publish privacy-safe updates to the public board.",
+    ],
     guidelinesTitle: "Before you submit",
     guidelines: [
       "Prefer first-hand information whenever possible and include the time you learned it.",
