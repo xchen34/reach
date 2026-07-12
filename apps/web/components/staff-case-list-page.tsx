@@ -17,7 +17,7 @@ import {
   withStaffAuthorization,
   type StaffAuthReason,
 } from "@/lib/staff-session";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { StaffQuickLinks } from "@/components/staff-quick-links";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -211,9 +211,10 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
             <p className="lede emergency-lede">{dictionary.staff.cases.description}</p>
           </div>
           <div className="staff-toolbar-actions">
-            <LanguageSwitcher
+            <StaffQuickLinks
               currentLocale={locale}
-              label={dictionary.home.languagePicker}
+              languageLabel={dictionary.home.languagePicker}
+              publicBoardLabel={dictionary.home.boardCta}
             />
             <button
               className="button-secondary"

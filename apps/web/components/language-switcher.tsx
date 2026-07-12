@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { Locale } from "@/lib/i18n";
 
 const localeOptions: Array<{ locale: Locale; label: string }> = [
@@ -14,6 +17,8 @@ export function LanguageSwitcher({
   currentLocale: Locale;
   label: string;
 }) {
+  const pathname = usePathname();
+
   return (
     <ul className="language-list" aria-label={label}>
       {localeOptions.map((option) => (
@@ -21,7 +26,7 @@ export function LanguageSwitcher({
           <Link
             className="language-link"
             data-active={option.locale === currentLocale}
-            href={`/${option.locale}`}
+            href={buildLocaleHref(pathname, option.locale)}
             hrefLang={option.locale}
             locale={false}
           >
@@ -31,4 +36,25 @@ export function LanguageSwitcher({
       ))}
     </ul>
   );
+}
+
+function buildLocaleHref(
+  pathname: string | null,
+  nextLocale: Locale,
+) {
+  const currentPath = pathname && pathname.length > 0 ? pathname : "/";
+  const parts = currentPath.split("/").filter(Boolean);
+
+  if (parts.length > 0 && isLocaleSegment(parts[0])) {
+    parts[0] = nextLocale;
+  } else {
+    parts.unshift(nextLocale);
+  }
+
+  const nextPath = `/${parts.join("/")}`;
+  return nextPath;
+}
+
+function isLocaleSegment(value: string): value is Locale {
+  return value === "en" || value === "fr" || value === "zh";
 }

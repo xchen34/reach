@@ -844,6 +844,15 @@ textarea {
   gap: 0.75rem;
 }
 
+.staff-quick-links {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.staff-public-board-link {
+  width: 100%;
+}
+
 .staff-section-header {
   display: grid;
   gap: 0.75rem;
@@ -995,6 +1004,15 @@ textarea {
 
   .staff-toolbar-actions {
     justify-items: end;
+  }
+
+  .staff-quick-links {
+    grid-template-columns: repeat(2, minmax(0, auto));
+    align-items: start;
+  }
+
+  .staff-public-board-link {
+    width: auto;
   }
 
   .staff-section-header {

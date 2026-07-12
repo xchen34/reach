@@ -33,7 +33,7 @@ import {
   type StaffAuthReason,
   withStaffAuthorization,
 } from "@/lib/staff-session";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { StaffQuickLinks } from "@/components/staff-quick-links";
 import { findSuggestedCaseMatches, type SuggestedCaseMatch } from "@/lib/staff-case-matches";
 
 type StaffCaseDetailPageProps = {
@@ -397,7 +397,11 @@ export function StaffCaseDetailPage({
             <p className="lede emergency-lede">{dictionary.staff.detail.description}</p>
           </div>
           <div className="staff-toolbar-actions">
-            <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
+            <StaffQuickLinks
+              currentLocale={locale}
+              languageLabel={dictionary.home.languagePicker}
+              publicBoardLabel={dictionary.home.boardCta}
+            />
             <button
               className="button-secondary"
               disabled={isLoggingOut}

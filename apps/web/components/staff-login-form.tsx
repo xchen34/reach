@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ApiError, requestStaffMagicLink } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -9,7 +10,7 @@ import {
   clearStaffAccessToken,
   type StaffAuthReason,
 } from "@/lib/staff-session";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { StaffQuickLinks } from "@/components/staff-quick-links";
 
 type StaffLoginFormProps = {
   dictionary: Dictionary;
@@ -69,10 +70,17 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
         <h1 className="headline">{dictionary.staff.login.title}</h1>
         <p className="lede">{dictionary.staff.login.description}</p>
 
-        <LanguageSwitcher
+        <StaffQuickLinks
           currentLocale={locale}
-          label={dictionary.home.languagePicker}
+          languageLabel={dictionary.home.languagePicker}
+          publicBoardLabel={dictionary.home.boardCta}
         />
+
+        <div className="button-row">
+          <Link className="button-secondary" href={`/${locale}`}>
+            {dictionary.staff.login.backHome}
+          </Link>
+        </div>
 
         {reasonMessage ? (
           <p className="info-banner" role="status">
