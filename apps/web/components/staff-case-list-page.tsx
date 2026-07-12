@@ -199,6 +199,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   }
 
   const dashboard = state.dashboard;
+  const queueItems = getOpenQueueItems(dashboard);
 
   return (
     <main className="page-shell">
@@ -207,7 +208,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           <div>
             <span className="eyebrow">{dictionary.staff.eyebrow}</span>
             <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.title}</h1>
-            <p className="lede">{dictionary.staff.cases.description}</p>
+            <p className="lede emergency-lede">{dictionary.staff.cases.description}</p>
           </div>
           <div className="staff-toolbar-actions">
             <LanguageSwitcher
@@ -225,62 +226,10 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </div>
         </div>
 
-        <section className="detail-grid staff-session-grid">
-          <div className="detail-card">
-            <dt>{dictionary.staff.cases.staffMemberLabel}</dt>
-            <dd>{state.session.user.email}</dd>
-          </div>
-          <div className="detail-card">
-            <dt>{dictionary.staff.cases.roleLabel}</dt>
-            <dd>{dictionary.staff.roleLabels[state.session.user.role]}</dd>
-          </div>
-          <div className="detail-card">
-            <dt>{dictionary.staff.cases.sessionExpiresLabel}</dt>
-            <dd>{dateFormatter.format(new Date(state.session.session_expires_at))}</dd>
-          </div>
-        </section>
-
         <section className="staff-dashboard-source" aria-labelledby="staff-dashboard-source-title">
-          <div>
-            <h2 className="section-title" id="staff-dashboard-source-title">
-              {dictionary.staff.cases.sourceTitle}
-            </h2>
-            <p className="support-copy">
-              {state.mode === "mock"
-                ? dictionary.staff.cases.mockSourceDescription
-                : dictionary.staff.cases.sourceDescription}
-            </p>
-          </div>
-          <p className="status-pill status-pill-neutral">
-            {state.mode === "mock"
-              ? dictionary.staff.cases.mockSourceBadge
-              : dictionary.staff.cases.sourceBadge}
-          </p>
-        </section>
-
-        <section className="staff-dashboard-summary" aria-labelledby="staff-dashboard-summary-title">
-          <h2 className="section-title" id="staff-dashboard-summary-title">
-            {dictionary.staff.cases.summaryTitle}
-          </h2>
-          <div className="detail-grid staff-summary-grid">
-            <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.awaitingVerification}</dt>
-              <dd>{dashboard.summary.awaiting_verification_groups}</dd>
-            </div>
-            <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.readyToPublish}</dt>
-              <dd>{dashboard.summary.ready_to_publish_groups}</dd>
-            </div>
-            <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.published}</dt>
-              <dd>{dashboard.summary.published_groups}</dd>
-            </div>
-            <div className="detail-card">
-              <dt>{dictionary.staff.cases.summaryCards.totalCases}</dt>
-              <dd>{dashboard.summary.total_cases}</dd>
-            </div>
-          </div>
-          <p className="support-copy">
+          <p className="field-hint compact-copy" id="staff-dashboard-source-title">
+            {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
+            {dictionary.staff.cases.summaryCards.openCases}: {dashboard.summary.open_cases} ·{" "}
             {dictionary.staff.cases.lastUpdatedLabel}{" "}
             {dashboard.summary.last_updated_at
               ? dateFormatter.format(new Date(dashboard.summary.last_updated_at))
@@ -290,109 +239,44 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
         <section className="staff-case-list" aria-labelledby="staff-event-list-title">
           <div className="staff-section-header">
-            <div>
-              <h2 className="section-title" id="staff-event-list-title">
-                {dictionary.staff.cases.listTitle}
-              </h2>
-              <p className="support-copy">{dictionary.staff.cases.listDescription}</p>
-            </div>
-            <p className="status-pill status-pill-neutral">
-              {dictionary.staff.cases.summaryCards.openCases}: {dashboard.summary.open_cases}
+            <h2 className="section-title" id="staff-event-list-title">
+              {dictionary.staff.cases.listTitle}
+            </h2>
+            <p className="field-hint compact-copy">
+              {dictionary.staff.cases.summaryCards.unassigned}: {dashboard.summary.unassigned_cases}
             </p>
           </div>
 
-          {dashboard.events.length === 0 ? (
+          {queueItems.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.empty}</p>
           ) : (
             <div className="staff-case-stack">
-              {dashboard.events.map((event) => (
-                <article className="detail-card staff-event-card" key={event.id}>
+              {queueItems.map((item) => (
+                <article className="detail-card staff-event-card" key={item.id}>
                   <div className="staff-case-header">
                     <div>
-                      <p className="status-pill status-pill-neutral">
-                        {dictionary.home.form.incidentType.options[event.incident_type]}
+                      <p className={getStatusPillClassName(item.status)}>
+                        {dictionary.caseStatus.labels[item.status]}
                       </p>
-                      <h3 className="section-title staff-case-title">{event.title}</h3>
-                      {event.subject_name ? (
-                        <p className="field-hint">
-                          {dictionary.staff.cases.subjectLabel}: {event.subject_name}
-                        </p>
-                      ) : null}
-                      {event.source_relationship ? (
-                        <p className="field-hint">
-                          {dictionary.staff.cases.sourceRelationshipLabel}: {event.source_relationship}
-                        </p>
-                      ) : null}
-                      <p className="support-copy">{event.summary}</p>
+                      <p className="field-hint compact-copy">{item.case_code}</p>
+                      <h3 className="section-title staff-case-title">{item.location_summary}</h3>
+                      <p className="field-hint compact-copy staff-event-summary-line">
+                        {dictionary.home.form.incidentType.options[item.incident_type]} ·{" "}
+                        {dictionary.home.form.urgency.options[item.urgency]}
+                      </p>
+                      <p className="support-copy compact-copy">{item.needs_summary}</p>
                     </div>
-                    <div className="staff-event-meta">
-                      <div className="detail-card">
-                        <dt>{dictionary.staff.cases.publishStateLabel}</dt>
-                        <dd>{getPublishStateLabel(dictionary, event.publish_state)}</dd>
-                      </div>
-                      <div className="detail-card">
-                        <dt>{dictionary.staff.cases.caseCountLabel}</dt>
-                        <dd>{event.case_count}</dd>
-                      </div>
-                      <div className="detail-card">
-                        <dt>{dictionary.staff.cases.lastUpdatedLabel}</dt>
-                        <dd>{dateFormatter.format(new Date(event.last_updated_at))}</dd>
-                      </div>
-                    </div>
+                    <p className="field-hint compact-copy">
+                      {dictionary.staff.cases.assignedLabel}: {item.assigned_staff_user?.email ?? dictionary.staff.cases.unassigned}
+                    </p>
                   </div>
 
-                  <dl className="detail-grid">
-                    <div className="detail-card">
-                      <dt>{dictionary.staff.cases.urgencyLabel}</dt>
-                      <dd>{dictionary.home.form.urgency.options[event.highest_urgency]}</dd>
-                    </div>
-                    <div className="detail-card">
-                      <dt>{dictionary.staff.cases.openCasesLabel}</dt>
-                      <dd>{event.open_case_count}</dd>
-                    </div>
-                    <div className="detail-card">
-                      <dt>{dictionary.staff.cases.assignedLabel}</dt>
-                      <dd>
-                        {event.unassigned_case_count === 0
-                          ? dictionary.staff.cases.allAssigned
-                          : `${event.unassigned_case_count} ${dictionary.staff.cases.unassigned}`}
-                      </dd>
-                    </div>
-                    <div className="detail-card">
-                      <dt>{dictionary.staff.cases.updateChainLabel}</dt>
-                      <dd>{event.update_chain_count}</dd>
-                    </div>
-                    <div className="detail-card detail-card-wide">
-                      <dt>{dictionary.staff.cases.latestUpdateLabel}</dt>
-                      <dd>{event.latest_public_update ?? dictionary.staff.cases.latestUpdateFallback}</dd>
-                    </div>
-                  </dl>
-
-                  <div>
-                    <h4 className="section-title">{dictionary.staff.cases.relatedCasesTitle}</h4>
-                    <ol className="staff-related-case-list">
-                      {event.related_cases.map((item) => (
-                        <li className="staff-related-case-row" key={item.id}>
-                          <div>
-                            <p className="status-pill status-pill-neutral">{item.case_code}</p>
-                            <p className="staff-related-case-copy">
-                              {dictionary.caseStatus.labels[item.status]} ·{" "}
-                              {dictionary.home.form.urgency.options[item.urgency]}
-                            </p>
-                            <p className="support-copy">
-                              {item.assigned_staff_user?.email ?? dictionary.staff.cases.unassigned}
-                            </p>
-                          </div>
-                          <Link
-                            className="button-primary staff-link-button"
-                            href={`/${locale}/staff/cases/${item.id}`}
-                          >
-                            {dictionary.staff.cases.openCase}
-                          </Link>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
+                  <Link
+                    className="button-primary staff-link-button"
+                    href={`/${locale}/staff/cases/${item.id}`}
+                  >
+                    {dictionary.staff.cases.openCase}
+                  </Link>
                 </article>
               ))}
             </div>
@@ -411,17 +295,23 @@ function redirectToLogin(
   router.replace(buildStaffLoginHref(locale, reason));
 }
 
-function getPublishStateLabel(
-  dictionary: Dictionary,
-  publishState: "awaiting_verification" | "ready_to_publish" | "published",
-) {
-  if (publishState === "awaiting_verification") {
-    return dictionary.staff.cases.publishStates.awaitingVerification;
+function getOpenQueueItems(dashboard: StaffQueueResponse) {
+  const items = dashboard.events.flatMap((event) => event.related_cases);
+  return items
+    .filter((item) => item.status !== "safe_resolved" && item.status !== "closed")
+    .sort((left, right) => {
+      const urgency = urgencyPriority[right.urgency] - urgencyPriority[left.urgency];
+      return urgency || Date.parse(right.updated_at) - Date.parse(left.updated_at);
+    });
+}
+
+const urgencyPriority = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+
+function getStatusPillClassName(status: StaffQueueResponse["events"][number]["status"]) {
+  if (status === "pending_review" || status === "waiting_for_information") {
+    return "status-pill status-pill-warning";
   }
-  if (publishState === "ready_to_publish") {
-    return dictionary.staff.cases.publishStates.readyToPublish;
-  }
-  return dictionary.staff.cases.publishStates.published;
+  return "status-pill status-pill-alert";
 }
 
 function toQueueResponse(dashboard: ReturnType<typeof buildStaffDashboardData>): StaffQueueResponse {

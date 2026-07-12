@@ -44,7 +44,7 @@ def _submit_case(location_summary: str, needs_summary: str) -> dict:
     return response.json()
 
 
-def test_staff_can_mark_related_case_and_audit_keeps_metadata() -> None:
+def test_staff_can_confirm_duplicate_and_close_the_duplicate_record() -> None:
     primary_case = _submit_case("Shelter desk", "Need to compare updates about one resident.")
     related_case = _submit_case("Tower 3 gate", "Second report may refer to the same resident.")
     headers = _authenticate_staff()
@@ -54,15 +54,19 @@ def test_staff_can_mark_related_case_and_audit_keeps_metadata() -> None:
         headers=headers,
         json={
           "related_case_id": related_case["id"],
-          "relation_type": "related_update",
-          "note": "Likely the same person with a later location update.",
+          "relation_type": "confirmed_duplicate",
+          "note": "Same person with a later location update.",
         },
     )
     assert relation_response.status_code == 200
     payload = relation_response.json()
     assert payload["case_id"] == primary_case["id"]
     assert payload["related_case_id"] == related_case["id"]
-    assert payload["relation_type"] == "related_update"
+    assert payload["relation_type"] == "confirmed_duplicate"
+
+    case_response = client.get(f"/staff/cases/{primary_case['id']}", headers=headers)
+    assert case_response.status_code == 200
+    assert case_response.json()["status"] == "closed"
 
     audit_response = client.get(f"/staff/cases/{primary_case['id']}/audit", headers=headers)
     assert audit_response.status_code == 200
@@ -73,4 +77,5 @@ def test_staff_can_mark_related_case_and_audit_keeps_metadata() -> None:
     ]
     assert len(relation_entries) == 1
     assert relation_entries[0]["metadata_json"]["related_case_id"] == related_case["id"]
-    assert relation_entries[0]["metadata_json"]["relation_type"] == "related_update"
+    assert relation_entries[0]["metadata_json"]["relation_type"] == "confirmed_duplicate"
+    assert relation_entries[0]["metadata_json"]["closed_as_duplicate"] is True

@@ -364,6 +364,11 @@ class CaseService:
                 f"Marked case #{payload.related_case_id} as {payload.relation_type.replace('_', ' ')}."
             )
 
+        # A confirmed duplicate should leave the active queue while retaining its
+        # original record and audit history for staff review.
+        if payload.relation_type == "confirmed_duplicate":
+            case.status = CaseStatus.CLOSED
+
         action = CaseAction(
             case_id=case.id,
             actor_user_id=actor.id,
@@ -384,6 +389,7 @@ class CaseService:
                     "related_case_id": related_case.id,
                     "relation_type": payload.relation_type,
                     "note": relation_note,
+                    "closed_as_duplicate": payload.relation_type == "confirmed_duplicate",
                 },
             )
         )

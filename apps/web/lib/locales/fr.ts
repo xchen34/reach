@@ -378,7 +378,7 @@ export const fr = {
     },
     cases: {
       title: "File de verification",
-      description: "Passez en revue les signalements entrants regroupes, reperez les doublons probables et ouvrez chaque fiche pour verification benevole.",
+      description: "Chaque carte correspond a un signalement. Verifiez, prenez en charge et mettez a jour les fiches une par une selon la priorite.",
       sourceTitle: "Source du tableau de bord",
       sourceDescription:
         "Cette file derive aujourd'hui des groupes de signalements a partir de la liste actuelle des dossiers staff, afin de proposer une vue de coordination sans changer le contrat backend pour l'instant.",
@@ -387,7 +387,7 @@ export const fr = {
         "Des donnees mock de demonstration sont actives. La mise en page utilise toujours le meme adaptateur de regroupement qui consommera plus tard de vraies fiches staff.",
       mockSourceBadge: "Donnees mock demo",
       summaryTitle: "Resume de la file de publication",
-      listTitle: "Groupes a publier",
+      listTitle: "Signalements a verifier",
       listDescription: "Chaque carte regroupe des signalements lies afin que les benevoles puissent verifier, preparer une mise a jour publique et publier un statut respectueux de la vie privee.",
       empty: "Aucun signalement n'a encore ete soumis.",
       openCase: "Ouvrir la fiche",
@@ -412,7 +412,7 @@ export const fr = {
       latestUpdateFallback: "Aucune mise a jour publique pour le moment.",
       lastUpdatedLabel: "Derniere mise a jour",
       lastUpdatedFallback: "Aucune mise a jour.",
-      relatedCasesTitle: "Signalements lies",
+      relatedCasesTitle: "Signalements du meme evenement",
       createdAtLabel: "Creation",
       updatedAtLabel: "Mise a jour",
       summaryCards: {
@@ -545,6 +545,19 @@ export const fr = {
       claimTitle: "Prendre cette fiche",
       claimHint: "Utilisez cette action si vous prenez directement la responsabilite du suivi de cette fiche.",
       claimSubmit: "Prendre la fiche",
+      duplicateTitle: "Verifier les signalements possiblement en double",
+      duplicateDescription:
+        "Beacon propose des candidats selon le lieu, la description, le type et l'heure. Comparez-les avant de confirmer : aucune fusion n'est automatique.",
+      noDuplicateSuggestions: "Aucun signalement ouvert n'est assez similaire pour etre propose.",
+      openSuggestedCase: "Voir ce signalement",
+      markPossibleDuplicate: "Marquer comme doublon possible",
+      confirmDuplicate: "Confirmer le doublon et cloturer cette fiche",
+      matchReasons: {
+        same_location: "Meme lieu",
+        similar_description: "Description similaire",
+        same_type: "Meme type",
+        nearby_time: "Signale a un horaire proche",
+      },
       eventAssociationTitle: "Association a un evenement",
       eventAssociationDescription: "Reserve cette zone pour relier la fiche a un incident plus large ou a une coordination commune quand les benevoles disposent d'assez de signaux.",
       eventAssociationItems: {
@@ -594,6 +607,17 @@ export const fr = {
       auditTitle: "Journal d'audit",
       auditDescription: "Consultez l'activite recente des benevoles et du systeme avant la prochaine decision.",
       auditEmpty: "Aucun evenement d'audit n'est disponible pour le moment.",
+      auditEvents: {
+        reportReceived: "Nouveau signalement recu",
+        noteAdded: "Note interne ajoutee",
+        statusChanged: "Statut de traitement mis a jour",
+        published: "Mise a jour publique publiee",
+        claimed: "Fiche prise en charge",
+        relationMarked: "Lien entre signalements marque",
+        duplicateConfirmed: "Signalement en double confirme",
+        systemActivity: "Activite systeme",
+        noDetail: "Aucun detail supplementaire n'a ete fourni.",
+      },
       actorLabel: "Acteur",
       actorTypes: {
         anonymous: "Anonyme",

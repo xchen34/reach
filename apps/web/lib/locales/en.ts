@@ -377,7 +377,7 @@ export const en = {
     },
     cases: {
       title: "Verification queue",
-      description: "Review grouped incoming reports, decide what is ready for public board publication, and open individual records for volunteer verification.",
+      description: "Each card is one incoming report. Verify, claim, and update reports one at a time by priority.",
       sourceTitle: "Dashboard source",
       sourceDescription:
         "This queue currently derives grouped report cards from the existing staff case list so volunteers can work in a coordination-friendly view without changing the backend contract yet.",
@@ -386,7 +386,7 @@ export const en = {
         "Mock verification data is active for demo mode. The layout still uses the same grouping adapter that will consume real staff records later.",
       mockSourceBadge: "Demo mock data",
       summaryTitle: "Publish queue summary",
-      listTitle: "Publish groups",
+      listTitle: "Reports to verify",
       listDescription: "Each card groups related incoming reports so volunteers can verify them, prepare a public update, and publish a privacy-safe board status.",
       empty: "No reports have been submitted yet.",
       openCase: "Open record",
@@ -411,7 +411,7 @@ export const en = {
       latestUpdateFallback: "No public update has been posted yet.",
       lastUpdatedLabel: "Last update",
       lastUpdatedFallback: "No updates yet.",
-      relatedCasesTitle: "Related reports",
+      relatedCasesTitle: "Reports in the same event",
       createdAtLabel: "Created",
       updatedAtLabel: "Updated",
       summaryCards: {
@@ -544,6 +544,19 @@ export const en = {
       claimTitle: "Claim this record",
       claimHint: "Use claim when you are taking direct responsibility for following up this record.",
       claimSubmit: "Claim record",
+      duplicateTitle: "Check possible duplicate reports",
+      duplicateDescription:
+        "Beacon suggests candidates using matching locations, similar descriptions, type, and report time. Compare each one before confirming; nothing is merged automatically.",
+      noDuplicateSuggestions: "No open reports are similar enough to suggest.",
+      openSuggestedCase: "View this report",
+      markPossibleDuplicate: "Mark possible duplicate",
+      confirmDuplicate: "Confirm duplicate and close this report",
+      matchReasons: {
+        same_location: "Same location",
+        similar_description: "Similar description",
+        same_type: "Same type",
+        nearby_time: "Reported near the same time",
+      },
       eventAssociationTitle: "Event association",
       eventAssociationDescription: "Reserve this area for linking the record to a broader incident or coordinated response once volunteers have enough signal.",
       eventAssociationItems: {
@@ -593,6 +606,17 @@ export const en = {
       auditTitle: "Audit log",
       auditDescription: "Review recent volunteer and system activity before making the next decision.",
       auditEmpty: "No audit events are available yet.",
+      auditEvents: {
+        reportReceived: "New report received",
+        noteAdded: "Internal note added",
+        statusChanged: "Handling status updated",
+        published: "Public update published",
+        claimed: "Record claimed",
+        relationMarked: "Report relationship marked",
+        duplicateConfirmed: "Duplicate report confirmed",
+        systemActivity: "System activity",
+        noDetail: "No additional detail was provided.",
+      },
       actorLabel: "Actor",
       actorTypes: {
         anonymous: "Anonymous",
