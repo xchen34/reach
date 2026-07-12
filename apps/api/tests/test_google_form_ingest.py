@@ -18,7 +18,8 @@ client = TestClient(app)
 def reset_state(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    monkeypatch.delenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", raising=False)
+    # Override a repository-level .env so this test module remains deterministic.
+    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -62,7 +63,7 @@ def test_google_form_ingest_rejects_when_not_configured() -> None:
     assert response.json() == {"detail": "Google Form ingest is not configured."}
 
 
-def test_google_form_ingest_creates_case_and_board_record(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_google_form_ingest_creates_case_without_publishing_it(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
     get_settings.cache_clear()
 
@@ -81,11 +82,5 @@ def test_google_form_ingest_creates_case_and_board_record(monkeypatch: pytest.Mo
     board_response = client.get("/board")
     assert board_response.status_code == 200
     board_payload = board_response.json()
-    assert board_payload["summary"]["total_records"] == 1
-    record = board_payload["records"][0]
-    assert record["board_status"] == "unverified"
-    assert record["location_summary"] == "Tower 2 lobby near the lifts"
-    assert (
-        record["latest_public_update"]
-        == "Missing-person report received. Waiting for volunteer verification."
-    )
+    assert board_payload["summary"]["total_records"] == 0
+    assert board_payload["records"] == []

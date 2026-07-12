@@ -48,15 +48,8 @@ export interface ShareLinkCaseView {
 }
 
 export interface PublicBoardRecord {
-  case_code: string;
   board_status: PublicBoardStatus;
-  urgency: UrgencyLevel;
-  incident_type: IncidentType;
-  language_code: string;
-  location_summary: string;
-  needs_summary: string;
-  latest_public_update: string | null;
-  created_at: string;
+  latest_public_update: string;
   updated_at: string;
 }
 

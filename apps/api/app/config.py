@@ -12,6 +12,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_prefix="BEACON_",
         case_sensitive=False,
+        # The repository-level .env also carries NEXT_PUBLIC_* values for Next.js.
+        extra="ignore",
     )
 
     app_env: str = "development"

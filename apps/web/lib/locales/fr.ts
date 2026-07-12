@@ -13,22 +13,26 @@ export const fr = {
   },
   home: {
     eyebrow: "Coordination communautaire",
-    title: "Partagez les confirmations de securite, les signalements de disparition et les mises a jour verifiees.",
-    description:
-      "Beacon utilise maintenant Google Forms comme couche d'intake la plus rapide. Utilisez les liens ci-dessous pour signaler qu'une personne est en securite, introuvable, ou pour transmettre une mise a jour communautaire.",
+    title: "Signalez vite. Reduisez la confusion.",
+    description: "Choisissez un type de signalement. L'equipe verifie avant de publier les mises a jour utiles.",
     emergencyNotice:
       "Si une personne est en danger immediat, contactez tout de suite les services d'urgence ou les secours sur place. Cette plateforme ne remplace pas la reponse officielle.",
     privacy:
       "Ne partagez que les informations necessaires pour que les benevoles puissent verifier et publier des mises a jour fiables.",
+    falseReportNote:
+      "Si un signalement est verifie comme faux ou malveillant, il sera supprime au lieu d'etre publie sur le tableau public.",
     languagePicker: "Selection de langue",
     staffCta: "Espace equipe de verification",
     boardCta: "Ouvrir le tableau public",
     boardPending: "Configurer le lien du tableau public",
-    entryTitle: "Envoyer un signalement dans le flux partage",
+    entryTitle: "Faire un signalement",
     entryDescription:
       "Chaque signalement s'ouvre dans un Google Form afin que les benevoles conservent un mode de collecte rapide et simple pendant un incident actif.",
+    separateFormsNote:
+      "Il s'agit de trois formulaires distincts : signalement de securite, personne introuvable et mise a jour communautaire.",
     formPending:
       "Configurez ce lien Google Form dans l'environnement web avant de l'utiliser en production.",
+    formUnavailable: "Les formulaires sont en cours de configuration. Demandez un lien disponible a la coordination sur place.",
     workflowTitle: "Flux de travail",
     workflowSteps: [
       "Collecter les signalements via des formulaires partages.",
@@ -208,37 +212,68 @@ export const fr = {
   board: {
     eyebrow: "Tableau public",
     title: "Tableau communautaire de verification",
-    description:
-      "Utilisez cette page comme reference publique pour savoir ce qui est verifie, ce qui reste a confirmer et ce que les benevoles examinent encore.",
+    description: "Cette page ne montre que les mises a jour verifiees que l'equipe a choisi de publier.",
     emergencyNotice:
       "Ce tableau est mis a jour manuellement et peut avoir du retard sur la situation reelle. Si une personne est en danger immediat, contactez les secours officiels sans attendre.",
     actionsTitle: "Role du tableau public",
     actionsDescription:
       "Le tableau public Beacon doit afficher les mises a jour approuvees et respectueuses de la vie privee apres verification par des benevoles. Cette page lit maintenant le flux du tableau directement depuis l'adaptateur backend de Beacon.",
     backHome: "Retour aux liens d'intake",
+    openEmbed: "Ouvrir la feuille integree",
     openMirror: "Ouvrir le miroir externe",
     statusLegendTitle: "Legende des statuts",
+    embedTitle: "Feuille publique integree",
+    embedDescription:
+      "Si vous publiez une Google Sheet ou une vue similaire, vous pouvez l'integrer ici pour une lecture plus dense de type tableur.",
     liveTitle: "Fiches publiques en direct",
-    liveDescription:
-      "Ces fiches proviennent de la file d'intake Beacon actuelle et n'exposent que des champs adaptes a un tableau public de coordination.",
+    liveDescription: "L'equipe publie ces mises a jour. Les signalements bruts, contacts prives et lieux precis ne sont pas affiches.",
     sourceModeDerived: "Source actuelle : derivee de la file de dossiers Beacon existante.",
     loading: "Chargement des fiches publiques...",
     loadError:
       "Le flux public du tableau ne peut pas etre charge pour le moment. Vous pouvez toujours utiliser les liens d'intake et le miroir externe pendant le retablissement.",
-    empty: "Aucune fiche publique n'est disponible pour le moment.",
+    empty: "Il n'y a pas de nouvelle mise a jour publique pour le moment.",
     recordCodeLabel: "Code de fiche",
+    statusLabel: "Statut",
+    locationLabel: "Lieu",
     urgencyLabel: "Urgence",
     incidentTypeLabel: "Type d'incident",
     createdAtLabel: "Envoye le",
     updatedAtLabel: "Derniere revue",
     latestUpdateLabel: "Derniere mise a jour publique",
     latestUpdateFallback: "Aucune mise a jour publique pour le moment.",
+    resultLabel: "Resultat",
+    filterLabel: "Filtrer par statut",
+    searchLabel: "Rechercher des fiches",
+    searchPlaceholder: "Rechercher par code, lieu ou mise a jour",
+    filters: {
+      all: "Tous les statuts",
+    },
+    publicStatuses: {
+      pending: {
+        label: "En attente",
+        description: "Recu mais encore en attente de verification humaine.",
+      },
+      inProgress: {
+        label: "En cours",
+        description: "Les benevoles verifient ou coordonnent actuellement.",
+      },
+      resolved: {
+        label: "Traite",
+        description: "Un resultat public clair est disponible.",
+      },
+    },
+    results: {
+      safeConfirmed: "Securite confirmee",
+      deceasedConfirmed: "Deces confirme",
+      assistedResolved: "Aide apportee",
+      duplicateMerged: "Doublon fusionne",
+      resolvedGeneral: "Traite",
+    },
     summary: {
       totalRecords: "Fiches sur le tableau",
-      unverified: "Non verifie",
-      responding: "En cours",
-      needsFollowUp: "Suivi necessaire",
-      safeConfirmed: "Securite confirmee",
+      pending: "En attente",
+      inProgress: "En cours",
+      resolved: "Traite",
     },
     principlesTitle: "Principes de verification",
     principles: [
@@ -294,6 +329,7 @@ export const fr = {
       title: "Connexion equipe",
       description:
         "Demandez un lien magique pour ouvrir la file des dossiers. Gardez ce lien prive.",
+      backHome: "Retour a l'accueil",
       emailLabel: "Email de l'equipe",
       emailHint: "Utilisez l'adresse email enregistree pour votre compte equipe.",
       submit: "Demander un lien",
@@ -476,10 +512,35 @@ export const fr = {
       noteSubmit: "Enregistrer la note",
       statusPanelTitle: "Decision de publication sur le tableau public",
       statusChangeLabel: "Definir le statut public",
-      statusChangeHint: "Choisissez le statut public qui doit apparaitre sur le tableau de coordination apres verification.",
+      statusChangeHint: "Les etats internes peuvent rester detailles, mais le tableau public n'affiche que en attente, en cours et traite.",
       statusPrompt: "Publiez un statut seulement quand les benevoles ont assez de certitude pour produire une mise a jour publique respectueuse de la vie privee.",
+      publicStages: {
+        pending: "En attente",
+        in_progress: "En cours",
+        resolved: "Traite",
+      },
+      publishStageDescriptions: {
+        pending: "Indique publiquement que la fiche a ete recue mais pas encore verifiee.",
+        in_progress: "Indique publiquement que les benevoles verifient, contactent ou coordonnent activement.",
+        resolved: "N'affiche publiquement que le resultat, pas les details internes de traitement.",
+      },
+      resolvedOutcomeLabel: "Resultat traite",
+      resolvedOutcomeHint: "Choisissez d'abord un modele de resultat, puis ajoutez des codes ou une courte precision si necessaire.",
+      resolvedOutcomes: {
+        safe_confirmed: "Securite confirmee",
+        deceased_confirmed: "Deces confirme",
+        assisted_resolved: "Aide apportee",
+        duplicate_merged: "Doublon fusionne",
+        custom: "Resultat personnalise",
+      },
+      resolvedOutcomeTemplates: {
+        safe_confirmed: "Securite confirmee.",
+        deceased_confirmed: "Deces confirme.",
+        assisted_resolved: "Aide apportee.",
+        duplicate_merged: "Fusionne comme doublon avec une autre fiche.",
+      },
       publicUpdateLabel: "Resume de mise a jour publique",
-      publicUpdateHint: "Redigez le court message respectueux de la vie privee qui doit apparaitre sur le tableau public.",
+      publicUpdateHint: "Redigez le resultat utile au public, par exemple securite confirmee, aide apportee, deces confirme, ou doublon fusionne avec BCN-001 et BCN-014.",
       statusSubmit: "Publier sur le tableau",
       claimTitle: "Prendre cette fiche",
       claimHint: "Utilisez cette action si vous prenez directement la responsabilite du suivi de cette fiche.",

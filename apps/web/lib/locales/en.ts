@@ -13,22 +13,26 @@ export const en = {
   },
   home: {
     eyebrow: "Community coordination",
-    title: "Share safe check-ins, missing-person reports, and verified updates.",
-    description:
-      "Beacon now treats Google Forms as the fastest intake layer. Use the links below to report that someone is safe, missing, or to provide a community update.",
+    title: "Report quickly. Reduce confusion.",
+    description: "Choose one way to report. Staff verify reports before publishing necessary public updates.",
     emergencyNotice:
       "If anyone is in immediate danger, contact local emergency services or on-site responders now. This platform does not replace official emergency response.",
     privacy:
       "Only share details that are necessary for volunteers to verify and publish trustworthy updates.",
+    falseReportNote:
+      "If a report is verified as false or malicious, it will be removed instead of being published on the public board.",
     languagePicker: "Language selector",
     staffCta: "Staff verification workspace",
     boardCta: "Open public board",
     boardPending: "Set public board link",
-    entryTitle: "Report into the shared intake flow",
+    entryTitle: "Make a report",
     entryDescription:
       "Each report opens in a Google Form so volunteers can keep using a fast, low-friction collection flow during active incidents.",
+    separateFormsNote:
+      "These are three separate intake forms: safe check-in, missing person, and community update.",
     formPending:
       "Set this Google Form link in the web environment before using this entry in production.",
+    formUnavailable: "Reporting forms are being set up. Ask an on-site coordinator for an available link.",
     workflowTitle: "Workflow",
     workflowSteps: [
       "Collect reports through shared forms.",
@@ -208,36 +212,67 @@ export const en = {
   board: {
     eyebrow: "Public board",
     title: "Community verification board",
-    description:
-      "Use this page as the public-facing reference for what is verified, what still needs confirmation, and what volunteers are reviewing.",
+    description: "This page only shows verified updates that staff have chosen to publish.",
     emergencyNotice:
       "This board is manually maintained and may lag behind real-world events. If someone is in immediate danger, contact official emergency responders now.",
     actionsTitle: "Public board role",
     actionsDescription:
       "Beacon's public board is where approved, privacy-safe updates should appear after volunteer verification. This page now reads the current public board feed directly from Beacon's backend adapter.",
     backHome: "Back to intake links",
+    openEmbed: "Open embedded sheet",
     openMirror: "Open external board mirror",
     statusLegendTitle: "Status legend",
+    embedTitle: "Embedded public sheet",
+    embedDescription:
+      "If you publish a Google Sheet or similar board view, you can embed it here for a denser spreadsheet-style scan.",
     liveTitle: "Live board records",
-    liveDescription:
-      "These records are derived from the current Beacon intake queue and only expose fields that are appropriate for a public coordination board.",
+    liveDescription: "Staff publish these updates. Original reports, private contacts, and exact locations are not shown.",
     sourceModeDerived: "Current source: derived from the existing Beacon case queue.",
     loading: "Loading current board records...",
     loadError: "The live board feed could not be loaded right now. You can still use the intake links and external mirror while volunteers recover the feed.",
-    empty: "No public-safe board records are available yet.",
+    empty: "There are no new public updates right now.",
     recordCodeLabel: "Record code",
+    statusLabel: "Status",
+    locationLabel: "Location",
     urgencyLabel: "Urgency",
     incidentTypeLabel: "Incident type",
     createdAtLabel: "Submitted",
     updatedAtLabel: "Last reviewed",
     latestUpdateLabel: "Latest public update",
     latestUpdateFallback: "No public update has been posted yet.",
+    resultLabel: "Result",
+    filterLabel: "Filter by status",
+    searchLabel: "Search records",
+    searchPlaceholder: "Search by code, location, or update",
+    filters: {
+      all: "All statuses",
+    },
+    publicStatuses: {
+      pending: {
+        label: "Pending",
+        description: "Received but still waiting for human verification.",
+      },
+      inProgress: {
+        label: "In progress",
+        description: "Volunteers are actively verifying or coordinating.",
+      },
+      resolved: {
+        label: "Resolved",
+        description: "A clear public result is available.",
+      },
+    },
+    results: {
+      safeConfirmed: "Safe confirmed",
+      deceasedConfirmed: "Deceased confirmed",
+      assistedResolved: "Help delivered",
+      duplicateMerged: "Merged duplicate",
+      resolvedGeneral: "Resolved",
+    },
     summary: {
       totalRecords: "Records in board",
-      unverified: "Unverified",
-      responding: "Responding",
-      needsFollowUp: "Needs follow-up",
-      safeConfirmed: "Safe confirmed",
+      pending: "Pending",
+      inProgress: "In progress",
+      resolved: "Resolved",
     },
     principlesTitle: "Verification principles",
     principles: [
@@ -293,6 +328,7 @@ export const en = {
       title: "Staff sign in",
       description:
         "Request a staff magic link to open the case queue. Keep the sign-in link private.",
+      backHome: "Back to homepage",
       emailLabel: "Staff email",
       emailHint: "Use the email address registered for your staff account.",
       submit: "Request sign-in link",
@@ -475,10 +511,35 @@ export const en = {
       noteSubmit: "Save note",
       statusPanelTitle: "Public board publish decision",
       statusChangeLabel: "Set public board status",
-      statusChangeHint: "Choose the public-facing status that should appear on the coordination board after verification.",
+      statusChangeHint: "Internal staff states can stay detailed, but the public board only shows pending, in progress, and resolved.",
       statusPrompt: "Only publish a status once volunteers have enough confidence to make a privacy-safe public update.",
+      publicStages: {
+        pending: "Pending",
+        in_progress: "In progress",
+        resolved: "Resolved",
+      },
+      publishStageDescriptions: {
+        pending: "Publicly shows that the record was received but is not yet verified.",
+        in_progress: "Publicly shows that volunteers are actively verifying, contacting, or coordinating.",
+        resolved: "Publicly shows only the outcome, not the internal handling details.",
+      },
+      resolvedOutcomeLabel: "Resolved outcome",
+      resolvedOutcomeHint: "Choose a result template first, then add case codes or a short note if needed.",
+      resolvedOutcomes: {
+        safe_confirmed: "Safe confirmed",
+        deceased_confirmed: "Deceased confirmed",
+        assisted_resolved: "Help delivered",
+        duplicate_merged: "Merged duplicate",
+        custom: "Custom result",
+      },
+      resolvedOutcomeTemplates: {
+        safe_confirmed: "Safe confirmed.",
+        deceased_confirmed: "Deceased confirmed.",
+        assisted_resolved: "Help delivered.",
+        duplicate_merged: "Merged as a duplicate with another record.",
+      },
       publicUpdateLabel: "Public update summary",
-      publicUpdateHint: "Write the short privacy-safe message that should appear on the public board for this record.",
+      publicUpdateHint: "Write the result the public needs to see, such as “safe confirmed”, “help delivered”, “deceased confirmed”, or “merged with BCN-001 and BCN-014 as duplicates”.",
       statusSubmit: "Publish to board",
       claimTitle: "Claim this record",
       claimHint: "Use claim when you are taking direct responsibility for following up this record.",

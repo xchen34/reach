@@ -56,7 +56,7 @@ def _authenticate_staff(email: str = "board-reviewer@example.com") -> dict[str, 
     return {"Authorization": f"Bearer {access_token}"}
 
 
-def test_public_board_lists_publicly_safe_fields_and_status_buckets() -> None:
+def test_public_board_only_lists_explicitly_published_updates() -> None:
     first_case = _submit_case(
         urgency="high",
         incident_type="medical",
@@ -78,14 +78,24 @@ def test_public_board_lists_publicly_safe_fields_and_status_buckets() -> None:
     )
     assert action_response.status_code == 200
 
+    publish_response = client.post(
+        f"/staff/cases/{second_case['id']}/publish",
+        headers=headers,
+        json={
+            "to_status": "safe_resolved",
+            "latest_public_update": "The coordination team confirmed a safe check-in.",
+        },
+    )
+    assert publish_response.status_code == 200
+
     board_response = client.get("/board")
     assert board_response.status_code == 200
     payload = board_response.json()
 
     assert payload["source_mode"] == "derived_from_cases"
     assert payload["summary"] == {
-        "total_records": 2,
-        "unverified": 1,
+        "total_records": 1,
+        "unverified": 0,
         "responding": 0,
         "needs_follow_up": 0,
         "safe_confirmed": 1,
@@ -93,19 +103,25 @@ def test_public_board_lists_publicly_safe_fields_and_status_buckets() -> None:
     }
 
     records = payload["records"]
-    assert len(records) == 2
-    first_record = next(record for record in records if record["case_code"] == first_case["case_code"])
-    second_record = next(record for record in records if record["case_code"] == second_case["case_code"])
+    assert len(records) == 1
+    record = records[0]
 
-    assert first_record["board_status"] == "unverified"
-    assert second_record["board_status"] == "safe_confirmed"
-    assert second_record["latest_public_update"] == "Case status updated to safe_resolved."
+    assert record["board_status"] == "safe_confirmed"
+    assert record["latest_public_update"] == "The coordination team confirmed a safe check-in."
 
-    for record in records:
-        assert "reporter_name" not in record
-        assert "reporter_email" not in record
-        assert "reporter_phone" not in record
-        assert "id" not in record
+    for private_field in (
+        "case_code",
+        "location_summary",
+        "needs_summary",
+        "urgency",
+        "incident_type",
+        "language_code",
+        "reporter_name",
+        "reporter_email",
+        "reporter_phone",
+        "id",
+    ):
+        assert private_field not in record
 
 
 def test_public_board_hides_archived_records_by_default() -> None:
@@ -116,6 +132,16 @@ def test_public_board_hides_archived_records_by_default() -> None:
         needs="Duplicate report already resolved.",
     )
     headers = _authenticate_staff("board-archive@example.com")
+
+    publish_response = client.post(
+        f"/staff/cases/{case_payload['id']}/publish",
+        headers=headers,
+        json={
+            "to_status": "safe_resolved",
+            "latest_public_update": "This update is no longer current.",
+        },
+    )
+    assert publish_response.status_code == 200
 
     action_response = client.post(
         f"/staff/cases/{case_payload['id']}/actions",

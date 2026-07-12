@@ -1,21 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 from app.schemas.common import ApiModel
 
 
 class PublicBoardRecord(ApiModel):
-    case_code: str
     board_status: Literal["unverified", "responding", "needs_follow_up", "safe_confirmed", "archived"]
-    urgency: str
-    incident_type: str
-    language_code: str
-    location_summary: str
-    needs_summary: str
-    latest_public_update: Optional[str] = None
-    created_at: datetime
+    latest_public_update: str
     updated_at: datetime
 
 
