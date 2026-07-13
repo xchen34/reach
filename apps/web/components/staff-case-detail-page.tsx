@@ -386,6 +386,8 @@ export function StaffCaseDetailPage({
   ];
   const recentAuditEntries = [...auditEntries].filter(isUsefulAuditEntry).reverse().slice(0, 5);
   const suggestedMatches = findSuggestedCaseMatches(caseDetail, queue.events.flatMap((event) => event.related_cases));
+  const latestPublishedEntry = [...auditEntries].reverse().find(isPublishAuditEntry);
+  const hasPublishedUpdate = Boolean(caseDetail.latest_public_update?.trim());
 
   return (
     <main className="page-shell">
@@ -486,7 +488,31 @@ export function StaffCaseDetailPage({
               <form className="detail-card form-stack staff-action-card" onSubmit={handleStatusSubmit}>
                 <div>
                   <h3 className="section-title staff-action-title">{dictionary.staff.detail.statusPanelTitle}</h3>
+                  <p className="field-hint compact-copy">{dictionary.staff.detail.publicUpdateScope}</p>
                 </div>
+                <section
+                  className={hasPublishedUpdate ? "published-update-card" : "published-update-card published-update-card-empty"}
+                  aria-labelledby="published-update-title"
+                >
+                  <div className="staff-section-heading">
+                    <div>
+                      <h4 className="staff-subtitle" id="published-update-title">
+                        {dictionary.staff.detail.publishedUpdateTitle}
+                      </h4>
+                      <p className="field-hint compact-copy">
+                        {latestPublishedEntry
+                          ? `${dictionary.staff.detail.publishedAtLabel} ${dateFormatter.format(new Date(latestPublishedEntry.created_at))}`
+                          : dictionary.staff.detail.notPublishedYet}
+                      </p>
+                    </div>
+                    {hasPublishedUpdate ? (
+                      <span className="status-pill">{dictionary.staff.detail.publishedStateLabel}</span>
+                    ) : null}
+                  </div>
+                  <p className="staff-narrative-text">
+                    {hasPublishedUpdate ? caseDetail.latest_public_update : dictionary.staff.detail.latestUpdateFallback}
+                  </p>
+                </section>
                 <label className="field">
                   <span className="field-label">{dictionary.staff.detail.statusChangeLabel}</span>
                   <select
@@ -547,7 +573,12 @@ export function StaffCaseDetailPage({
                   </div>
                 ) : null}
                 <label className="field">
-                  <span className="field-label">{dictionary.staff.detail.publicUpdateLabel}</span>
+                  <span className="field-label">
+                    {hasPublishedUpdate
+                      ? dictionary.staff.detail.publicUpdateEditLabel
+                      : dictionary.staff.detail.publicUpdateLabel}
+                  </span>
+                  <span className="field-hint">{dictionary.staff.detail.publicUpdateHint}</span>
                   <textarea
                     className="field-control field-textarea"
                     maxLength={4000}
@@ -560,7 +591,11 @@ export function StaffCaseDetailPage({
                   />
                 </label>
                 <button className="button-primary" disabled={isSubmittingStatus} type="submit">
-                  {isSubmittingStatus ? dictionary.staff.detail.submitting : dictionary.staff.detail.statusSubmit}
+                  {isSubmittingStatus
+                    ? dictionary.staff.detail.submitting
+                    : hasPublishedUpdate
+                      ? dictionary.staff.detail.statusEditSubmit
+                      : dictionary.staff.detail.statusSubmit}
                 </button>
               </form>
             </section>
@@ -730,6 +765,10 @@ function isUsefulAuditEntry(entry: AuditLogEntryResponse) {
     actionType === "status_change" ||
     actionType === "claim"
   );
+}
+
+function isPublishAuditEntry(entry: AuditLogEntryResponse) {
+  return entry.metadata_json?.action_type === "publish_update";
 }
 
 function getAuditEntryDescription(dictionary: Dictionary, entry: AuditLogEntryResponse) {

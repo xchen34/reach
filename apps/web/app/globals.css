@@ -118,7 +118,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 7rem;
+  min-width: 6.5rem;
   min-height: 3rem;
   padding: 0.75rem 1rem;
   border-radius: 0.7rem;
@@ -651,6 +651,7 @@ textarea {
   cursor: pointer;
   text-decoration: none;
   font-weight: 700;
+  text-align: center;
 }
 
 .button-primary {
@@ -804,6 +805,25 @@ textarea {
   align-content: start;
 }
 
+.staff-subtitle {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.published-update-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid #98c7b8;
+  border-radius: 0.8rem;
+  background: #edf8f2;
+}
+
+.published-update-card-empty {
+  border-color: var(--border);
+  background: rgba(255, 253, 247, 0.75);
+}
+
 .staff-mini-facts {
   display: grid;
   gap: 0.75rem;
@@ -842,6 +862,7 @@ textarea {
 .staff-toolbar-actions {
   display: grid;
   gap: 0.75rem;
+  align-content: start;
 }
 
 .staff-quick-links {
@@ -851,6 +872,12 @@ textarea {
 
 .staff-public-board-link {
   width: 100%;
+}
+
+.staff-login-links {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
 }
 
 .staff-section-header {
@@ -906,6 +933,38 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.staff-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.staff-card-badges .status-pill {
+  margin: 0;
+}
+
+.staff-card-side {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.staff-merged-case-list {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(203, 216, 209, 0.8);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.staff-merged-case-row {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.6fr) minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .staff-link-button {
@@ -1004,11 +1063,21 @@ textarea {
 
   .staff-toolbar-actions {
     justify-items: end;
+    min-width: min(100%, 28rem);
   }
 
   .staff-quick-links {
-    grid-template-columns: repeat(2, minmax(0, auto));
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
+  }
+
+  .staff-login-links {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .staff-login-links .staff-quick-links {
+    grid-template-columns: minmax(0, auto) minmax(10rem, auto);
   }
 
   .staff-public-board-link {
@@ -1079,6 +1148,10 @@ textarea {
   .button-primary,
   .button-secondary {
     width: 100%;
+  }
+
+  .staff-merged-case-row {
+    grid-template-columns: 1fr;
   }
 
   .language-list {

@@ -70,13 +70,12 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
         <h1 className="headline">{dictionary.staff.login.title}</h1>
         <p className="lede">{dictionary.staff.login.description}</p>
 
-        <StaffQuickLinks
-          currentLocale={locale}
-          languageLabel={dictionary.home.languagePicker}
-          publicBoardLabel={dictionary.home.boardCta}
-        />
-
-        <div className="button-row">
+        <div className="staff-login-links">
+          <StaffQuickLinks
+            currentLocale={locale}
+            languageLabel={dictionary.home.languagePicker}
+            publicBoardLabel={dictionary.home.boardCta}
+          />
           <Link className="button-secondary" href={`/${locale}`}>
             {dictionary.staff.login.backHome}
           </Link>

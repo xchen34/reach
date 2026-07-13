@@ -199,7 +199,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   }
 
   const dashboard = state.dashboard;
-  const queueItems = getOpenQueueItems(dashboard);
+  const queueGroups = getOpenQueueGroups(dashboard);
 
   return (
     <main className="page-shell">
@@ -248,38 +248,73 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
             </p>
           </div>
 
-          {queueItems.length === 0 ? (
+          {queueGroups.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.empty}</p>
           ) : (
             <div className="staff-case-stack">
-              {queueItems.map((item) => (
-                <article className="detail-card staff-event-card" key={item.id}>
+              {queueGroups.map((group) => {
+                const leadCase = getLeadOpenCase(group);
+                const caseCodes = group.related_cases.map((item) => item.case_code).join(" + ");
+                const isMergedGroup = group.case_count > 1;
+
+                return (
+                <article className="detail-card staff-event-card" key={group.id}>
                   <div className="staff-case-header">
                     <div>
-                      <p className={getStatusPillClassName(item.status)}>
-                        {dictionary.caseStatus.labels[item.status]}
-                      </p>
-                      <p className="field-hint compact-copy">{item.case_code}</p>
-                      <h3 className="section-title staff-case-title">{item.location_summary}</h3>
+                      <div className="staff-card-badges">
+                        <p className={getStatusPillClassName(group.status)}>
+                          {dictionary.caseStatus.labels[group.status]}
+                        </p>
+                        {isMergedGroup ? (
+                          <p className="status-pill status-pill-neutral">
+                            {dictionary.staff.cases.mergedGroupLabel}
+                          </p>
+                        ) : null}
+                      </div>
+                      <p className="field-hint compact-copy">{caseCodes}</p>
+                      <h3 className="section-title staff-case-title">{group.title}</h3>
                       <p className="field-hint compact-copy staff-event-summary-line">
-                        {dictionary.home.form.incidentType.options[item.incident_type]} ·{" "}
-                        {dictionary.home.form.urgency.options[item.urgency]}
+                        {dictionary.home.form.incidentType.options[group.incident_type]} ·{" "}
+                        {dictionary.home.form.urgency.options[group.highest_urgency]} ·{" "}
+                        {dictionary.staff.cases.caseCountLabel}: {group.case_count}
                       </p>
-                      <p className="support-copy compact-copy">{item.needs_summary}</p>
+                      <p className="support-copy compact-copy">{group.summary}</p>
                     </div>
-                    <p className="field-hint compact-copy">
-                      {dictionary.staff.cases.assignedLabel}: {item.assigned_staff_user?.email ?? dictionary.staff.cases.unassigned}
-                    </p>
+                    <div className="staff-card-side">
+                      <p className="field-hint compact-copy">
+                        {dictionary.staff.cases.assignedLabel}:{" "}
+                        {leadCase?.assigned_staff_user?.email ?? dictionary.staff.cases.unassigned}
+                      </p>
+                      <p className="field-hint compact-copy staff-event-summary-line">
+                        {dictionary.staff.cases.lastUpdatedLabel}{" "}
+                        {dateFormatter.format(new Date(group.last_updated_at))}
+                      </p>
+                    </div>
                   </div>
+
+                  {isMergedGroup ? (
+                    <div className="staff-merged-case-list" aria-label={dictionary.staff.cases.mergedCasesLabel}>
+                      {group.related_cases.map((item) => (
+                        <div className="staff-merged-case-row" key={item.id}>
+                          <span className="field-hint compact-copy">{item.case_code}</span>
+                          <span>{item.location_summary}</span>
+                          <span className={getStatusPillClassName(item.status)}>
+                            {dictionary.caseStatus.labels[item.status]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <Link
                     className="button-primary staff-link-button"
-                    href={`/${locale}/staff/cases/${item.id}`}
+                    href={`/${locale}/staff/cases/${leadCase?.id ?? group.related_cases[0]?.id}`}
                   >
                     {dictionary.staff.cases.openCase}
                   </Link>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -296,14 +331,21 @@ function redirectToLogin(
   router.replace(buildStaffLoginHref(locale, reason));
 }
 
-function getOpenQueueItems(dashboard: StaffQueueResponse) {
-  const items = dashboard.events.flatMap((event) => event.related_cases);
-  return items
-    .filter((item) => item.status !== "safe_resolved" && item.status !== "closed")
+function getOpenQueueGroups(dashboard: StaffQueueResponse) {
+  return dashboard.events
+    .filter((group) => group.related_cases.some((item) => item.status !== "safe_resolved" && item.status !== "closed"))
     .sort((left, right) => {
-      const urgency = urgencyPriority[right.urgency] - urgencyPriority[left.urgency];
-      return urgency || Date.parse(right.updated_at) - Date.parse(left.updated_at);
+      const urgency = urgencyPriority[right.highest_urgency] - urgencyPriority[left.highest_urgency];
+      return urgency || Date.parse(right.last_updated_at) - Date.parse(left.last_updated_at);
     });
+}
+
+function getLeadOpenCase(group: StaffQueueResponse["events"][number]) {
+  return (
+    group.related_cases.find((item) => item.status !== "safe_resolved" && item.status !== "closed") ??
+    group.related_cases[0] ??
+    null
+  );
 }
 
 const urgencyPriority = { critical: 4, high: 3, medium: 2, low: 1 } as const;
