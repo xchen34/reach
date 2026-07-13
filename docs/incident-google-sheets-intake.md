@@ -27,9 +27,27 @@ Reach_GOOGLE_SERVICE_ACCOUNT_JSON='{"type":"service_account", "...":"..."}'
 
 The service account needs read-only access to the private Sheet.
 
+The service-account JSON is read as raw JSON from `Reach_GOOGLE_SERVICE_ACCOUNT_JSON`.
+The current implementation does not read a file path and does not decode base64.
+
 ## Reach configuration
 
 Create one `incidents` row for the active response and one `incident_intake_sources` row that belongs to that Incident.
+
+The Incident-specific public Google Form URL is stored in:
+
+```text
+incident_intake_sources.google_form_url
+```
+
+The private spreadsheet configuration is stored in:
+
+```text
+incident_intake_sources.google_spreadsheet_id
+incident_intake_sources.google_sheet_name
+```
+
+Do not put Google service-account JSON, private Sheet URLs, spreadsheet IDs, or Sheet credentials in `NEXT_PUBLIC_*` variables.
 
 The public route is:
 

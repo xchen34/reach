@@ -37,25 +37,32 @@ You do not need to run `make migrate` every single time. Use it when:
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
 
-## Configure Google Forms
+## Configure Environment
 
-Beacon needs three published Google Form responder links: safe check-in, missing or unreachable, and update or lead. Create the forms using [the column mapping](google-form-column-mapping.md), then copy each public responder URL. It must end in `/viewform`, not `/edit`.
-
-Create a local `.env` at the repository root from the example and replace the three placeholders:
+Create a local `.env` at the repository root from the example:
 
 ```bash
-cp infra/.env.example .env
+cp .env.example .env
 ```
+
+The host-run frontend loads this root `.env` through `make web`. Docker Compose reads the same root `.env` for variable interpolation, and the API container receives only variables explicitly forwarded in `infra/docker-compose.yml`.
+
+## Configure Incident Google Sheets Intake
+
+Incident-scoped intake no longer uses three global public form URLs as the source of truth. The public Incident page reads the form URL from `incident_intake_sources.google_form_url`, and the backend importer reads the private spreadsheet ID and tab name from `incident_intake_sources.google_spreadsheet_id` and `incident_intake_sources.google_sheet_name`.
+
+Set these backend-only values in `.env` when you want to import from Google Sheets:
 
 ```dotenv
-NEXT_PUBLIC_SAFE_REPORT_FORM_URL=https://docs.google.com/forms/d/e/SAFE_FORM_ID/viewform
-NEXT_PUBLIC_MISSING_REPORT_FORM_URL=https://docs.google.com/forms/d/e/MISSING_FORM_ID/viewform
-NEXT_PUBLIC_UPDATE_REPORT_FORM_URL=https://docs.google.com/forms/d/e/UPDATE_FORM_ID/viewform
+Reach_GOOGLE_SHEETS_IMPORT_ENABLED=true
+Reach_GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"..."}
 ```
 
-Set a long, unique `BEACON_GOOGLE_FORM_INGEST_TOKEN` in the same `.env`, then copy it only into the Apps Script deployment. Configure the script with the Beacon host and token as described in [the Apps Script example](google-form-apps-script-example.js). Restart `make up` and `make web` after changing `.env`.
+Keep the service-account JSON as one-line raw JSON. Do not put Google credentials in any `NEXT_PUBLIC_*` variable.
 
-Before publishing links to volunteers, open all three from an incognito browser and submit a harmless test response. Confirm that it appears in the staff queue, then publish a deliberately redacted update and confirm that only that update appears on the public board.
+`Reach_GOOGLE_FORM_INGEST_TOKEN` and `NEXT_PUBLIC_SAFE_REPORT_FORM_URL`, `NEXT_PUBLIC_MISSING_REPORT_FORM_URL`, and `NEXT_PUBLIC_UPDATE_REPORT_FORM_URL` remain legacy compatibility settings for the old Apps Script ingest and homepage form links. They are not required for the Incident-scoped Google Sheets importer.
+
+See [incident-google-sheets-intake.md](incident-google-sheets-intake.md) for the Incident and intake-source database setup.
 
 ## Why web runs on the host by default
 
