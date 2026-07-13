@@ -31,6 +31,7 @@ services:
       Reach_GOOGLE_FORM_INGEST_TOKEN: ${Reach_GOOGLE_FORM_INGEST_TOKEN:-}
       Reach_GOOGLE_SHEETS_IMPORT_ENABLED: ${Reach_GOOGLE_SHEETS_IMPORT_ENABLED:-false}
       Reach_GOOGLE_SERVICE_ACCOUNT_JSON: ${Reach_GOOGLE_SERVICE_ACCOUNT_JSON:-}
+      Reach_DEMO_GOOGLE_SHEET_NAME: ${Reach_DEMO_GOOGLE_SHEET_NAME:-}
       Reach_SPEECH_TO_TEXT_PROVIDER: development_stub
       Reach_VOICE_STORAGE_DIR: /app/data/voice_uploads
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

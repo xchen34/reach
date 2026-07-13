@@ -20,16 +20,6 @@ class PublicIncidentReportPageResponse(ApiModel):
     google_form_url: str
 
 
-class StaffIncidentSummary(ApiModel):
-    id: int
-    internal_name: str
-    public_name: str
-    slug: str
-    disaster_type: str
-    affected_area: str
-    status: IncidentStatus
-
-
 class StaffIncidentIntakeSourceResponse(ApiModel):
     id: int
     incident_id: int
@@ -41,6 +31,17 @@ class StaffIncidentIntakeSourceResponse(ApiModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class StaffIncidentSummary(ApiModel):
+    id: int
+    internal_name: str
+    public_name: str
+    slug: str
+    disaster_type: str
+    affected_area: str
+    status: IncidentStatus
+    intake_sources: list[StaffIncidentIntakeSourceResponse]
 
 
 class IncidentIntakeImportResponse(ApiModel):

@@ -14,7 +14,7 @@ For the current test setup:
 
 - public form URL: `https://docs.google.com/forms/d/e/1FAIpQLSdyeSF9JooekyHjSn_-HgaCyt7ZM2uaNM_UOfb6-c5APpyTiQ/viewform`
 - spreadsheet ID: `1EILq0xRcEhXziEtvHTV3agkAl2hiDrUVVfaHz_vYGmw`
-- sheet name: use the tab name from the linked response Sheet, commonly `Form Responses 1`
+- sheet name: use the tab title from the linked response Sheet, commonly `Form Responses 1`
 
 ## Backend environment
 
@@ -29,6 +29,7 @@ The service account needs read-only access to the private Sheet.
 
 The service-account JSON is read as raw JSON from `Reach_GOOGLE_SERVICE_ACCOUNT_JSON`.
 The current implementation does not read a file path and does not decode base64.
+The Sheet identifier used by the importer is the tab title stored as `incident_intake_sources.google_sheet_name`; it is not a worksheet index or gid.
 
 ## Reach configuration
 
@@ -48,6 +49,22 @@ incident_intake_sources.google_sheet_name
 ```
 
 Do not put Google service-account JSON, private Sheet URLs, spreadsheet IDs, or Sheet credentials in `NEXT_PUBLIC_*` variables.
+
+For local development, bootstrap the demo Incident and intake source with:
+
+```bash
+cd apps/api
+python3 -m app.scripts.bootstrap_demo_incident --sheet-name "Form Responses 1"
+```
+
+For Docker Compose development:
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T api \
+  python -m app.scripts.bootstrap_demo_incident --sheet-name "Form Responses 1"
+```
+
+The bootstrap upserts the active `reach-demo` Incident and one active Google Sheets intake source. It is safe to run repeatedly and refuses to run when `Reach_APP_ENV=production`.
 
 The public route is:
 

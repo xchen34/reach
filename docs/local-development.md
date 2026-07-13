@@ -56,6 +56,7 @@ Set these backend-only values in `.env` when you want to import from Google Shee
 ```dotenv
 Reach_GOOGLE_SHEETS_IMPORT_ENABLED=true
 Reach_GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"..."}
+Reach_DEMO_GOOGLE_SHEET_NAME=Form Responses 1
 ```
 
 Keep the service-account JSON as one-line raw JSON. Do not put Google credentials in any `NEXT_PUBLIC_*` variable.
@@ -63,6 +64,32 @@ Keep the service-account JSON as one-line raw JSON. Do not put Google credential
 `Reach_GOOGLE_FORM_INGEST_TOKEN` and `NEXT_PUBLIC_SAFE_REPORT_FORM_URL`, `NEXT_PUBLIC_MISSING_REPORT_FORM_URL`, and `NEXT_PUBLIC_UPDATE_REPORT_FORM_URL` remain legacy compatibility settings for the old Apps Script ingest and homepage form links. They are not required for the Incident-scoped Google Sheets importer.
 
 See [incident-google-sheets-intake.md](incident-google-sheets-intake.md) for the Incident and intake-source database setup.
+
+To create or update the local demo Incident and its Google Sheets intake source, run one of:
+
+```bash
+cd apps/api
+python3 -m app.scripts.bootstrap_demo_incident --sheet-name "Form Responses 1"
+```
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T api \
+  python -m app.scripts.bootstrap_demo_incident --sheet-name "Form Responses 1"
+```
+
+The command is idempotent. It creates or updates the active `reach-demo` Incident and its active Google Sheets intake source without storing Google credentials.
+
+After bootstrapping, verify the public Incident configuration:
+
+```bash
+curl -s http://127.0.0.1:8000/incidents/reach-demo/report
+```
+
+Open the frontend page:
+
+```text
+http://127.0.0.1:3000/en/incidents/reach-demo/report
+```
 
 ## Why web runs on the host by default
 

@@ -1267,6 +1267,11 @@ components:
       - utilities
       - other
       title: IncidentType
+    IntakeSourceType:
+      type: string
+      enum:
+      - google_sheets
+      title: IntakeSourceType
     MagicLinkRequest:
       properties:
         email:
@@ -1928,6 +1933,53 @@ components:
       - created_at
       - updated_at
       title: StaffCaseVoiceResponse
+    StaffIncidentIntakeSourceResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
+        source_type:
+          $ref: '#/components/schemas/IntakeSourceType'
+        google_form_url:
+          type: string
+          title: Google Form Url
+        google_form_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Google Form Id
+        google_sheet_name:
+          type: string
+          title: Google Sheet Name
+        last_imported_row:
+          type: integer
+          title: Last Imported Row
+        is_active:
+          type: boolean
+          title: Is Active
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - incident_id
+      - source_type
+      - google_form_url
+      - google_sheet_name
+      - last_imported_row
+      - is_active
+      - created_at
+      - updated_at
+      title: StaffIncidentIntakeSourceResponse
     StaffIncidentSummary:
       properties:
         id:
@@ -1950,6 +2002,11 @@ components:
           title: Affected Area
         status:
           $ref: '#/components/schemas/IncidentStatus'
+        intake_sources:
+          items:
+            $ref: '#/components/schemas/StaffIncidentIntakeSourceResponse'
+          type: array
+          title: Intake Sources
       type: object
       required:
       - id
@@ -1959,6 +2016,7 @@ components:
       - disaster_type
       - affected_area
       - status
+      - intake_sources
       title: StaffIncidentSummary
     StaffReportCreateCaseRequest:
       properties:
