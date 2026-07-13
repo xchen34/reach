@@ -75,7 +75,7 @@ function GlobalHeader({
   return (
     <header className="global-header">
       <div className="global-header-inner">
-        <div className="header-brand">{sectionLabel}</div>
+        <div className="header-brand">BEACON</div>
         <nav className="header-navigation" aria-label={sectionLabel}>
           <div className="header-nav-slot header-nav-language">
             {showLanguage ? <LanguageSwitcher currentLocale={locale} label={languageLabel} /> : null}

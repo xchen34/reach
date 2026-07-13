@@ -23,7 +23,7 @@ export const fr = {
       "Si un signalement est verifie comme faux ou malveillant, il sera supprime au lieu d'etre publie sur le tableau public.",
     languagePicker: "Selection de langue",
     staffCta: "Espace equipe de verification",
-    boardCta: "Ouvrir le tableau public",
+    boardCta: "Infos publiques",
     boardPending: "Configurer le lien du tableau public",
     entryTitle: "Faire un signalement",
     entryDescription:
@@ -329,7 +329,7 @@ export const fr = {
       title: "Connexion equipe",
       description:
         "Demandez un lien magique pour ouvrir la file des dossiers. Gardez ce lien prive.",
-      backHome: "Retour a l'accueil",
+      backHome: "Accueil",
       emailLabel: "Email de l'equipe",
       emailHint: "Utilisez l'adresse email enregistree pour votre compte equipe.",
       submit: "Demander un lien",

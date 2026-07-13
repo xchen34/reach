@@ -23,7 +23,7 @@ export const en = {
       "If a report is verified as false or malicious, it will be removed instead of being published on the public board.",
     languagePicker: "Language selector",
     staffCta: "Staff verification workspace",
-    boardCta: "Open public board",
+    boardCta: "Public info",
     boardPending: "Set public board link",
     entryTitle: "Make a report",
     entryDescription:
@@ -328,7 +328,7 @@ export const en = {
       title: "Staff sign in",
       description:
         "Request a staff magic link to open the case queue. Keep the sign-in link private.",
-      backHome: "Back to homepage",
+      backHome: "Home",
       emailLabel: "Staff email",
       emailHint: "Use the email address registered for your staff account.",
       submit: "Request sign-in link",

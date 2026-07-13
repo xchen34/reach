@@ -21,7 +21,7 @@ export const zh = {
     falseReportNote: "如果核实为假消息或恶意信息，记录会直接删除，不会进入公开信息板。",
     languagePicker: "语言选择",
     staffCta: "工作人员核实后台",
-    boardCta: "打开公开信息板",
+    boardCta: "公开信息",
     boardPending: "请先配置公开信息板链接",
     entryTitle: "提交信息",
     entryDescription:
@@ -309,7 +309,7 @@ export const zh = {
     login: {
       title: "工作人员登录",
       description: "请求工作人员魔法链接以打开个案队列。请将登录链接视为私密信息。",
-      backHome: "返回首页",
+      backHome: "首页",
       emailLabel: "工作人员邮箱",
       emailHint: "请输入工作人员账户登记的邮箱地址。",
       submit: "请求登录链接",
