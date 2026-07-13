@@ -12,9 +12,9 @@ export const zh = {
     },
   },
   home: {
-    eyebrow: "社区协作",
-    title: "快速上报，减少混乱。",
-    description: "选择一种上报方式。工作人员会先核实，再发布必要的公开更新。",
+    eyebrow: "紧急人员安全上报",
+    title: "REACH",
+    description: "每一次上报，都可能帮助挽救生命。",
     emergencyNotice:
       "如果任何人正处在立即危险中，请立刻联系当地紧急服务或现场救援人员。此平台不能替代官方应急响应。",
     privacy: "只填写志愿者核实与公开可信更新所必需的信息。",
@@ -23,7 +23,7 @@ export const zh = {
     staffCta: "工作人员核实后台",
     boardCta: "公开信息",
     boardPending: "请先配置公开信息板链接",
-    entryTitle: "提交信息",
+    entryTitle: "紧急人员安全上报",
     entryDescription:
       "每个入口都会打开一个 Google Form，让志愿者在突发事件期间继续使用快速、低门槛的收集方式。",
     separateFormsNote: "这里是 3 个独立表单入口：报平安、失联登记、社区更新。",
@@ -60,7 +60,7 @@ export const zh = {
       },
     },
     form: {
-      title: "匿名个案提交",
+      title: "REACH — 紧急人员安全上报",
       incidentType: {
         label: "事件类型",
         hint: "请选择最接近的类型。",
@@ -203,7 +203,7 @@ export const zh = {
       "此信息板依赖人工维护，更新可能落后于现场情况。如果有人正处于立即危险中，请立刻联系官方救援。",
     actionsTitle: "公开信息板的作用",
     actionsDescription:
-      "Beacon 的公开信息板用于展示经过志愿者核实、且适合公开的更新。这个页面现在已经直接读取 Beacon 后端 adapter 提供的公开板数据。",
+      "REACH 的公开信息板用于展示经过志愿者核实、且适合公开的更新。这个页面现在已经直接读取 REACH 后端 adapter 提供的公开板数据。",
     backHome: "返回收集入口",
     openEmbed: "打开嵌入表格",
     openMirror: "打开外部公开板镜像",
@@ -212,7 +212,7 @@ export const zh = {
     embedDescription: "如果你发布了 Google Sheet 或类似公开表格，可以在这里嵌入，方便高密度浏览。",
     liveTitle: "实时公开记录",
     liveDescription: "更新由工作人员发布。不会显示原始上报、私人联系方式或精确地点。",
-    sourceModeDerived: "当前数据源：由现有 Beacon case 队列派生。",
+    sourceModeDerived: "当前数据源：由现有 REACH case 队列派生。",
     loading: "正在加载公开板记录...",
     loadError: "当前无法加载实时公开板。你仍可先使用首页入口和外部镜像板。",
     empty: "目前没有新的公开更新。",
@@ -296,7 +296,7 @@ export const zh = {
     },
   },
   staff: {
-    eyebrow: "Beacon 工作人员",
+    eyebrow: "REACH 工作人员",
     logout: "退出登录",
     logoutSubmitting: "正在退出...",
     roleLabels: {
@@ -336,7 +336,7 @@ export const zh = {
     },
     magicLink: {
       title: "正在验证登录链接",
-      description: "Beacon 正在验证这个一次性工作人员登录链接并打开您的会话。",
+      description: "REACH 正在验证这个一次性工作人员登录链接并打开您的会话。",
       loadingBadge: "验证中",
       loading: "正在验证登录链接...",
       successBadge: "已登录",

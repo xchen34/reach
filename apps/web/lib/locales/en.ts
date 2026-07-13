@@ -12,9 +12,9 @@ export const en = {
     },
   },
   home: {
-    eyebrow: "Community coordination",
-    title: "Report quickly. Reduce confusion.",
-    description: "Choose one way to report. Staff verify reports before publishing necessary public updates.",
+    eyebrow: "Urgent person-safety reporting",
+    title: "REACH",
+    description: "Every report can help save a life.",
     emergencyNotice:
       "If anyone is in immediate danger, contact local emergency services or on-site responders now. This platform does not replace official emergency response.",
     privacy:
@@ -25,7 +25,7 @@ export const en = {
     staffCta: "Staff verification workspace",
     boardCta: "Public info",
     boardPending: "Set public board link",
-    entryTitle: "Make a report",
+    entryTitle: "Urgent person-safety report",
     entryDescription:
       "Each report opens in a Google Form so volunteers can keep using a fast, low-friction collection flow during active incidents.",
     separateFormsNote:
@@ -67,7 +67,7 @@ export const en = {
       },
     },
     form: {
-      title: "Anonymous case submission",
+      title: "REACH — Urgent Person-Safety Report",
       incidentType: {
         label: "Incident type",
         hint: "Choose the closest match.",
@@ -217,7 +217,7 @@ export const en = {
       "This board is manually maintained and may lag behind real-world events. If someone is in immediate danger, contact official emergency responders now.",
     actionsTitle: "Public board role",
     actionsDescription:
-      "Beacon's public board is where approved, privacy-safe updates should appear after volunteer verification. This page now reads the current public board feed directly from Beacon's backend adapter.",
+      "REACH's public board is where approved, privacy-safe updates should appear after volunteer verification. This page now reads the current public board feed directly from REACH's backend adapter.",
     backHome: "Back to intake links",
     openEmbed: "Open embedded sheet",
     openMirror: "Open external board mirror",
@@ -227,7 +227,7 @@ export const en = {
       "If you publish a Google Sheet or similar board view, you can embed it here for a denser spreadsheet-style scan.",
     liveTitle: "Live board records",
     liveDescription: "Staff publish these updates. Original reports, private contacts, and exact locations are not shown.",
-    sourceModeDerived: "Current source: derived from the existing Beacon case queue.",
+    sourceModeDerived: "Current source: derived from the existing REACH case queue.",
     loading: "Loading current board records...",
     loadError: "The live board feed could not be loaded right now. You can still use the intake links and external mirror while volunteers recover the feed.",
     empty: "There are no new public updates right now.",
@@ -314,7 +314,7 @@ export const en = {
     },
   },
   staff: {
-    eyebrow: "Beacon staff",
+    eyebrow: "REACH staff",
     logout: "Sign out",
     logoutSubmitting: "Signing out...",
     roleLabels: {
@@ -358,7 +358,7 @@ export const en = {
     magicLink: {
       title: "Verifying sign-in link",
       description:
-        "Beacon is checking this one-time staff sign-in link and opening your session.",
+        "REACH is checking this one-time staff sign-in link and opening your session.",
       loadingBadge: "Checking",
       loading: "Verifying the sign-in link...",
       successBadge: "Signed in",
@@ -556,7 +556,7 @@ export const en = {
       claimSubmit: "Claim record",
       duplicateTitle: "Check possible duplicate reports",
       duplicateDescription:
-        "Beacon suggests candidates using matching locations, similar descriptions, type, and report time. Compare each one before confirming; nothing is merged automatically.",
+        "REACH suggests candidates using matching locations, similar descriptions, type, and report time. Compare each one before confirming; nothing is merged automatically.",
       noDuplicateSuggestions: "No open reports are similar enough to suggest.",
       openSuggestedCase: "View this report",
       markPossibleDuplicate: "Mark possible duplicate",

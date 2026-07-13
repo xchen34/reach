@@ -18,7 +18,7 @@ export function generateMetadata({
   const dictionary = getDictionary(params.locale);
 
   return {
-    title: "Beacon",
+    title: "REACH",
     description: dictionary.home.description,
   };
 }

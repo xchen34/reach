@@ -12,9 +12,9 @@ export const fr = {
     },
   },
   home: {
-    eyebrow: "Coordination communautaire",
-    title: "Signalez vite. Reduisez la confusion.",
-    description: "Choisissez un type de signalement. L'equipe verifie avant de publier les mises a jour utiles.",
+    eyebrow: "Signalement urgent de sécurité des personnes",
+    title: "REACH",
+    description: "Chaque signalement peut aider à sauver une vie.",
     emergencyNotice:
       "Si une personne est en danger immediat, contactez tout de suite les services d'urgence ou les secours sur place. Cette plateforme ne remplace pas la reponse officielle.",
     privacy:
@@ -25,7 +25,7 @@ export const fr = {
     staffCta: "Espace equipe de verification",
     boardCta: "Infos publiques",
     boardPending: "Configurer le lien du tableau public",
-    entryTitle: "Faire un signalement",
+    entryTitle: "Signalement urgent concernant la sécurité d’une personne",
     entryDescription:
       "Chaque signalement s'ouvre dans un Google Form afin que les benevoles conservent un mode de collecte rapide et simple pendant un incident actif.",
     separateFormsNote:
@@ -67,7 +67,7 @@ export const fr = {
       },
     },
     form: {
-      title: "Signalement anonyme",
+      title: "REACH — Signalement urgent concernant la sécurité d’une personne",
       incidentType: {
         label: "Type d'incident",
         hint: "Choisissez l'option la plus proche.",
@@ -217,7 +217,7 @@ export const fr = {
       "Ce tableau est mis a jour manuellement et peut avoir du retard sur la situation reelle. Si une personne est en danger immediat, contactez les secours officiels sans attendre.",
     actionsTitle: "Role du tableau public",
     actionsDescription:
-      "Le tableau public Beacon doit afficher les mises a jour approuvees et respectueuses de la vie privee apres verification par des benevoles. Cette page lit maintenant le flux du tableau directement depuis l'adaptateur backend de Beacon.",
+      "Le tableau public REACH doit afficher les mises a jour approuvees et respectueuses de la vie privee apres verification par des benevoles. Cette page lit maintenant le flux du tableau directement depuis l'adaptateur backend de REACH.",
     backHome: "Retour aux liens d'intake",
     openEmbed: "Ouvrir la feuille integree",
     openMirror: "Ouvrir le miroir externe",
@@ -227,7 +227,7 @@ export const fr = {
       "Si vous publiez une Google Sheet ou une vue similaire, vous pouvez l'integrer ici pour une lecture plus dense de type tableur.",
     liveTitle: "Fiches publiques en direct",
     liveDescription: "L'equipe publie ces mises a jour. Les signalements bruts, contacts prives et lieux precis ne sont pas affiches.",
-    sourceModeDerived: "Source actuelle : derivee de la file de dossiers Beacon existante.",
+    sourceModeDerived: "Source actuelle : derivee de la file de dossiers REACH existante.",
     loading: "Chargement des fiches publiques...",
     loadError:
       "Le flux public du tableau ne peut pas etre charge pour le moment. Vous pouvez toujours utiliser les liens d'intake et le miroir externe pendant le retablissement.",
@@ -315,7 +315,7 @@ export const fr = {
     },
   },
   staff: {
-    eyebrow: "Equipe Beacon",
+    eyebrow: "Equipe REACH",
     logout: "Se deconnecter",
     logoutSubmitting: "Deconnexion...",
     roleLabels: {
@@ -359,7 +359,7 @@ export const fr = {
     magicLink: {
       title: "Verification du lien",
       description:
-        "Beacon verifie ce lien unique et ouvre votre session equipe.",
+        "REACH verifie ce lien unique et ouvre votre session equipe.",
       loadingBadge: "Verification",
       loading: "Verification du lien de connexion...",
       successBadge: "Connecte",
@@ -557,7 +557,7 @@ export const fr = {
       claimSubmit: "Prendre la fiche",
       duplicateTitle: "Verifier les signalements possiblement en double",
       duplicateDescription:
-        "Beacon propose des candidats selon le lieu, la description, le type et l'heure. Comparez-les avant de confirmer : aucune fusion n'est automatique.",
+        "REACH propose des candidats selon le lieu, la description, le type et l'heure. Comparez-les avant de confirmer : aucune fusion n'est automatique.",
       noDuplicateSuggestions: "Aucun signalement ouvert n'est assez similaire pour etre propose.",
       openSuggestedCase: "Voir ce signalement",
       markPossibleDuplicate: "Marquer comme doublon possible",

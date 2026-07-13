@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Beacon",
-  description: "Community coordination workspace for safe check-ins, missing reports, and public status updates",
+  title: "REACH",
+  description: "Every report can help save a life.",
 };
 
 export default function RootLayout({
