@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PublicBoardResponse, PublicBoardStatus } from "@/lib/api-types";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 import { getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
@@ -55,16 +55,15 @@ export function CommunityBoardPage({
   }, []);
 
   return (
-    <main className="page-shell">
-      <div className="page-card community-board-shell">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.board.eyebrow}
-        />
-
+    <AppShell
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.board.eyebrow}
+      showPublicBoard={false}
+    >
+      <div className="community-board-shell">
         <div>
           <h1 className="headline headline-compact">{dictionary.board.title}</h1>
           <p className="lede">{dictionary.board.description}</p>
@@ -111,7 +110,7 @@ export function CommunityBoardPage({
           )}
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }
 

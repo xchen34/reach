@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 const safeReportUrl = process.env.NEXT_PUBLIC_SAFE_REPORT_FORM_URL ?? "";
@@ -39,15 +39,14 @@ export function CommunityCoordinationHome({
   ];
 
   return (
-    <main className="page-shell">
-      <div className="page-card community-home-shell">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.home.eyebrow}
-        />
+    <AppShell
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.home.eyebrow}
+    >
+      <div className="community-home-shell">
         <div className="community-home-hero">
           <h1 className="headline community-home-title">{dictionary.home.title}</h1>
           <p className="lede compact-lede">{dictionary.home.description}</p>
@@ -89,6 +88,6 @@ export function CommunityCoordinationHome({
           </Link>
         </nav>
       </div>
-    </main>
+    </AppShell>
   );
 }

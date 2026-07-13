@@ -9,7 +9,7 @@ import {
   clearStaffAccessToken,
   type StaffAuthReason,
 } from "@/lib/staff-session";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 
 type StaffLoginFormProps = {
   dictionary: Dictionary;
@@ -63,73 +63,70 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
   }
 
   return (
-    <main className="page-shell">
-      <div className="page-card">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.staff.eyebrow}
-        />
-        <h1 className="headline">{dictionary.staff.login.title}</h1>
-        <p className="lede">{dictionary.staff.login.description}</p>
+    <AppShell
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.staff.eyebrow}
+    >
+      <h1 className="headline">{dictionary.staff.login.title}</h1>
+      <p className="lede">{dictionary.staff.login.description}</p>
 
-        {reasonMessage ? (
-          <p className="info-banner" role="status">
-            {reasonMessage}
-          </p>
-        ) : null}
+      {reasonMessage ? (
+        <p className="info-banner" role="status">
+          {reasonMessage}
+        </p>
+      ) : null}
 
-        {requestSuccess ? (
-          <section className="success-panel" aria-live="polite">
-            <span className="status-pill">{dictionary.staff.login.successBadge}</span>
-            <h2 className="section-title">{dictionary.staff.login.successTitle}</h2>
-            <p className="lede compact-lede">{dictionary.staff.login.successBody}</p>
-            <p className="support-copy">{dictionary.staff.login.developmentNote}</p>
-            <div className="button-row">
-              <a className="button-secondary" href={buildStaffLoginHref(locale)}>
-                {dictionary.staff.login.requestAnotherLink}
-              </a>
-            </div>
-          </section>
-        ) : (
-          <form className="form-stack staff-auth-form" noValidate onSubmit={handleSubmit}>
-            <label className="field">
-              <span className="field-label">{dictionary.staff.login.emailLabel}</span>
-              <input
-                autoComplete="email"
-                className="field-control"
-                inputMode="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  if (emailError) {
-                    setEmailError(null);
-                  }
-                }}
-              />
-              <span className="field-hint">{dictionary.staff.login.emailHint}</span>
-              {emailError ? <span className="field-error">{emailError}</span> : null}
-            </label>
+      {requestSuccess ? (
+        <section className="success-panel" aria-live="polite">
+          <span className="status-pill">{dictionary.staff.login.successBadge}</span>
+          <h2 className="section-title">{dictionary.staff.login.successTitle}</h2>
+          <p className="lede compact-lede">{dictionary.staff.login.successBody}</p>
+          <p className="support-copy">{dictionary.staff.login.developmentNote}</p>
+          <div className="button-row">
+            <a className="button-secondary" href={buildStaffLoginHref(locale)}>
+              {dictionary.staff.login.requestAnotherLink}
+            </a>
+          </div>
+        </section>
+      ) : (
+        <form className="form-stack staff-auth-form" noValidate onSubmit={handleSubmit}>
+          <label className="field">
+            <span className="field-label">{dictionary.staff.login.emailLabel}</span>
+            <input
+              autoComplete="email"
+              className="field-control"
+              inputMode="email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (emailError) {
+                  setEmailError(null);
+                }
+              }}
+            />
+            <span className="field-hint">{dictionary.staff.login.emailHint}</span>
+            {emailError ? <span className="field-error">{emailError}</span> : null}
+          </label>
 
-            {requestError ? (
-              <p className="error-banner" role="alert">
-                {requestError}
-              </p>
-            ) : null}
+          {requestError ? (
+            <p className="error-banner" role="alert">
+              {requestError}
+            </p>
+          ) : null}
 
-            <div className="button-row">
-              <button className="button-primary" disabled={isSubmitting} type="submit">
-                {isSubmitting ? dictionary.staff.login.submitting : dictionary.staff.login.submit}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </main>
+          <div className="button-row">
+            <button className="button-primary" disabled={isSubmitting} type="submit">
+              {isSubmitting ? dictionary.staff.login.submitting : dictionary.staff.login.submit}
+            </button>
+          </div>
+        </form>
+      )}
+    </AppShell>
   );
 }
 

@@ -33,7 +33,7 @@ import {
   type StaffAuthReason,
   withStaffAuthorization,
 } from "@/lib/staff-session";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 import { findSuggestedCaseMatches, type SuggestedCaseMatch } from "@/lib/staff-case-matches";
 
 type StaffCaseDetailPageProps = {
@@ -318,47 +318,57 @@ export function StaffCaseDetailPage({
 
   if (state.status === "loading") {
     return (
-      <main className="page-shell">
-        <div className="page-card">
-          <p className="lede">{dictionary.staff.session.loading}</p>
-        </div>
-      </main>
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <p className="lede">{dictionary.staff.session.loading}</p>
+      </AppShell>
     );
   }
 
   if (state.status === "not-found") {
     return (
-      <main className="page-shell">
-        <div className="page-card">
-          <span className="eyebrow">{dictionary.staff.eyebrow}</span>
-          <h1 className="headline">{dictionary.staff.detail.notFoundTitle}</h1>
-          <p className="lede">{dictionary.staff.detail.notFoundBody}</p>
-          <div className="button-row">
-            <Link className="button-primary" href={`/${locale}/staff`}>
-              {dictionary.staff.detail.backToList}
-            </Link>
-          </div>
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <h1 className="headline">{dictionary.staff.detail.notFoundTitle}</h1>
+        <p className="lede">{dictionary.staff.detail.notFoundBody}</p>
+        <div className="button-row">
+          <Link className="button-primary" href={`/${locale}/staff`}>
+            {dictionary.staff.detail.backToList}
+          </Link>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   if (state.status === "error") {
     return (
-      <main className="page-shell">
-        <div className="page-card">
-          <span className="eyebrow">{dictionary.staff.eyebrow}</span>
-          <h1 className="headline">{dictionary.staff.detail.title}</h1>
-          <p className="error-banner" role="alert">
-            {state.message}
-          </p>
-          <div className="button-row">
-            <button className="button-primary" type="button" onClick={() => void loadCase()}>
-              {dictionary.staff.detail.retry}
-            </button>
-          </div>
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <h1 className="headline">{dictionary.staff.detail.title}</h1>
+        <p className="error-banner" role="alert">
+          {state.message}
+        </p>
+        <div className="button-row">
+          <button className="button-primary" type="button" onClick={() => void loadCase()}>
+            {dictionary.staff.detail.retry}
+          </button>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
@@ -390,25 +400,25 @@ export function StaffCaseDetailPage({
   const hasPublishedUpdate = Boolean(caseDetail.latest_public_update?.trim());
 
   return (
-    <main className="page-shell">
-      <div className="page-card page-card-wide">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.staff.eyebrow}
-          trailingAction={
-            <button
-              className="button-secondary page-header-link"
-              disabled={isLoggingOut}
-              type="button"
-              onClick={handleLogout}
-            >
-              {isLoggingOut ? dictionary.staff.logoutSubmitting : dictionary.staff.logout}
-            </button>
-          }
-        />
+    <AppShell
+      contentVariant="wide"
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      logoutAction={
+        <button
+          className="button-secondary header-nav-button"
+          disabled={isLoggingOut}
+          type="button"
+          onClick={handleLogout}
+        >
+          {isLoggingOut ? dictionary.staff.logoutSubmitting : dictionary.staff.logout}
+        </button>
+      }
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.staff.eyebrow}
+    >
+      <div>
         <div className="staff-toolbar">
           <div>
             <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
@@ -694,7 +704,7 @@ export function StaffCaseDetailPage({
           </div>
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }
 

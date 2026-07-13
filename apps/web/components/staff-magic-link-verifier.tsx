@@ -10,7 +10,7 @@ import {
   storeStaffAccessToken,
   type StaffMagicLinkFailureReason,
 } from "@/lib/staff-session";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 
 type StaffMagicLinkVerifierProps = {
   dictionary: Dictionary;
@@ -86,46 +86,43 @@ export function StaffMagicLinkVerifier({
   }, [locale]);
 
   return (
-    <main className="page-shell">
-      <div className="page-card">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.staff.eyebrow}
-        />
-        <h1 className="headline">{dictionary.staff.magicLink.title}</h1>
-        <p className="lede">{dictionary.staff.magicLink.description}</p>
+    <AppShell
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.staff.eyebrow}
+    >
+      <h1 className="headline">{dictionary.staff.magicLink.title}</h1>
+      <p className="lede">{dictionary.staff.magicLink.description}</p>
 
-        {status === "verifying" ? (
-          <section className="success-panel" aria-live="polite">
-            <span className="status-pill">{dictionary.staff.magicLink.loadingBadge}</span>
-            <p className="lede compact-lede">{dictionary.staff.magicLink.loading}</p>
-          </section>
-        ) : null}
+      {status === "verifying" ? (
+        <section className="success-panel" aria-live="polite">
+          <span className="status-pill">{dictionary.staff.magicLink.loadingBadge}</span>
+          <p className="lede compact-lede">{dictionary.staff.magicLink.loading}</p>
+        </section>
+      ) : null}
 
-        {status === "success" ? (
-          <section className="success-panel" aria-live="polite">
-            <span className="status-pill">{dictionary.staff.magicLink.successBadge}</span>
-            <h2 className="section-title">{dictionary.staff.magicLink.successTitle}</h2>
-            <p className="lede compact-lede">{dictionary.staff.magicLink.successBody}</p>
-          </section>
-        ) : null}
+      {status === "success" ? (
+        <section className="success-panel" aria-live="polite">
+          <span className="status-pill">{dictionary.staff.magicLink.successBadge}</span>
+          <h2 className="section-title">{dictionary.staff.magicLink.successTitle}</h2>
+          <p className="lede compact-lede">{dictionary.staff.magicLink.successBody}</p>
+        </section>
+      ) : null}
 
-        {status === "error" && reason ? (
-          <section className="success-panel" aria-live="polite">
-            <span className="status-pill status-pill-warning">{dictionary.staff.magicLink.errorBadge}</span>
-            <h2 className="section-title">{dictionary.staff.magicLink.errorTitle}</h2>
-            <p className="lede compact-lede">{dictionary.staff.magicLink.errors[reason]}</p>
-            <div className="button-row">
-              <a className="button-primary" href={buildStaffLoginHref(locale)}>
-                {dictionary.staff.magicLink.backToLogin}
-              </a>
-            </div>
-          </section>
-        ) : null}
-      </div>
-    </main>
+      {status === "error" && reason ? (
+        <section className="success-panel" aria-live="polite">
+          <span className="status-pill status-pill-warning">{dictionary.staff.magicLink.errorBadge}</span>
+          <h2 className="section-title">{dictionary.staff.magicLink.errorTitle}</h2>
+          <p className="lede compact-lede">{dictionary.staff.magicLink.errors[reason]}</p>
+          <div className="button-row">
+            <a className="button-primary" href={buildStaffLoginHref(locale)}>
+              {dictionary.staff.magicLink.backToLogin}
+            </a>
+          </div>
+        </section>
+      ) : null}
+    </AppShell>
   );
 }

@@ -17,7 +17,7 @@ import {
   withStaffAuthorization,
   type StaffAuthReason,
 } from "@/lib/staff-session";
-import { PageHeader } from "@/components/page-header";
+import { AppShell } from "@/components/app-shell";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -167,34 +167,37 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
   if (state.status === "loading") {
     return (
-      <main className="page-shell">
-        <div className="page-card">
-          <p className="lede">{dictionary.staff.session.loading}</p>
-        </div>
-      </main>
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <p className="lede">{dictionary.staff.session.loading}</p>
+      </AppShell>
     );
   }
 
   if (state.status === "error") {
     return (
-      <main className="page-shell">
-        <div className="page-card">
-          <span className="eyebrow">{dictionary.staff.eyebrow}</span>
-          <h1 className="headline">{dictionary.staff.cases.title}</h1>
-          <p className="error-banner" role="alert">
-            {state.message}
-          </p>
-          <div className="button-row">
-            <button
-              className="button-primary"
-              type="button"
-              onClick={() => window.location.reload()}
-            >
-              {dictionary.staff.cases.retry}
-            </button>
-          </div>
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <h1 className="headline">{dictionary.staff.cases.title}</h1>
+        <p className="error-banner" role="alert">
+          {state.message}
+        </p>
+        <div className="button-row">
+          <button className="button-primary" type="button" onClick={() => window.location.reload()}>
+            {dictionary.staff.cases.retry}
+          </button>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
@@ -202,25 +205,25 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   const queueGroups = getOpenQueueGroups(dashboard);
 
   return (
-    <main className="page-shell">
-      <div className="page-card page-card-wide staff-dashboard-shell">
-        <PageHeader
-          homeLabel={dictionary.staff.login.backHome}
-          languageLabel={dictionary.home.languagePicker}
-          locale={locale}
-          publicBoardLabel={dictionary.home.boardCta}
-          sectionLabel={dictionary.staff.eyebrow}
-          trailingAction={
-            <button
-              className="button-secondary page-header-link"
-              disabled={isLoggingOut}
-              type="button"
-              onClick={handleLogout}
-            >
-              {isLoggingOut ? dictionary.staff.logoutSubmitting : dictionary.staff.logout}
-            </button>
-          }
-        />
+    <AppShell
+      contentVariant="wide"
+      homeLabel={dictionary.staff.login.backHome}
+      languageLabel={dictionary.home.languagePicker}
+      locale={locale}
+      logoutAction={
+        <button
+          className="button-secondary header-nav-button"
+          disabled={isLoggingOut}
+          type="button"
+          onClick={handleLogout}
+        >
+          {isLoggingOut ? dictionary.staff.logoutSubmitting : dictionary.staff.logout}
+        </button>
+      }
+      publicBoardLabel={dictionary.home.boardCta}
+      sectionLabel={dictionary.staff.eyebrow}
+    >
+      <div className="staff-dashboard-shell">
         <div className="staff-toolbar">
           <div>
             <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.title}</h1>
@@ -320,7 +323,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           )}
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }
 
