@@ -10,7 +10,7 @@ import {
   storeStaffAccessToken,
   type StaffMagicLinkFailureReason,
 } from "@/lib/staff-session";
-import { StaffQuickLinks } from "@/components/staff-quick-links";
+import { PageHeader } from "@/components/page-header";
 
 type StaffMagicLinkVerifierProps = {
   dictionary: Dictionary;
@@ -88,15 +88,15 @@ export function StaffMagicLinkVerifier({
   return (
     <main className="page-shell">
       <div className="page-card">
-        <span className="eyebrow">{dictionary.staff.eyebrow}</span>
+        <PageHeader
+          homeLabel={dictionary.staff.login.backHome}
+          languageLabel={dictionary.home.languagePicker}
+          locale={locale}
+          publicBoardLabel={dictionary.home.boardCta}
+          sectionLabel={dictionary.staff.eyebrow}
+        />
         <h1 className="headline">{dictionary.staff.magicLink.title}</h1>
         <p className="lede">{dictionary.staff.magicLink.description}</p>
-
-        <StaffQuickLinks
-          currentLocale={locale}
-          languageLabel={dictionary.home.languagePicker}
-          publicBoardLabel={dictionary.home.boardCta}
-        />
 
         {status === "verifying" ? (
           <section className="success-panel" aria-live="polite">

@@ -1,5 +1,6 @@
 import type { Dictionary, Locale } from "@/lib/i18n";
 import type { ShareLinkCaseView } from "@/lib/api-types";
+import { PageHeader } from "@/components/page-header";
 
 export function ShareStatusCard({
   locale,
@@ -16,7 +17,13 @@ export function ShareStatusCard({
   return (
     <main className="page-shell">
       <div className="page-card">
-        <span className="eyebrow">{dictionary.share.eyebrow}</span>
+        <PageHeader
+          homeLabel={dictionary.staff.login.backHome}
+          languageLabel={dictionary.home.languagePicker}
+          locale={locale}
+          publicBoardLabel={dictionary.home.boardCta}
+          sectionLabel={dictionary.share.eyebrow}
+        />
         <h1 className="headline share-headline">{dictionary.share.title}</h1>
         <p className="lede">{dictionary.share.description}</p>
 

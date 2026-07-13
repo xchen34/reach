@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { PublicBoardResponse, PublicBoardStatus } from "@/lib/api-types";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { PageHeader } from "@/components/page-header";
 import { getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
@@ -58,14 +57,18 @@ export function CommunityBoardPage({
   return (
     <main className="page-shell">
       <div className="page-card community-board-shell">
-        <header className="community-board-header">
-          <div>
-            <span className="eyebrow">{dictionary.board.eyebrow}</span>
-            <h1 className="headline headline-compact">{dictionary.board.title}</h1>
-            <p className="lede">{dictionary.board.description}</p>
-          </div>
-          <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
-        </header>
+        <PageHeader
+          homeLabel={dictionary.staff.login.backHome}
+          languageLabel={dictionary.home.languagePicker}
+          locale={locale}
+          publicBoardLabel={dictionary.home.boardCta}
+          sectionLabel={dictionary.board.eyebrow}
+        />
+
+        <div>
+          <h1 className="headline headline-compact">{dictionary.board.title}</h1>
+          <p className="lede">{dictionary.board.description}</p>
+        </div>
 
         <p className="error-banner" role="alert">
           {dictionary.board.emergencyNotice}
@@ -107,9 +110,6 @@ export function CommunityBoardPage({
             <p className="info-banner">{isLoading ? dictionary.board.loading : dictionary.board.empty}</p>
           )}
         </section>
-        <Link className="button-secondary" href={`/${locale}`}>
-          {dictionary.board.backHome}
-        </Link>
       </div>
     </main>
   );

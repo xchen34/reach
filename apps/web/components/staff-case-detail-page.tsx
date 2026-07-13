@@ -33,7 +33,7 @@ import {
   type StaffAuthReason,
   withStaffAuthorization,
 } from "@/lib/staff-session";
-import { StaffQuickLinks } from "@/components/staff-quick-links";
+import { PageHeader } from "@/components/page-header";
 import { findSuggestedCaseMatches, type SuggestedCaseMatch } from "@/lib/staff-case-matches";
 
 type StaffCaseDetailPageProps = {
@@ -392,26 +392,27 @@ export function StaffCaseDetailPage({
   return (
     <main className="page-shell">
       <div className="page-card page-card-wide">
-        <div className="staff-toolbar">
-          <div>
-            <span className="eyebrow">{dictionary.staff.eyebrow}</span>
-            <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
-            <p className="lede emergency-lede">{dictionary.staff.detail.description}</p>
-          </div>
-          <div className="staff-toolbar-actions">
-            <StaffQuickLinks
-              currentLocale={locale}
-              languageLabel={dictionary.home.languagePicker}
-              publicBoardLabel={dictionary.home.boardCta}
-            />
+        <PageHeader
+          homeLabel={dictionary.staff.login.backHome}
+          languageLabel={dictionary.home.languagePicker}
+          locale={locale}
+          publicBoardLabel={dictionary.home.boardCta}
+          sectionLabel={dictionary.staff.eyebrow}
+          trailingAction={
             <button
-              className="button-secondary"
+              className="button-secondary page-header-link"
               disabled={isLoggingOut}
               type="button"
               onClick={handleLogout}
             >
               {isLoggingOut ? dictionary.staff.logoutSubmitting : dictionary.staff.logout}
             </button>
+          }
+        />
+        <div className="staff-toolbar">
+          <div>
+            <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
+            <p className="lede emergency-lede">{dictionary.staff.detail.description}</p>
           </div>
         </div>
 

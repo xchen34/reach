@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n";
 
 const localeOptions: Array<{ locale: Locale; label: string }> = [
   { locale: "en", label: "English" },
-  { locale: "fr", label: "Francais" },
+  { locale: "fr", label: "Français" },
   { locale: "zh", label: "中文" },
 ];
 

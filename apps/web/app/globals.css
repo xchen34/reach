@@ -133,16 +133,47 @@ textarea {
   border-color: #98c7b8;
 }
 
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(203, 216, 209, 0.82);
+}
+
+.page-header-brand {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.page-header-controls .language-list {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+
+.page-header-link {
+  min-width: 6.5rem;
+  flex: 0 0 auto;
+}
+
+.page-header-link[data-active="true"] {
+  background: #ddeee8;
+  border-color: #98c7b8;
+}
+
 .community-home-shell {
   display: grid;
   gap: 1.25rem;
-}
-
-.community-home-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
 }
 
 .community-home-hero {
@@ -859,27 +890,6 @@ textarea {
   gap: 1rem;
 }
 
-.staff-toolbar-actions {
-  display: grid;
-  gap: 0.75rem;
-  align-content: start;
-}
-
-.staff-quick-links {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.staff-public-board-link {
-  width: 100%;
-}
-
-.staff-login-links {
-  display: grid;
-  gap: 0.75rem;
-  margin: 1.5rem 0;
-}
-
 .staff-section-header {
   display: grid;
   gap: 0.75rem;
@@ -1047,6 +1057,16 @@ textarea {
 }
 
 @media (min-width: 720px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .page-header-controls {
+    justify-content: flex-end;
+  }
+
   .staff-toolbar,
   .staff-dashboard-source,
   .staff-section-header,
@@ -1059,29 +1079,6 @@ textarea {
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
-  }
-
-  .staff-toolbar-actions {
-    justify-items: end;
-    min-width: min(100%, 28rem);
-  }
-
-  .staff-quick-links {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-  }
-
-  .staff-login-links {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-  }
-
-  .staff-login-links .staff-quick-links {
-    grid-template-columns: minmax(0, auto) minmax(10rem, auto);
-  }
-
-  .staff-public-board-link {
-    width: auto;
   }
 
   .staff-section-header {
@@ -1168,10 +1165,6 @@ textarea {
 }
 
 @media (min-width: 720px) {
-  .community-board-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .community-home-toolbar,
   .community-entry-header {
     grid-template-columns: minmax(0, 1fr) auto;

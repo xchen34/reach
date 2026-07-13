@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { PageHeader } from "@/components/page-header";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 const safeReportUrl = process.env.NEXT_PUBLIC_SAFE_REPORT_FORM_URL ?? "";
@@ -41,10 +41,13 @@ export function CommunityCoordinationHome({
   return (
     <main className="page-shell">
       <div className="page-card community-home-shell">
-        <header className="community-home-header">
-          <span className="eyebrow">{dictionary.home.eyebrow}</span>
-          <LanguageSwitcher currentLocale={locale} label={dictionary.home.languagePicker} />
-        </header>
+        <PageHeader
+          homeLabel={dictionary.staff.login.backHome}
+          languageLabel={dictionary.home.languagePicker}
+          locale={locale}
+          publicBoardLabel={dictionary.home.boardCta}
+          sectionLabel={dictionary.home.eyebrow}
+        />
         <div className="community-home-hero">
           <h1 className="headline community-home-title">{dictionary.home.title}</h1>
           <p className="lede compact-lede">{dictionary.home.description}</p>
@@ -81,9 +84,6 @@ export function CommunityCoordinationHome({
         </section>
 
         <nav className="community-home-links" aria-label={dictionary.home.entryTitle}>
-          <Link className="button-secondary" href={`/${locale}/board`}>
-            {dictionary.home.boardCta}
-          </Link>
           <Link className="community-home-staff-link" href={`/${locale}/staff/login`}>
             {dictionary.home.staffCta}
           </Link>
