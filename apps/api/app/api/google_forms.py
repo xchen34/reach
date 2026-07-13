@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.deps import get_db
 from app.schemas.google_forms import GoogleFormIngestRequest, GoogleFormIngestResponse
-from app.services.case_service import CaseService
+from app.services.report_service import ReportService
 
 
 router = APIRouter(prefix="/ingest", tags=["google-form-ingest"])
@@ -37,4 +37,4 @@ def ingest_google_form_report(
             detail="Invalid ingest token.",
         )
 
-    return CaseService(db).create_google_form_case(payload)
+    return ReportService(db).create_google_form_report(payload)

@@ -5,7 +5,16 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from app.models.enums import CaseActionType, CaseStatus, IncidentType, ShareLinkScope, UrgencyLevel
+from app.models.enums import (
+    CaseActionType,
+    CaseHandlingStatus,
+    CaseSafetyStatus,
+    CaseStatus,
+    CaseVerificationTask,
+    IncidentType,
+    ShareLinkScope,
+    UrgencyLevel,
+)
 from app.schemas.common import ApiModel
 from app.schemas.staff import StaffUserSummary
 
@@ -47,6 +56,10 @@ class CaseListItem(ApiModel):
     location_summary: str
     needs_summary: str
     latest_public_update: Optional[str] = None
+    person_label: Optional[str] = None
+    safety_status: CaseSafetyStatus = CaseSafetyStatus.UNKNOWN
+    handling_status: CaseHandlingStatus = CaseHandlingStatus.AWAITING_ACTION
+    verification_task: CaseVerificationTask = CaseVerificationTask.NONE
     assigned_staff_user: Optional[StaffUserSummary] = None
     created_at: datetime
     updated_at: datetime
@@ -57,6 +70,18 @@ class CaseDetailResponse(CaseListItem):
     reporter_name: Optional[str] = None
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = None
+    approximate_age: Optional[str] = None
+    appearance: Optional[str] = None
+    clothing: Optional[str] = None
+    identifying_details: Optional[str] = None
+    mobility: Optional[str] = None
+    companions: Optional[str] = None
+    last_known_location: Optional[str] = None
+    last_known_time: Optional[datetime] = None
+    confirmation_source: Optional[str] = None
+    confirmation_source_type: Optional[str] = None
+    confirmed_at: Optional[datetime] = None
+    merged_into_case_id: Optional[int] = None
 
 
 class ShareLinkCaseView(ApiModel):

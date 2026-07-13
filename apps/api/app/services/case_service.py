@@ -17,8 +17,11 @@ from app.models.case_share_link import CaseShareLink
 from app.models.enums import (
     AuditActorType,
     AuditEventType,
+    CaseHandlingStatus,
+    CaseSafetyStatus,
     CaseActionType,
     CaseStatus,
+    CaseVerificationTask,
     IncidentType,
     ShareLinkScope,
     StaffRole,
@@ -40,7 +43,6 @@ from app.schemas.case import (
     StaffCaseRelationRequest,
     StaffCaseRelationResponse,
 )
-from app.schemas.google_forms import GoogleFormIngestRequest, GoogleFormIngestResponse
 from app.schemas.staff import StaffUserSummary
 from app.services.voice_intake import VoiceIntakeService
 
@@ -57,6 +59,9 @@ class CaseService:
         case = Case(
             case_code=self._generate_case_code(),
             status=CaseStatus.PENDING_REVIEW,
+            safety_status=CaseSafetyStatus.UNKNOWN,
+            handling_status=CaseHandlingStatus.AWAITING_ACTION,
+            verification_task=CaseVerificationTask.NONE,
             urgency=payload.urgency,
             incident_type=payload.incident_type,
             language_code=payload.language_code,
@@ -125,81 +130,6 @@ class CaseService:
             created_at=case.created_at,
         )
 
-    def create_google_form_case(self, payload: GoogleFormIngestRequest) -> GoogleFormIngestResponse:
-        case = Case(
-            case_code=self._generate_case_code(),
-            status=CaseStatus.PENDING_REVIEW,
-            urgency=payload.urgency or self._default_urgency_for_report_kind(payload.report_kind),
-            incident_type=payload.incident_type or self._default_incident_type_for_report_kind(payload.report_kind),
-            language_code=payload.language_code,
-            location_summary=payload.location_summary,
-            needs_summary=payload.details_summary,
-            latest_public_update=payload.public_update_hint
-            or self._default_public_update_for_report_kind(payload.report_kind),
-            reporter_name=payload.reporter_name,
-            reporter_email=payload.reporter_email,
-            reporter_phone=payload.reporter_phone,
-        )
-        self.db.add(case)
-        self.db.flush()
-
-        share_token = secrets.token_urlsafe(18)
-        share_link = CaseShareLink(
-            case_id=case.id,
-            token_hash=self._hash_token(share_token),
-            scope=ShareLinkScope.STATUS_ONLY,
-        )
-        self.db.add(share_link)
-        self.db.flush()
-
-        self.db.add(
-            CaseAction(
-                case_id=case.id,
-                action_type=CaseActionType.NOTE,
-                note=self._build_google_form_import_note(payload),
-            )
-        )
-        self.db.add(
-            AuditLogEntry(
-                actor_type=AuditActorType.SYSTEM,
-                case_id=case.id,
-                share_link_id=share_link.id,
-                event_type=AuditEventType.CASE_SUBMITTED,
-                metadata_json={
-                    "status": case.status.value,
-                    "source": "google_form",
-                    "report_kind": payload.report_kind,
-                    "subject_name": payload.subject_name,
-                    "source_relationship": payload.source_relationship,
-                    "callback_allowed": payload.callback_allowed,
-                    "public_visibility_requested": payload.public_visibility_requested,
-                    "update_category": payload.update_category,
-                    "source_form_name": payload.source_form_name,
-                    "source_entry_id": payload.source_entry_id,
-                },
-            )
-        )
-        self.db.add(
-            AuditLogEntry(
-                actor_type=AuditActorType.SYSTEM,
-                case_id=case.id,
-                share_link_id=share_link.id,
-                event_type=AuditEventType.SHARE_LINK_CREATED,
-                metadata_json={"scope": share_link.scope.value, "source": "google_form"},
-            )
-        )
-        self.db.commit()
-        self.db.refresh(case)
-
-        return GoogleFormIngestResponse(
-            id=case.id,
-            case_code=case.case_code,
-            status=case.status,
-            source="google_form",
-            report_kind=payload.report_kind,
-            imported_at=case.created_at,
-        )
-
     def list_cases(self) -> list[CaseListItem]:
         cases = self.db.scalars(select(Case).order_by(Case.created_at.desc())).all()
         return [self._to_case_list_item(case) for case in cases]
@@ -265,7 +195,7 @@ class CaseService:
 
         from_status = case.status
         if payload.action_type == CaseActionType.STATUS_CHANGE and payload.to_status is not None:
-            case.status = payload.to_status
+            self.apply_legacy_status(case, payload.to_status)
             case.latest_public_update = f"Case status updated to {payload.to_status.value}."
 
         if payload.action_type in {CaseActionType.CLAIM, CaseActionType.REASSIGN}:
@@ -306,7 +236,7 @@ class CaseService:
             raise LookupError("Case not found.")
 
         previous_status = case.status
-        case.status = payload.to_status
+        self.apply_legacy_status(case, payload.to_status)
         case.latest_public_update = payload.latest_public_update.strip()
 
         action = CaseAction(
@@ -367,7 +297,7 @@ class CaseService:
         # A confirmed duplicate should leave the active queue while retaining its
         # original record and audit history for staff review.
         if payload.relation_type == "confirmed_duplicate":
-            case.status = CaseStatus.CLOSED
+            self.apply_legacy_status(case, CaseStatus.CLOSED)
 
         action = CaseAction(
             case_id=case.id,
@@ -427,55 +357,6 @@ class CaseService:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
 
-    @staticmethod
-    def _default_incident_type_for_report_kind(report_kind: str) -> IncidentType:
-        return {
-            "safe": IncidentType.OTHER,
-            "missing": IncidentType.OTHER,
-            "update": IncidentType.OTHER,
-        }[report_kind]
-
-    @staticmethod
-    def _default_urgency_for_report_kind(report_kind: str) -> UrgencyLevel:
-        return {
-            "safe": UrgencyLevel.LOW,
-            "missing": UrgencyLevel.HIGH,
-            "update": UrgencyLevel.MEDIUM,
-        }[report_kind]
-
-    @staticmethod
-    def _default_public_update_for_report_kind(report_kind: str) -> str:
-        return {
-            "safe": "Safe check-in received. Waiting for volunteer verification.",
-            "missing": "Missing-person report received. Waiting for volunteer verification.",
-            "update": "Community update received. Waiting for volunteer verification.",
-        }[report_kind]
-
-    @staticmethod
-    def _build_google_form_import_note(payload: GoogleFormIngestRequest) -> str:
-        note_lines = [
-            f"Imported from Google Form ({payload.report_kind}).",
-        ]
-        if payload.subject_name:
-            note_lines.append(f"Subject reference: {payload.subject_name}")
-        if payload.source_relationship:
-            note_lines.append(f"Source relationship: {payload.source_relationship}")
-        if payload.callback_allowed is not None:
-            note_lines.append(f"Callback allowed: {'yes' if payload.callback_allowed else 'no'}")
-        if payload.public_visibility_requested is not None:
-            note_lines.append(
-                f"Public visibility requested: {'yes' if payload.public_visibility_requested else 'no'}"
-            )
-        if payload.update_category:
-            note_lines.append(f"Update category: {payload.update_category}")
-        if payload.source_form_name:
-            note_lines.append(f"Source form: {payload.source_form_name}")
-        if payload.source_entry_id:
-            note_lines.append(f"Source entry id: {payload.source_entry_id}")
-        if payload.submitted_at is not None:
-            note_lines.append(f"Submitted at: {payload.submitted_at.isoformat()}")
-        return " ".join(note_lines)
-
     def _to_case_list_item(self, case: Case) -> CaseListItem:
         assigned_staff_user = None
         if case.assigned_staff_user is not None:
@@ -490,6 +371,10 @@ class CaseService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            person_label=case.person_label,
+            safety_status=case.safety_status,
+            handling_status=case.handling_status,
+            verification_task=case.verification_task,
             assigned_staff_user=assigned_staff_user,
             created_at=case.created_at,
             updated_at=case.updated_at,
@@ -503,4 +388,50 @@ class CaseService:
             reporter_name=case.reporter_name,
             reporter_email=case.reporter_email,
             reporter_phone=case.reporter_phone,
+            approximate_age=case.approximate_age,
+            appearance=case.appearance,
+            clothing=case.clothing,
+            identifying_details=case.identifying_details,
+            mobility=case.mobility,
+            companions=case.companions,
+            last_known_location=case.last_known_location,
+            last_known_time=case.last_known_time,
+            confirmation_source=case.confirmation_source,
+            confirmation_source_type=case.confirmation_source_type,
+            confirmed_at=case.confirmed_at,
+            merged_into_case_id=case.merged_into_case_id,
         )
+
+    @staticmethod
+    def apply_legacy_status(case: Case, status: CaseStatus) -> None:
+        case.status = status
+        safety_status, handling_status = CaseService.map_legacy_status(status)
+        case.safety_status = safety_status
+        case.handling_status = handling_status
+
+    @staticmethod
+    def map_legacy_status(status: CaseStatus) -> tuple[CaseSafetyStatus, CaseHandlingStatus]:
+        if status == CaseStatus.PENDING_REVIEW:
+            return CaseSafetyStatus.UNKNOWN, CaseHandlingStatus.AWAITING_ACTION
+        if status == CaseStatus.ACTIVE:
+            return CaseSafetyStatus.UNKNOWN, CaseHandlingStatus.BEING_INVESTIGATED
+        if status == CaseStatus.WAITING_FOR_INFORMATION:
+            return CaseSafetyStatus.UNKNOWN, CaseHandlingStatus.AWAITING_EXTERNAL_FEEDBACK
+        if status == CaseStatus.SAFE_RESOLVED:
+            return CaseSafetyStatus.CONFIRMED_SAFE, CaseHandlingStatus.ARCHIVED
+        return CaseSafetyStatus.UNKNOWN, CaseHandlingStatus.ARCHIVED
+
+    @staticmethod
+    def project_legacy_status(
+        safety_status: CaseSafetyStatus,
+        handling_status: CaseHandlingStatus,
+    ) -> CaseStatus:
+        if safety_status == CaseSafetyStatus.CONFIRMED_SAFE and handling_status == CaseHandlingStatus.ARCHIVED:
+            return CaseStatus.SAFE_RESOLVED
+        if handling_status == CaseHandlingStatus.ARCHIVED:
+            return CaseStatus.CLOSED
+        if handling_status == CaseHandlingStatus.AWAITING_EXTERNAL_FEEDBACK:
+            return CaseStatus.WAITING_FOR_INFORMATION
+        if handling_status in {CaseHandlingStatus.BEING_INVESTIGATED, CaseHandlingStatus.ESCALATED_TO_RESCUERS}:
+            return CaseStatus.ACTIVE
+        return CaseStatus.PENDING_REVIEW

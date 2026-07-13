@@ -33,25 +33,28 @@ def _authenticate_staff(email: str = "queue@example.com") -> dict[str, str]:
     return {"Authorization": f"Bearer {verify_response.json()['access_token']}"}
 
 
-def _ingest(payload: dict) -> None:
+def _ingest(payload: dict) -> int:
     response = client.post(
         "/ingest/google-form",
         headers={"x-beacon-ingest-token": "secret-ingest-token"},
         json=payload,
     )
     assert response.status_code == 200
+    return response.json()["id"]
 
 
-def test_staff_queue_groups_related_reports_by_subject_before_location() -> None:
+def test_staff_report_inbox_lists_untriaged_reports_without_private_contact() -> None:
     shared_subject = "Resident A"
     _ingest(
         {
             "report_kind": "missing",
             "location_summary": "Tower 2 lobby",
             "details_summary": "Family cannot reach the resident.",
-            "reporter_name": "Family contact",
+            "reporter_name": "Synthetic Family Contact",
+            "reporter_email": "synthetic-family@example.com",
             "subject_name": shared_subject,
             "source_relationship": "family_friend",
+            "source_form_id": "form-missing",
             "source_form_name": "Missing Person Form",
             "source_entry_id": "entry-1",
         }
@@ -65,18 +68,16 @@ def test_staff_queue_groups_related_reports_by_subject_before_location() -> None
             "subject_name": shared_subject,
             "source_relationship": "community_member",
             "update_category": "missing_lead",
+            "source_form_id": "form-update",
             "source_form_name": "Update / Lead Form",
             "source_entry_id": "entry-2",
         }
     )
 
-    queue_response = client.get("/staff/cases/queue", headers=_authenticate_staff())
-    assert queue_response.status_code == 200
-    payload = queue_response.json()
-    assert payload["summary"]["total_events"] == 1
-
-    group = payload["events"][0]
-    assert group["subject_name"] == shared_subject
-    assert group["case_count"] == 2
-    assert group["update_chain_count"] == 1
-    assert group["title"] == shared_subject
+    reports_response = client.get("/staff/reports", headers=_authenticate_staff())
+    assert reports_response.status_code == 200
+    reports = reports_response.json()["reports"]
+    assert len(reports) == 2
+    assert reports[0]["triage_status"] == "awaiting_review"
+    assert "reporter_email" not in reports[0]
+    assert "raw_answers_json" not in reports[0]

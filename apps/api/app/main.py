@@ -10,6 +10,7 @@ from app.api.cases import router as cases_router
 from app.api.cases import staff_router as staff_cases_router
 from app.api.google_forms import router as google_forms_router
 from app.api.health import router as health_router
+from app.api.reports import router as reports_router
 from app.api.share_links import router as share_links_router
 from app.api.staff import router as staff_router
 from app.api.voice import router as voice_router
@@ -40,6 +41,7 @@ app.include_router(board_router)
 app.include_router(cases_router)
 app.include_router(google_forms_router)
 app.include_router(staff_cases_router)
+app.include_router(reports_router)
 app.include_router(voice_router)
 app.include_router(staff_voice_router)
 app.include_router(share_links_router)

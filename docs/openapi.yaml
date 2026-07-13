@@ -206,6 +206,234 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports:
+    get:
+      tags:
+      - staff-reports
+      summary: List Reports
+      operationId: list_reports_staff_reports_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: triage_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ReportTriageStatus'
+          - type: 'null'
+          title: Triage Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportInboxResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}:
+    get:
+      tags:
+      - staff-reports
+      summary: Get Report Detail
+      operationId: get_report_detail_staff_reports__report_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/create-case:
+    post:
+      tags:
+      - staff-reports
+      summary: Create Case From Report
+      operationId: create_case_from_report_staff_reports__report_id__create_case_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportCreateCaseRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportCreateCaseResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/link-case:
+    post:
+      tags:
+      - staff-reports
+      summary: Link Report To Case
+      operationId: link_report_to_case_staff_reports__report_id__link_case_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportLinkCaseRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportLinkCaseResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/out-of-scope:
+    post:
+      tags:
+      - staff-reports
+      summary: Mark Report Out Of Scope
+      operationId: mark_report_out_of_scope_staff_reports__report_id__out_of_scope_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportTriageDecisionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportTriageDecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/invalid-or-insufficient:
+    post:
+      tags:
+      - staff-reports
+      summary: Mark Report Invalid Or Insufficient
+      operationId: mark_report_invalid_or_insufficient_staff_reports__report_id__invalid_or_insufficient_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportTriageDecisionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportTriageDecisionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/notes:
+    post:
+      tags:
+      - staff-reports
+      summary: Add Report Note
+      operationId: add_report_note_staff_reports__report_id__notes_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportNoteRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportNoteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /voice-intakes:
     post:
       tags:
@@ -602,6 +830,20 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        person_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Label
+        safety_status:
+          $ref: '#/components/schemas/CaseSafetyStatus'
+          default: unknown
+        handling_status:
+          $ref: '#/components/schemas/CaseHandlingStatus'
+          default: awaiting_action
+        verification_task:
+          $ref: '#/components/schemas/CaseVerificationTask'
+          default: none
         assigned_staff_user:
           anyOf:
           - $ref: '#/components/schemas/StaffUserSummary'
@@ -633,6 +875,68 @@ components:
           - type: string
           - type: 'null'
           title: Reporter Phone
+        approximate_age:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approximate Age
+        appearance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Appearance
+        clothing:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Clothing
+        identifying_details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Identifying Details
+        mobility:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mobility
+        companions:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Companions
+        last_known_location:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Known Location
+        last_known_time:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Known Time
+        confirmation_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmation Source
+        confirmation_source_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmation Source Type
+        confirmed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Confirmed At
+        merged_into_case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Merged Into Case Id
       type: object
       required:
       - id
@@ -646,6 +950,15 @@ components:
       - updated_at
       - language_code
       title: CaseDetailResponse
+    CaseHandlingStatus:
+      type: string
+      enum:
+      - awaiting_action
+      - being_investigated
+      - escalated_to_rescuers
+      - awaiting_external_feedback
+      - archived
+      title: CaseHandlingStatus
     CaseListItem:
       properties:
         id:
@@ -671,6 +984,20 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        person_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Label
+        safety_status:
+          $ref: '#/components/schemas/CaseSafetyStatus'
+          default: unknown
+        handling_status:
+          $ref: '#/components/schemas/CaseHandlingStatus'
+          default: awaiting_action
+        verification_task:
+          $ref: '#/components/schemas/CaseVerificationTask'
+          default: none
         assigned_staff_user:
           anyOf:
           - $ref: '#/components/schemas/StaffUserSummary'
@@ -695,6 +1022,15 @@ components:
       - created_at
       - updated_at
       title: CaseListItem
+    CaseSafetyStatus:
+      type: string
+      enum:
+      - unknown
+      - possibly_at_risk
+      - confirmed_safe
+      - suspected_deceased_awaiting_authorized_confirmation
+      - confirmed_deceased
+      title: CaseSafetyStatus
     CaseStatus:
       type: string
       enum:
@@ -728,6 +1064,17 @@ components:
       - share_link
       - created_at
       title: CaseSubmissionResponse
+    CaseVerificationTask:
+      type: string
+      enum:
+      - confirm_identity
+      - confirm_last_known_location
+      - compare_possible_same_person
+      - contact_reporter
+      - await_responder_feedback
+      - await_authorized_confirmation
+      - none
+      title: CaseVerificationTask
     CurrentStaffSession:
       properties:
         user:
@@ -845,6 +1192,336 @@ components:
       - expires_at
       - user
       title: MagicLinkVerifyResponse
+    ReportCaseSummary:
+      properties:
+        id:
+          type: integer
+          title: Id
+        case_code:
+          type: string
+          title: Case Code
+        person_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Label
+        safety_status:
+          $ref: '#/components/schemas/CaseSafetyStatus'
+        handling_status:
+          $ref: '#/components/schemas/CaseHandlingStatus'
+      type: object
+      required:
+      - id
+      - case_code
+      - safety_status
+      - handling_status
+      title: ReportCaseSummary
+    ReportDetailResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        report_code:
+          type: string
+          title: Report Code
+        source_channel:
+          $ref: '#/components/schemas/ReportSourceChannel'
+        source_form_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Form Id
+        source_form_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Form Name
+        source_entry_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Entry Id
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+        received_at:
+          type: string
+          format: date-time
+          title: Received At
+        language_code:
+          type: string
+          title: Language Code
+        triage_status:
+          $ref: '#/components/schemas/ReportTriageStatus'
+        reporter_relationship:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Relationship
+        is_first_hand:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is First Hand
+        permission_to_contact:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Permission To Contact
+        location_text:
+          type: string
+          title: Location Text
+        original_narrative_preview:
+          type: string
+          title: Original Narrative Preview
+        linked_case:
+          anyOf:
+          - $ref: '#/components/schemas/ReportCaseSummary'
+          - type: 'null'
+        legacy_case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Legacy Case Id
+        is_legacy_backfill:
+          type: boolean
+          title: Is Legacy Backfill
+        migration_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Migration Note
+        raw_answers_json:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Answers Json
+        original_narrative:
+          type: string
+          title: Original Narrative
+        reporter_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Name
+        reporter_email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Reporter Email
+        reporter_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Phone
+        media_refs_json:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Media Refs Json
+        voice_intake_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Voice Intake Id
+        triage_actions:
+          items:
+            $ref: '#/components/schemas/ReportTriageActionResponse'
+          type: array
+          title: Triage Actions
+      type: object
+      required:
+      - id
+      - report_code
+      - source_channel
+      - received_at
+      - language_code
+      - triage_status
+      - location_text
+      - original_narrative_preview
+      - is_legacy_backfill
+      - original_narrative
+      - triage_actions
+      title: ReportDetailResponse
+    ReportInboxResponse:
+      properties:
+        reports:
+          items:
+            $ref: '#/components/schemas/ReportListItem'
+          type: array
+          title: Reports
+      type: object
+      required:
+      - reports
+      title: ReportInboxResponse
+    ReportListItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        report_code:
+          type: string
+          title: Report Code
+        source_channel:
+          $ref: '#/components/schemas/ReportSourceChannel'
+        source_form_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Form Id
+        source_form_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Form Name
+        source_entry_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Entry Id
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+        received_at:
+          type: string
+          format: date-time
+          title: Received At
+        language_code:
+          type: string
+          title: Language Code
+        triage_status:
+          $ref: '#/components/schemas/ReportTriageStatus'
+        reporter_relationship:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Relationship
+        is_first_hand:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is First Hand
+        permission_to_contact:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Permission To Contact
+        location_text:
+          type: string
+          title: Location Text
+        original_narrative_preview:
+          type: string
+          title: Original Narrative Preview
+        linked_case:
+          anyOf:
+          - $ref: '#/components/schemas/ReportCaseSummary'
+          - type: 'null'
+        legacy_case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Legacy Case Id
+        is_legacy_backfill:
+          type: boolean
+          title: Is Legacy Backfill
+        migration_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Migration Note
+      type: object
+      required:
+      - id
+      - report_code
+      - source_channel
+      - received_at
+      - language_code
+      - triage_status
+      - location_text
+      - original_narrative_preview
+      - is_legacy_backfill
+      title: ReportListItem
+    ReportSourceChannel:
+      type: string
+      enum:
+      - google_form
+      - anonymous_web
+      - voice
+      - manual_staff_entry
+      - legacy_migration
+      title: ReportSourceChannel
+    ReportTriageActionResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        report_id:
+          type: integer
+          title: Report Id
+        actor_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Actor User Id
+        action_type:
+          $ref: '#/components/schemas/ReportTriageActionType'
+        from_status:
+          anyOf:
+          - $ref: '#/components/schemas/ReportTriageStatus'
+          - type: 'null'
+        to_status:
+          anyOf:
+          - $ref: '#/components/schemas/ReportTriageStatus'
+          - type: 'null'
+        case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Case Id
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - report_id
+      - action_type
+      - created_at
+      title: ReportTriageActionResponse
+    ReportTriageActionType:
+      type: string
+      enum:
+      - create_case
+      - link_existing_case
+      - mark_out_of_scope
+      - mark_invalid_or_insufficient
+      - note
+      title: ReportTriageActionType
+    ReportTriageStatus:
+      type: string
+      enum:
+      - awaiting_review
+      - linked_to_case
+      - out_of_scope
+      - invalid_or_insufficient
+      title: ReportTriageStatus
     ShareLinkCaseView:
       properties:
         case_code:
@@ -1032,6 +1709,203 @@ components:
       - created_at
       - updated_at
       title: StaffCaseVoiceResponse
+    StaffReportCreateCaseRequest:
+      properties:
+        urgency:
+          $ref: '#/components/schemas/UrgencyLevel'
+        incident_type:
+          $ref: '#/components/schemas/IncidentType'
+        location_summary:
+          type: string
+          maxLength: 280
+          minLength: 5
+          title: Location Summary
+        needs_summary:
+          type: string
+          maxLength: 4000
+          minLength: 5
+          title: Needs Summary
+        person_label:
+          anyOf:
+          - type: string
+            maxLength: 160
+          - type: 'null'
+          title: Person Label
+        approximate_age:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          title: Approximate Age
+        appearance:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Appearance
+        clothing:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Clothing
+        identifying_details:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Identifying Details
+        mobility:
+          anyOf:
+          - type: string
+            maxLength: 160
+          - type: 'null'
+          title: Mobility
+        companions:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Companions
+        last_known_location:
+          anyOf:
+          - type: string
+            maxLength: 280
+          - type: 'null'
+          title: Last Known Location
+        last_known_time:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Known Time
+        safety_status:
+          $ref: '#/components/schemas/CaseSafetyStatus'
+          default: unknown
+        handling_status:
+          $ref: '#/components/schemas/CaseHandlingStatus'
+          default: awaiting_action
+        verification_task:
+          $ref: '#/components/schemas/CaseVerificationTask'
+          default: none
+        assigned_staff_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Assigned Staff User Id
+        link_reason:
+          anyOf:
+          - type: string
+            maxLength: 400
+          - type: 'null'
+          title: Link Reason
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - urgency
+      - incident_type
+      - location_summary
+      - needs_summary
+      title: StaffReportCreateCaseRequest
+    StaffReportCreateCaseResponse:
+      properties:
+        report:
+          $ref: '#/components/schemas/ReportDetailResponse'
+        case:
+          $ref: '#/components/schemas/CaseDetailResponse'
+        action:
+          $ref: '#/components/schemas/ReportTriageActionResponse'
+      type: object
+      required:
+      - report
+      - case
+      - action
+      title: StaffReportCreateCaseResponse
+    StaffReportLinkCaseRequest:
+      properties:
+        case_id:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Case Id
+        link_reason:
+          anyOf:
+          - type: string
+            maxLength: 400
+          - type: 'null'
+          title: Link Reason
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - case_id
+      title: StaffReportLinkCaseRequest
+    StaffReportLinkCaseResponse:
+      properties:
+        report:
+          $ref: '#/components/schemas/ReportDetailResponse'
+        case:
+          $ref: '#/components/schemas/CaseDetailResponse'
+        action:
+          $ref: '#/components/schemas/ReportTriageActionResponse'
+      type: object
+      required:
+      - report
+      - case
+      - action
+      title: StaffReportLinkCaseResponse
+    StaffReportNoteRequest:
+      properties:
+        note:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Note
+      type: object
+      required:
+      - note
+      title: StaffReportNoteRequest
+    StaffReportNoteResponse:
+      properties:
+        report:
+          $ref: '#/components/schemas/ReportDetailResponse'
+        action:
+          $ref: '#/components/schemas/ReportTriageActionResponse'
+      type: object
+      required:
+      - report
+      - action
+      title: StaffReportNoteResponse
+    StaffReportTriageDecisionRequest:
+      properties:
+        note:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Note
+      type: object
+      required:
+      - note
+      title: StaffReportTriageDecisionRequest
+    StaffReportTriageDecisionResponse:
+      properties:
+        report:
+          $ref: '#/components/schemas/ReportDetailResponse'
+        action:
+          $ref: '#/components/schemas/ReportTriageActionResponse'
+      type: object
+      required:
+      - report
+      - action
+      title: StaffReportTriageDecisionResponse
     StaffRole:
       type: string
       enum:

@@ -54,3 +54,4 @@ class VoiceIntake(Base):
     )
 
     case = relationship("Case", back_populates="voice_intake")
+    report = relationship("Report", back_populates="voice_intake", uselist=False)
