@@ -21,6 +21,7 @@ from app.schemas.common import ApiModel
 
 class ReportCaseSummary(ApiModel):
     id: int
+    incident_id: int
     case_code: str
     person_label: Optional[str] = None
     safety_status: CaseSafetyStatus
@@ -29,6 +30,8 @@ class ReportCaseSummary(ApiModel):
 
 class ReportListItem(ApiModel):
     id: int
+    incident_id: int
+    intake_source_id: Optional[int] = None
     report_code: str
     source_channel: ReportSourceChannel
     source_form_id: Optional[str] = None
@@ -47,6 +50,7 @@ class ReportListItem(ApiModel):
     legacy_case_id: Optional[int] = None
     is_legacy_backfill: bool
     migration_note: Optional[str] = None
+    source_label: str
 
 
 class ReportDetailResponse(ReportListItem):

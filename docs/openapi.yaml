@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: Beacon API
-  description: Phase 1.5 voice intake foundation for Beacon
+  title: Reach API
+  description: Phase 1.5 voice intake foundation for Reach
   version: 0.3.0
 paths:
   /health:
@@ -126,6 +126,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /incidents/{incident_slug}/report:
+    get:
+      tags:
+      - incidents
+      summary: Get Public Incident Report Page
+      operationId: get_public_incident_report_page_incidents__incident_slug__report_get
+      parameters:
+      - name: incident_slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Incident Slug
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicIncidentReportPageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/incidents:
+    get:
+      tags:
+      - staff-incidents
+      summary: List Staff Incidents
+      operationId: list_staff_incidents_staff_incidents_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/StaffIncidentSummary'
+                type: array
+                title: Response List Staff Incidents Staff Incidents Get
+      security:
+      - bearerAuth: []
+  /staff/incidents/{incident_id}/intake-sources/{source_id}/import:
+    post:
+      tags:
+      - staff-incidents
+      summary: Import Incident Intake Source
+      operationId: import_incident_intake_source_staff_incidents__incident_id__intake_sources__source_id__import_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: incident_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Incident Id
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Source Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentIntakeImportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /staff/cases:
     get:
       tags:
@@ -223,6 +301,14 @@ paths:
           - $ref: '#/components/schemas/ReportTriageStatus'
           - type: 'null'
           title: Triage Status
+      - name: incident_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Incident Id
       responses:
         '200':
           description: Successful Response
@@ -810,6 +896,9 @@ components:
         id:
           type: integer
           title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
         case_code:
           type: string
           title: Case Code
@@ -940,6 +1029,7 @@ components:
       type: object
       required:
       - id
+      - incident_id
       - case_code
       - status
       - urgency
@@ -964,6 +1054,9 @@ components:
         id:
           type: integer
           title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
         case_code:
           type: string
           title: Case Code
@@ -1013,6 +1106,7 @@ components:
       type: object
       required:
       - id
+      - incident_id
       - case_code
       - status
       - urgency
@@ -1119,6 +1213,50 @@ components:
       - status
       - database
       title: HealthResponse
+    IncidentIntakeImportResponse:
+      properties:
+        incident_id:
+          type: integer
+          title: Incident Id
+        intake_source_id:
+          type: integer
+          title: Intake Source Id
+        imported:
+          type: integer
+          title: Imported
+        skipped:
+          type: integer
+          title: Skipped
+        failed:
+          type: integer
+          title: Failed
+        last_imported_row:
+          type: integer
+          title: Last Imported Row
+        errors:
+          items:
+            type: string
+          type: array
+          title: Errors
+      type: object
+      required:
+      - incident_id
+      - intake_source_id
+      - imported
+      - skipped
+      - failed
+      - last_imported_row
+      - errors
+      title: IncidentIntakeImportResponse
+    IncidentStatus:
+      type: string
+      enum:
+      - draft
+      - active
+      - intake_paused
+      - closed
+      - archived
+      title: IncidentStatus
     IncidentType:
       type: string
       enum:
@@ -1192,11 +1330,63 @@ components:
       - expires_at
       - user
       title: MagicLinkVerifyResponse
+    PublicIncidentReportPageResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        public_name:
+          type: string
+          title: Public Name
+        slug:
+          type: string
+          title: Slug
+        disaster_type:
+          type: string
+          title: Disaster Type
+        affected_area:
+          type: string
+          title: Affected Area
+        incident_start_time:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Incident Start Time
+        public_description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Public Description
+        supported_languages:
+          items:
+            type: string
+          type: array
+          title: Supported Languages
+        status:
+          $ref: '#/components/schemas/IncidentStatus'
+        google_form_url:
+          type: string
+          title: Google Form Url
+      type: object
+      required:
+      - id
+      - public_name
+      - slug
+      - disaster_type
+      - affected_area
+      - supported_languages
+      - status
+      - google_form_url
+      title: PublicIncidentReportPageResponse
     ReportCaseSummary:
       properties:
         id:
           type: integer
           title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
         case_code:
           type: string
           title: Case Code
@@ -1212,6 +1402,7 @@ components:
       type: object
       required:
       - id
+      - incident_id
       - case_code
       - safety_status
       - handling_status
@@ -1221,6 +1412,14 @@ components:
         id:
           type: integer
           title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
+        intake_source_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Intake Source Id
         report_code:
           type: string
           title: Report Code
@@ -1294,6 +1493,9 @@ components:
           - type: string
           - type: 'null'
           title: Migration Note
+        source_label:
+          type: string
+          title: Source Label
         raw_answers_json:
           anyOf:
           - additionalProperties: true
@@ -1340,6 +1542,7 @@ components:
       type: object
       required:
       - id
+      - incident_id
       - report_code
       - source_channel
       - received_at
@@ -1348,6 +1551,7 @@ components:
       - location_text
       - original_narrative_preview
       - is_legacy_backfill
+      - source_label
       - original_narrative
       - triage_actions
       title: ReportDetailResponse
@@ -1367,6 +1571,14 @@ components:
         id:
           type: integer
           title: Id
+        incident_id:
+          type: integer
+          title: Incident Id
+        intake_source_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Intake Source Id
         report_code:
           type: string
           title: Report Code
@@ -1440,9 +1652,13 @@ components:
           - type: string
           - type: 'null'
           title: Migration Note
+        source_label:
+          type: string
+          title: Source Label
       type: object
       required:
       - id
+      - incident_id
       - report_code
       - source_channel
       - received_at
@@ -1451,6 +1667,7 @@ components:
       - location_text
       - original_narrative_preview
       - is_legacy_backfill
+      - source_label
       title: ReportListItem
     ReportSourceChannel:
       type: string
@@ -1519,6 +1736,8 @@ components:
       enum:
       - awaiting_review
       - linked_to_case
+      - linked_to_new_case
+      - linked_to_existing_case
       - out_of_scope
       - invalid_or_insufficient
       title: ReportTriageStatus
@@ -1709,6 +1928,38 @@ components:
       - created_at
       - updated_at
       title: StaffCaseVoiceResponse
+    StaffIncidentSummary:
+      properties:
+        id:
+          type: integer
+          title: Id
+        internal_name:
+          type: string
+          title: Internal Name
+        public_name:
+          type: string
+          title: Public Name
+        slug:
+          type: string
+          title: Slug
+        disaster_type:
+          type: string
+          title: Disaster Type
+        affected_area:
+          type: string
+          title: Affected Area
+        status:
+          $ref: '#/components/schemas/IncidentStatus'
+      type: object
+      required:
+      - id
+      - internal_name
+      - public_name
+      - slug
+      - disaster_type
+      - affected_area
+      - status
+      title: StaffIncidentSummary
     StaffReportCreateCaseRequest:
       properties:
         urgency:

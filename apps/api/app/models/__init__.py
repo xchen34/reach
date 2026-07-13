@@ -11,7 +11,9 @@ from app.models.enums import (
     CaseActionType,
     CaseStatus,
     CaseVerificationTask,
+    IncidentStatus,
     IncidentType,
+    IntakeSourceType,
     ReportSourceChannel,
     ReportTriageActionType,
     ReportTriageStatus,
@@ -23,6 +25,8 @@ from app.models.enums import (
     VoiceTranscriptState,
 )
 from app.models.magic_link_token import MagicLinkToken
+from app.models.incident import Incident
+from app.models.incident_intake_source import IncidentIntakeSource
 from app.models.report import Report
 from app.models.report_triage_action import ReportTriageAction
 from app.models.staff_session import StaffSession
@@ -42,7 +46,11 @@ __all__ = [
     "CaseShareLink",
     "CaseStatus",
     "CaseVerificationTask",
+    "Incident",
+    "IncidentIntakeSource",
+    "IncidentStatus",
     "IncidentType",
+    "IntakeSourceType",
     "MagicLinkToken",
     "Report",
     "ReportSourceChannel",

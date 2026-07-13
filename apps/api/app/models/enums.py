@@ -27,6 +27,8 @@ class ReportSourceChannel(str, Enum):
 class ReportTriageStatus(str, Enum):
     AWAITING_REVIEW = "awaiting_review"
     LINKED_TO_CASE = "linked_to_case"
+    LINKED_TO_NEW_CASE = "linked_to_new_case"
+    LINKED_TO_EXISTING_CASE = "linked_to_existing_case"
     OUT_OF_SCOPE = "out_of_scope"
     INVALID_OR_INSUFFICIENT = "invalid_or_insufficient"
 
@@ -83,6 +85,18 @@ class IncidentType(str, Enum):
     OTHER = "other"
 
 
+class IncidentStatus(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    INTAKE_PAUSED = "intake_paused"
+    CLOSED = "closed"
+    ARCHIVED = "archived"
+
+
+class IntakeSourceType(str, Enum):
+    GOOGLE_SHEETS = "google_sheets"
+
+
 class CaseActionType(str, Enum):
     NOTE = "note"
     STATUS_CHANGE = "status_change"
@@ -112,6 +126,7 @@ class AuditEventType(str, Enum):
     REPORT_RECEIVED = "report_received"
     REPORT_TRIAGED = "report_triaged"
     REPORT_LINKED_TO_CASE = "report_linked_to_case"
+    INTAKE_SOURCE_IMPORTED = "intake_source_imported"
 
 
 class ShareLinkScope(str, Enum):

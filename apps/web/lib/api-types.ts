@@ -38,6 +38,21 @@ export type PublicBoardStatus =
   | "safe_confirmed"
   | "archived";
 
+export type IncidentStatus = "draft" | "active" | "intake_paused" | "closed" | "archived";
+
+export interface PublicIncidentReportPageResponse {
+  id: number;
+  public_name: string;
+  slug: string;
+  disaster_type: string;
+  affected_area: string;
+  incident_start_time: string | null;
+  public_description: string | null;
+  supported_languages: string[];
+  status: IncidentStatus;
+  google_form_url: string;
+}
+
 export interface ShareLinkCaseView {
   case_code: string;
   status: CaseStatus;
@@ -95,6 +110,7 @@ export interface CurrentStaffSession {
 
 export interface StaffCaseListItem {
   id: number;
+  incident_id: number;
   case_code: string;
   status: CaseStatus;
   urgency: UrgencyLevel;

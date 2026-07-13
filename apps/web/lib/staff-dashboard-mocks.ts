@@ -3,7 +3,7 @@ import type { CurrentStaffSession, StaffCaseListItem } from "./api-types";
 export const mockStaffDashboardSession: CurrentStaffSession = {
   user: {
     id: 9001,
-    email: "demo.coordinator@beacon.local",
+    email: "demo.coordinator@Reach.local",
     role: "coordinator",
   },
   session_expires_at: "2026-07-09T18:00:00.000Z",
@@ -12,6 +12,7 @@ export const mockStaffDashboardSession: CurrentStaffSession = {
 export const mockStaffDashboardCases: StaffCaseListItem[] = [
   {
     id: 101,
+    incident_id: 1,
     case_code: "EVT-101",
     status: "active",
     urgency: "critical",
@@ -21,7 +22,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
     latest_public_update: "Evacuation support is in progress.",
     assigned_staff_user: {
       id: 12,
-      email: "north.response@beacon.local",
+      email: "north.response@Reach.local",
       role: "volunteer",
     },
     created_at: "2026-07-09T09:00:00.000Z",
@@ -29,6 +30,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
   },
   {
     id: 102,
+    incident_id: 1,
     case_code: "EVT-102",
     status: "pending_review",
     urgency: "high",
@@ -42,6 +44,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
   },
   {
     id: 103,
+    incident_id: 1,
     case_code: "EVT-103",
     status: "waiting_for_information",
     urgency: "medium",
@@ -51,7 +54,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
     latest_public_update: "Supplies are being routed from the logistics team.",
     assigned_staff_user: {
       id: 13,
-      email: "shelter.lead@beacon.local",
+      email: "shelter.lead@Reach.local",
       role: "coordinator",
     },
     created_at: "2026-07-09T08:40:00.000Z",
@@ -59,6 +62,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
   },
   {
     id: 104,
+    incident_id: 1,
     case_code: "EVT-104",
     status: "closed",
     urgency: "low",
@@ -68,7 +72,7 @@ export const mockStaffDashboardCases: StaffCaseListItem[] = [
     latest_public_update: "Reporter confirmed they are safe.",
     assigned_staff_user: {
       id: 14,
-      email: "medical.followup@beacon.local",
+      email: "medical.followup@Reach.local",
       role: "volunteer",
     },
     created_at: "2026-07-09T07:55:00.000Z",

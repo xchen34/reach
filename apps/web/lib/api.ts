@@ -1,6 +1,7 @@
 import type {
   AuditLogEntryResponse,
   CurrentStaffSession,
+  PublicIncidentReportPageResponse,
   PublicBoardResponse,
   StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
@@ -72,6 +73,12 @@ export function getSharedCase(token: string) {
 
 export function getPublicBoard() {
   return apiFetch<PublicBoardResponse>("/board");
+}
+
+export function getPublicIncidentReportPage(incidentSlug: string) {
+  return apiFetch<PublicIncidentReportPageResponse>(
+    `/incidents/${encodeURIComponent(incidentSlug)}/report`,
+  );
 }
 
 export function requestStaffMagicLink(email: string) {

@@ -19,6 +19,9 @@ def test_openapi_includes_phase1_paths() -> None:
     schema = app.openapi()
     for path in (
         "/auth/verify-magic-link",
+        "/incidents/{incident_slug}/report",
+        "/staff/incidents",
+        "/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
         "/staff/me",
         "/cases",
         "/voice-intakes",
@@ -71,6 +74,8 @@ def test_model_metadata_contains_phase1_tables() -> None:
         "case_actions",
         "audit_log_entries",
         "voice_intakes",
+        "incidents",
+        "incident_intake_sources",
         "reports",
         "case_reports",
         "report_triage_actions",
@@ -82,7 +87,7 @@ def test_alembic_has_single_head() -> None:
     config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["0004_report_first_phase1"]
+    assert script.get_heads() == ["0005_incident_sheets_intake"]
 
 
 def test_report_triage_schema_validation() -> None:

@@ -128,6 +128,7 @@ class StaffQueueService:
 
         return CaseListItem(
             id=case.id,
+            incident_id=case.incident_id,
             case_code=case.case_code,
             status=case.status,
             urgency=case.urgency,

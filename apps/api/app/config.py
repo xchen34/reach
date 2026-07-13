@@ -10,14 +10,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="BEACON_",
+        env_prefix="Reach_",
         case_sensitive=False,
         # The repository-level .env also carries NEXT_PUBLIC_* values for Next.js.
         extra="ignore",
     )
 
     app_env: str = "development"
-    database_url: str = "postgresql+psycopg://beacon:beacon@db:5432/beacon"
+    database_url: str = "postgresql+psycopg://Reach:Reach@db:5432/Reach"
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -43,7 +43,9 @@ class Settings(BaseSettings):
     case_intake_suggestions_openai_model: str = "gpt-4.1-mini"
     case_intake_suggestions_timeout_seconds: float = 20.0
     google_form_ingest_token: Optional[str] = None
-    voice_storage_dir: str = "/tmp/beacon/voice_uploads"
+    google_service_account_json: Optional[str] = None
+    google_sheets_import_enabled: bool = False
+    voice_storage_dir: str = "/tmp/Reach/voice_uploads"
     voice_max_upload_bytes: int = 10 * 1024 * 1024
 
 

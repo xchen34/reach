@@ -5,7 +5,21 @@ from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
 from app.db import Base
-from app.models import audit_log_entry, case, case_action, case_share_link, magic_link_token, staff_session, user  # noqa: F401
+from app.models import (  # noqa: F401
+    audit_log_entry,
+    case,
+    case_action,
+    case_report,
+    case_share_link,
+    incident,
+    incident_intake_source,
+    magic_link_token,
+    report,
+    report_triage_action,
+    staff_session,
+    user,
+    voice_intake,
+)
 
 
 config = context.config

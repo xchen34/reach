@@ -5,6 +5,7 @@ import type { StaffCaseListItem } from "./api-types.ts";
 
 const currentCase: StaffCaseListItem = {
   id: 1,
+  incident_id: 1,
   case_code: "C-001",
   status: "pending_review",
   urgency: "high",

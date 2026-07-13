@@ -49,6 +49,7 @@ class CaseSubmissionResponse(ApiModel):
 
 class CaseListItem(ApiModel):
     id: int
+    incident_id: int
     case_code: str
     status: CaseStatus
     urgency: UrgencyLevel

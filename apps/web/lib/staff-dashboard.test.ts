@@ -13,6 +13,7 @@ test("buildStaffDashboardData groups related cases into derived events", () => {
   const cases: StaffCaseListItem[] = [
     {
       id: 1,
+      incident_id: 1,
       case_code: "C-001",
       status: "pending_review",
       urgency: "high",
@@ -26,6 +27,7 @@ test("buildStaffDashboardData groups related cases into derived events", () => {
     },
     {
       id: 2,
+      incident_id: 1,
       case_code: "C-002",
       status: "active",
       urgency: "critical",
@@ -39,6 +41,7 @@ test("buildStaffDashboardData groups related cases into derived events", () => {
     },
     {
       id: 3,
+      incident_id: 1,
       case_code: "C-003",
       status: "closed",
       urgency: "low",
@@ -83,6 +86,7 @@ test("buildStaffDashboardData falls back to reported needs when no public update
   const cases: StaffCaseListItem[] = [
     {
       id: 9,
+      incident_id: 1,
       case_code: "C-009",
       status: "waiting_for_information",
       urgency: "medium",

@@ -28,10 +28,11 @@ router = APIRouter(prefix="/staff/reports", tags=["staff-reports"])
 @router.get("", response_model=ReportInboxResponse)
 def list_reports(
     triage_status: Optional[ReportTriageStatus] = Query(default=None),
+    incident_id: Optional[int] = Query(default=None),
     db: Session = Depends(get_db),
     _: object = Depends(require_staff_session),
 ) -> ReportInboxResponse:
-    return ReportService(db).list_reports(triage_status=triage_status)
+    return ReportService(db).list_reports(triage_status=triage_status, incident_id=incident_id)
 
 
 @router.get("/{report_id}", response_model=ReportDetailResponse)

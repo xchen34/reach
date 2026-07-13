@@ -45,6 +45,7 @@ from app.schemas.case import (
 )
 from app.schemas.staff import StaffUserSummary
 from app.services.voice_intake import VoiceIntakeService
+from app.services.incident_service import IncidentService
 
 
 class CaseService:
@@ -56,7 +57,9 @@ class CaseService:
         self,
         payload: AnonymousCaseSubmissionRequest,
     ) -> CaseSubmissionResponse:
+        incident = IncidentService(self.db).get_or_create_legacy_incident()
         case = Case(
+            incident_id=incident.id,
             case_code=self._generate_case_code(),
             status=CaseStatus.PENDING_REVIEW,
             safety_status=CaseSafetyStatus.UNKNOWN,
@@ -287,6 +290,8 @@ class CaseService:
 
         if related_case.id == case.id:
             raise ValueError("A case cannot be related to itself.")
+        if related_case.incident_id != case.incident_id:
+            raise ValueError("Cases from different incidents cannot be related.")
 
         relation_note = payload.note.strip() if payload.note else None
         if not relation_note:
@@ -364,6 +369,7 @@ class CaseService:
 
         return CaseListItem(
             id=case.id,
+            incident_id=case.incident_id,
             case_code=case.case_code,
             status=case.status,
             urgency=case.urgency,

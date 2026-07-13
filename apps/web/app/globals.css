@@ -288,9 +288,53 @@ textarea {
 }
 
 .community-board-shell,
-.staff-dashboard-shell {
+.staff-dashboard-shell,
+.incident-report-page {
   display: grid;
   gap: 1.5rem;
+}
+
+.incident-report-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.alert-panel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid #c48b32;
+  border-radius: 0.9rem;
+  background: #fff8e7;
+}
+
+.alert-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.google-form-frame-shell {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+
+.google-form-frame {
+  display: block;
+  width: 100%;
+  min-height: 78vh;
+  border: 0;
+}
+
+.fallback-copy {
+  margin: 0;
+  color: var(--muted);
+}
+
+.fallback-copy a {
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .community-entry-section {

@@ -21,6 +21,7 @@ class Case(Base):
     __tablename__ = "cases"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
     case_code: Mapped[str] = mapped_column(String(24), unique=True, nullable=False, index=True)
     status: Mapped[CaseStatus] = mapped_column(
         SAEnum(CaseStatus, name="case_status"),
@@ -87,6 +88,7 @@ class Case(Base):
     )
 
     assigned_staff_user = relationship("User", back_populates="assigned_cases")
+    incident = relationship("Incident", back_populates="cases")
     share_links = relationship("CaseShareLink", back_populates="case")
     actions = relationship("CaseAction", back_populates="case")
     audit_entries = relationship("AuditLogEntry", back_populates="case")

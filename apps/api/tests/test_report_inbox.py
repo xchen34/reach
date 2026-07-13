@@ -22,7 +22,7 @@ client = TestClient(app)
 def reset_state(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -40,7 +40,7 @@ def _authenticate_staff(email: str = "reports@example.com") -> dict[str, str]:
 def _ingest(entry_id: str = "entry-report-1") -> int:
     response = client.post(
         "/ingest/google-form",
-        headers={"x-beacon-ingest-token": "secret-ingest-token"},
+        headers={"x-Reach-ingest-token": "secret-ingest-token"},
         json={
             "report_kind": "missing",
             "location_summary": "Tower 2 lobby near the lifts",
@@ -105,7 +105,7 @@ def test_create_case_from_report_links_report_and_uses_compatibility_statuses() 
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["report"]["triage_status"] == "linked_to_case"
+    assert payload["report"]["triage_status"] == "linked_to_new_case"
     assert payload["case"]["status"] == "active"
     assert payload["case"]["safety_status"] == "unknown"
     assert payload["case"]["handling_status"] == "being_investigated"
@@ -147,6 +147,7 @@ def test_report_can_link_to_only_one_case_and_source_is_immutable() -> None:
     with next(override_get_db()) as db:
         existing_case = db.query(Case).one()
         second_case = Case(
+            incident_id=existing_case.incident_id,
             case_code="SECONDCASE",
             status=CaseStatus.PENDING_REVIEW,
             urgency=existing_case.urgency,

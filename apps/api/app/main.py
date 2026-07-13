@@ -10,6 +10,8 @@ from app.api.cases import router as cases_router
 from app.api.cases import staff_router as staff_cases_router
 from app.api.google_forms import router as google_forms_router
 from app.api.health import router as health_router
+from app.api.incidents import router as incidents_router
+from app.api.incidents import staff_router as staff_incidents_router
 from app.api.reports import router as reports_router
 from app.api.share_links import router as share_links_router
 from app.api.staff import router as staff_router
@@ -19,9 +21,9 @@ from app.config import get_settings
 
 
 app = FastAPI(
-    title="Beacon API",
+    title="Reach API",
     version="0.3.0",
-    description="Phase 1.5 voice intake foundation for Beacon",
+    description="Phase 1.5 voice intake foundation for Reach",
 )
 
 settings = get_settings()
@@ -40,6 +42,8 @@ app.include_router(staff_router)
 app.include_router(board_router)
 app.include_router(cases_router)
 app.include_router(google_forms_router)
+app.include_router(incidents_router)
+app.include_router(staff_incidents_router)
 app.include_router(staff_cases_router)
 app.include_router(reports_router)
 app.include_router(voice_router)

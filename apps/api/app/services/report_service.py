@@ -40,6 +40,7 @@ from app.schemas.report import (
 )
 from app.schemas.staff import StaffUserSummary
 from app.services.case_service import CaseService
+from app.services.incident_service import IncidentService
 
 
 class ReportService:
@@ -47,7 +48,9 @@ class ReportService:
         self.db = db
 
     def create_google_form_report(self, payload: GoogleFormIngestRequest) -> GoogleFormIngestResponse:
+        incident = IncidentService(self.db).get_or_create_legacy_incident()
         report = Report(
+            incident_id=incident.id,
             report_code=self._generate_report_code(),
             source_channel=ReportSourceChannel.GOOGLE_FORM,
             source_form_id=payload.source_form_id,
@@ -95,10 +98,17 @@ class ReportService:
         self.db.refresh(report)
         return self._to_google_form_response(report)
 
-    def list_reports(self, *, triage_status: Optional[ReportTriageStatus] = None) -> ReportInboxResponse:
+    def list_reports(
+        self,
+        *,
+        triage_status: Optional[ReportTriageStatus] = None,
+        incident_id: Optional[int] = None,
+    ) -> ReportInboxResponse:
         statement = select(Report).order_by(Report.received_at.desc(), Report.id.desc())
         if triage_status is not None:
             statement = statement.where(Report.triage_status == triage_status)
+        if incident_id is not None:
+            statement = statement.where(Report.incident_id == incident_id)
         reports = self.db.scalars(statement).all()
         return ReportInboxResponse(reports=[self._to_list_item(report) for report in reports])
 
@@ -122,6 +132,7 @@ class ReportService:
 
         legacy_status = CaseService.project_legacy_status(payload.safety_status, payload.handling_status)
         case = Case(
+            incident_id=report.incident_id,
             case_code=CaseService._generate_case_code(),
             status=legacy_status,
             urgency=payload.urgency,
@@ -180,6 +191,8 @@ class ReportService:
         case = self.db.get(Case, payload.case_id)
         if case is None:
             raise LookupError("Case not found.")
+        if case.incident_id != report.incident_id:
+            raise ValueError("Report and case belong to different incidents.")
 
         action = self._link_report_to_case(
             report=report,
@@ -302,7 +315,12 @@ class ReportService:
         note: Optional[str],
     ) -> ReportTriageAction:
         from_status = report.triage_status
-        report.triage_status = ReportTriageStatus.LINKED_TO_CASE
+        to_status = (
+            ReportTriageStatus.LINKED_TO_NEW_CASE
+            if action_type == ReportTriageActionType.CREATE_CASE
+            else ReportTriageStatus.LINKED_TO_EXISTING_CASE
+        )
+        report.triage_status = to_status
         report.triaged_at = datetime.now(timezone.utc)
         report.triaged_by_user_id = actor.id
         self.db.add(
@@ -318,7 +336,7 @@ class ReportService:
             actor_user_id=actor.id,
             action_type=action_type,
             from_status=from_status,
-            to_status=ReportTriageStatus.LINKED_TO_CASE,
+            to_status=to_status,
             case_id=case.id,
             note=note,
         )
@@ -355,7 +373,11 @@ class ReportService:
 
     @staticmethod
     def _ensure_report_can_be_linked(report: Report) -> None:
-        if report.case_link is not None or report.triage_status == ReportTriageStatus.LINKED_TO_CASE:
+        if report.case_link is not None or report.triage_status in {
+            ReportTriageStatus.LINKED_TO_CASE,
+            ReportTriageStatus.LINKED_TO_NEW_CASE,
+            ReportTriageStatus.LINKED_TO_EXISTING_CASE,
+        }:
             raise ValueError("Report is already linked to a case.")
         if report.triage_status in {
             ReportTriageStatus.OUT_OF_SCOPE,
@@ -386,6 +408,8 @@ class ReportService:
     def _to_list_item(self, report: Report) -> ReportListItem:
         return ReportListItem(
             id=report.id,
+            incident_id=report.incident_id,
+            intake_source_id=report.intake_source_id,
             report_code=report.report_code,
             source_channel=report.source_channel,
             source_form_id=report.source_form_id,
@@ -404,6 +428,7 @@ class ReportService:
             legacy_case_id=report.legacy_case_id,
             is_legacy_backfill=report.is_legacy_backfill,
             migration_note=report.migration_note,
+            source_label=self._source_label(report),
         )
 
     def _to_detail(self, report: Report) -> ReportDetailResponse:
@@ -427,11 +452,18 @@ class ReportService:
     def _to_case_summary(case: Case) -> ReportCaseSummary:
         return ReportCaseSummary(
             id=case.id,
+            incident_id=case.incident_id,
             case_code=case.case_code,
             person_label=case.person_label,
             safety_status=case.safety_status,
             handling_status=case.handling_status,
         )
+
+    @staticmethod
+    def _source_label(report: Report) -> str:
+        if report.intake_source_id is not None:
+            return "Google Forms / Google Sheets intake"
+        return report.source_channel.value
 
     @staticmethod
     def _report_audit(

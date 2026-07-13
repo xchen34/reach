@@ -30,6 +30,8 @@ class Report(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
+    intake_source_id: Mapped[Optional[int]] = mapped_column(ForeignKey("incident_intake_sources.id"), index=True)
     report_code: Mapped[str] = mapped_column(String(24), nullable=False)
     source_channel: Mapped[ReportSourceChannel] = mapped_column(
         SAEnum(ReportSourceChannel, name="report_source_channel"),
@@ -79,5 +81,7 @@ class Report(Base):
     )
 
     case_link = relationship("CaseReport", back_populates="report", uselist=False)
+    incident = relationship("Incident", back_populates="reports")
+    intake_source = relationship("IncidentIntakeSource")
     triage_actions = relationship("ReportTriageAction", back_populates="report")
     voice_intake = relationship("VoiceIntake", back_populates="report", uselist=False)
