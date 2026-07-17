@@ -88,6 +88,18 @@ A coordinator triggers import with:
 POST /staff/incidents/{incident_id}/intake-sources/{source_id}/import
 ```
 
+For local Docker Compose development, run the same import endpoint without manually copying a
+Bearer token:
+
+```bash
+scripts/import_google_sheets_intake.sh 2 1
+```
+
+The helper refuses to run when the API container is configured with `Reach_APP_ENV=production`.
+It requests a development magic link for a dedicated local import user, promotes only that local
+user to coordinator in PostgreSQL, verifies the magic link, and calls the staff import endpoint.
+It does not print the staff session token or Google service-account credentials.
+
 The importer reads rows after `last_imported_row`, maps headers by label, preserves the complete row in `reports.raw_answers_json`, and creates one immutable Report per new non-empty row. It does not create a Case.
 
 Staff still review each imported Report and decide whether to create a new Case, link an existing Case, mark it out of scope, or mark it invalid or insufficient.
