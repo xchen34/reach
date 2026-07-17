@@ -3,11 +3,25 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, getCurrentStaffSession, getStaffPublishQueue, logoutStaffSession } from "@/lib/api";
-import type { CurrentStaffSession, StaffQueueResponse } from "@/lib/api-types";
+import {
+  ApiError,
+  getCurrentStaffSession,
+  getStaffIncidents,
+  getStaffPublishQueue,
+  getStaffReports,
+  logoutStaffSession,
+} from "@/lib/api";
+import type {
+  CurrentStaffSession,
+  StaffIncidentSummary,
+  StaffQueueResponse,
+  StaffReportInboxResponse,
+  StaffReportListItem,
+} from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
 import { mockStaffDashboardCases, mockStaffDashboardSession } from "@/lib/staff-dashboard-mocks";
+import { getReportPrimaryText, getReportTriageBucket, selectDefaultIncidentId, summarizeReports } from "@/lib/staff-reports";
 import {
   buildStaffLoginHref,
   clearStaffAccessToken,
@@ -32,6 +46,9 @@ type PageState =
       mode: "live" | "mock";
       session: CurrentStaffSession;
       dashboard: StaffQueueResponse;
+      incidents: StaffIncidentSummary[];
+      selectedIncidentId: number | null;
+      reports: StaffReportInboxResponse;
     }
   | { status: "error"; message: string };
 
@@ -58,6 +75,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               mode: "mock",
               session: mockStaffDashboardSession,
               dashboard: toQueueResponse(buildStaffDashboardData(mockStaffDashboardCases)),
+              incidents: [],
+              selectedIncidentId: null,
+              reports: { reports: [] },
             });
             return;
           }
@@ -65,8 +85,15 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           throw new MissingStaffSessionError();
         }
 
-        const session = await withStaffAuthorization(token, getCurrentStaffSession);
-        const dashboard = await withStaffAuthorization(token, getStaffPublishQueue);
+        const [session, dashboard, incidents] = await Promise.all([
+          withStaffAuthorization(token, getCurrentStaffSession),
+          withStaffAuthorization(token, getStaffPublishQueue),
+          withStaffAuthorization(token, getStaffIncidents),
+        ]);
+        const selectedIncidentId = selectDefaultIncidentId(incidents);
+        const reports = await withStaffAuthorization(token, (staffToken) =>
+          getStaffReports(staffToken, selectedIncidentId),
+        );
 
         if (!isMounted) {
           return;
@@ -78,6 +105,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           mode: "live",
           session,
           dashboard,
+          incidents,
+          selectedIncidentId,
+          reports,
         });
       } catch (error) {
         if (!isMounted) {
@@ -102,6 +132,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               mode: "mock",
               session: mockStaffDashboardSession,
               dashboard: toQueueResponse(buildStaffDashboardData(mockStaffDashboardCases)),
+              incidents: [],
+              selectedIncidentId: null,
+              reports: { reports: [] },
             });
             return;
           }
@@ -117,6 +150,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
             mode: "mock",
             session: mockStaffDashboardSession,
             dashboard: toQueueResponse(buildStaffDashboardData(mockStaffDashboardCases)),
+            incidents: [],
+            selectedIncidentId: null,
+            reports: { reports: [] },
           });
           return;
         }
@@ -165,6 +201,36 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     }
   }
 
+  async function handleIncidentChange(value: string) {
+    if (state.status !== "ready" || state.mode !== "live") {
+      return;
+    }
+
+    const selectedIncidentId = value === "all" ? null : Number(value);
+    const accessToken = state.accessToken ?? readStoredStaffAccessToken();
+
+    try {
+      const reports = await withStaffAuthorization(accessToken, (token) =>
+        getStaffReports(token, selectedIncidentId),
+      );
+      setState({
+        ...state,
+        selectedIncidentId,
+        reports,
+      });
+    } catch (error) {
+      if (error instanceof MissingStaffSessionError) {
+        redirectToLogin(router, locale, "missing");
+        return;
+      }
+      if (error instanceof UnauthorizedStaffSessionError) {
+        redirectToLogin(router, locale, error.reason);
+        return;
+      }
+      setState({ status: "error", message: dictionary.staff.cases.errors.server });
+    }
+  }
+
   if (state.status === "loading") {
     return (
       <AppShell
@@ -203,6 +269,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
   const dashboard = state.dashboard;
   const queueGroups = getOpenQueueGroups(dashboard);
+  const reportSummary = summarizeReports(state.reports.reports);
 
   return (
     <AppShell
@@ -235,11 +302,58 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           <p className="field-hint compact-copy" id="staff-dashboard-source-title">
             {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
             {dictionary.staff.cases.summaryCards.openCases}: {dashboard.summary.open_cases} ·{" "}
+            Reports: {reportSummary.total} ·{" "}
             {dictionary.staff.cases.lastUpdatedLabel}{" "}
             {dashboard.summary.last_updated_at
               ? dateFormatter.format(new Date(dashboard.summary.last_updated_at))
               : dictionary.staff.cases.lastUpdatedFallback}
           </p>
+        </section>
+
+        <section className="staff-case-list" aria-labelledby="staff-report-list-title">
+          <div className="staff-section-header">
+            <div>
+              <h2 className="section-title" id="staff-report-list-title">
+                Incident reports
+              </h2>
+              <p className="field-hint compact-copy">
+                Untriaged: {reportSummary.untriaged} · Linked to new Case: {reportSummary.linkedNew} · Linked to existing Case:{" "}
+                {reportSummary.linkedExisting} · Rejected or skipped: {reportSummary.rejected}
+              </p>
+            </div>
+            {state.mode === "live" && state.incidents.length > 0 ? (
+              <label className="field-label compact-copy">
+                Incident
+                <select
+                  className="input-field"
+                  value={state.selectedIncidentId ?? "all"}
+                  onChange={(event) => void handleIncidentChange(event.target.value)}
+                >
+                  <option value="all">All incidents</option>
+                  {state.incidents.map((incident) => (
+                    <option key={incident.id} value={incident.id}>
+                      {incident.public_name} ({incident.slug})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+
+          {state.reports.reports.length === 0 ? (
+            <p className="support-copy">No incident reports match this filter.</p>
+          ) : (
+            <div className="staff-case-stack">
+              {state.reports.reports.map((report) => (
+                <ReportCard
+                  dateFormatter={dateFormatter}
+                  key={report.id}
+                  locale={locale}
+                  report={report}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="staff-case-list" aria-labelledby="staff-event-list-title">
@@ -327,12 +441,81 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   );
 }
 
+function ReportCard({
+  dateFormatter,
+  locale,
+  report,
+}: {
+  dateFormatter: Intl.DateTimeFormat;
+  locale: Locale;
+  report: StaffReportListItem;
+}) {
+  const primaryText = getReportPrimaryText(report);
+  const submittedAt = report.submitted_at ?? report.received_at;
+
+  return (
+    <article className="detail-card staff-event-card">
+      <div className="staff-case-header">
+        <div>
+          <div className="staff-card-badges">
+            <p className={getReportStatusPillClassName(report.triage_status)}>
+              {formatReportTriageStatus(report.triage_status)}
+            </p>
+            <p className="status-pill status-pill-neutral">{report.source_label}</p>
+          </div>
+          <p className="field-hint compact-copy">{report.report_code}</p>
+          <h3 className="section-title staff-case-title">{primaryText.personName}</h3>
+          <p className="field-hint compact-copy staff-event-summary-line">
+            {primaryText.submissionType} · {primaryText.ageGender}
+          </p>
+          <p className="support-copy compact-copy">{primaryText.currentStatus}</p>
+          <p className="field-hint compact-copy">Last known location: {report.location_text}</p>
+        </div>
+        <div className="staff-card-side">
+          <p className="field-hint compact-copy">
+            Source time {dateFormatter.format(new Date(submittedAt))}
+          </p>
+          <p className="field-hint compact-copy">
+            {report.linked_case ? `Linked Case ${report.linked_case.case_code}` : "No Case linked"}
+          </p>
+        </div>
+      </div>
+      {report.linked_case ? (
+        <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
+          Open linked Case
+        </Link>
+      ) : null}
+    </article>
+  );
+}
+
 function redirectToLogin(
   router: ReturnType<typeof useRouter>,
   locale: Locale,
   reason: StaffAuthReason,
 ) {
   router.replace(buildStaffLoginHref(locale, reason));
+}
+
+function formatReportTriageStatus(status: StaffReportListItem["triage_status"]) {
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getReportStatusPillClassName(status: StaffReportListItem["triage_status"]) {
+  const bucket = getReportTriageBucket(status);
+  if (bucket === "untriaged") {
+    return "status-pill status-pill-warning";
+  }
+  if (bucket === "linkedNew" || bucket === "linkedExisting") {
+    return "status-pill";
+  }
+  if (bucket === "rejected") {
+    return "status-pill status-pill-neutral";
+  }
+  return "status-pill status-pill-alert";
 }
 
 function getOpenQueueGroups(dashboard: StaffQueueResponse) {

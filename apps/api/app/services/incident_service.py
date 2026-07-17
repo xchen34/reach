@@ -43,6 +43,18 @@ class IncidentService:
         incidents = self.db.scalars(select(Incident).order_by(Incident.created_at.desc(), Incident.id.desc())).all()
         return [StaffIncidentSummary.model_validate(incident) for incident in incidents]
 
+    def get_current_public_report_page(self) -> Optional[PublicIncidentReportPageResponse]:
+        incidents = self.db.scalars(
+            select(Incident)
+            .where(Incident.status == IncidentStatus.ACTIVE)
+            .order_by(Incident.created_at.desc(), Incident.id.desc())
+        ).all()
+        for incident in incidents:
+            public_page = self.get_public_report_page(incident.slug)
+            if public_page is not None:
+                return public_page
+        return None
+
     def get_public_report_page(self, slug: str) -> Optional[PublicIncidentReportPageResponse]:
         incident = self.db.scalar(select(Incident).where(Incident.slug == slug))
         if incident is None or not self._is_intake_open(incident):

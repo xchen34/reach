@@ -1,19 +1,23 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import type { PublicIncidentReportPageResponse } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 const safeReportUrl = process.env.NEXT_PUBLIC_SAFE_REPORT_FORM_URL ?? "";
 const missingReportUrl = process.env.NEXT_PUBLIC_MISSING_REPORT_FORM_URL ?? "";
 const updateReportUrl = process.env.NEXT_PUBLIC_UPDATE_REPORT_FORM_URL ?? "";
 type CommunityCoordinationHomeProps = {
+  activeIncident: PublicIncidentReportPageResponse | null;
   dictionary: Dictionary;
   locale: Locale;
 };
 
 export function CommunityCoordinationHome({
+  activeIncident,
   dictionary,
   locale,
 }: CommunityCoordinationHomeProps) {
+  const incidentReportHref = activeIncident ? `/${locale}/incidents/${activeIncident.slug}/report` : null;
   const actions = [
     {
       key: "safe" as const,
@@ -59,7 +63,20 @@ export function CommunityCoordinationHome({
           <h2 className="section-title" id="community-entry-title">
             {dictionary.home.entryTitle}
           </h2>
-          {actions.every((action) => action.href) ? (
+          {activeIncident && incidentReportHref ? (
+            <div className="community-action-list">
+              <Link className="community-action-link" href={incidentReportHref}>
+                <span>
+                  <strong>{activeIncident.public_name}</strong>
+                  <small>
+                    {activeIncident.affected_area}
+                    {activeIncident.public_description ? ` · ${activeIncident.public_description}` : ""}
+                  </small>
+                </span>
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+            </div>
+          ) : actions.every((action) => action.href) ? (
             <div className="community-action-list">
               {actions.map((action) => (
                 <a

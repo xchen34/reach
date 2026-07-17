@@ -5,6 +5,7 @@ const forwardedHeaderNames = ["authorization", "content-type"] as const;
 const allowedRoutes = [
   { method: "GET", pattern: /^board$/ },
   { method: "GET", pattern: /^share\/[^/]+$/ },
+  { method: "GET", pattern: /^incidents\/current\/report$/ },
   { method: "GET", pattern: /^incidents\/[^/]+\/report$/ },
   { method: "POST", pattern: /^auth\/request-magic-link$/ },
   { method: "POST", pattern: /^auth\/verify-magic-link$/ },

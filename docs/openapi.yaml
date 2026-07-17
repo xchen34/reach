@@ -126,6 +126,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /incidents/current/report:
+    get:
+      tags:
+      - incidents
+      summary: Get Current Public Incident Report Page
+      operationId: get_current_public_incident_report_page_incidents_current_report_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicIncidentReportPageResponse'
   /incidents/{incident_slug}/report:
     get:
       tags:
@@ -1481,6 +1494,31 @@ components:
         original_narrative_preview:
           type: string
           title: Original Narrative Preview
+        submission_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Submission Type
+        person_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Name
+        approximate_age:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approximate Age
+        gender:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gender
+        current_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Current Status
         linked_case:
           anyOf:
           - $ref: '#/components/schemas/ReportCaseSummary'
@@ -1640,6 +1678,31 @@ components:
         original_narrative_preview:
           type: string
           title: Original Narrative Preview
+        submission_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Submission Type
+        person_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Name
+        approximate_age:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approximate Age
+        gender:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gender
+        current_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Current Status
         linked_case:
           anyOf:
           - $ref: '#/components/schemas/ReportCaseSummary'

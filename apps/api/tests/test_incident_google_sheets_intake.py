@@ -96,6 +96,19 @@ def test_public_incident_report_page_exposes_form_but_not_sheet() -> None:
     assert GOOGLE_SPREADSHEET_ID not in response.text
 
 
+def test_current_public_incident_report_page_exposes_active_intake_only() -> None:
+    incident_id, _ = _create_incident_with_source(slug="reach-demo")
+
+    response = client.get("/incidents/current/report")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == incident_id
+    assert payload["slug"] == "reach-demo"
+    assert payload["google_form_url"] == GOOGLE_FORM_URL
+    assert GOOGLE_SPREADSHEET_ID not in response.text
+
+
 def test_inactive_incident_does_not_expose_intake() -> None:
     _create_incident_with_source(status=IncidentStatus.INTAKE_PAUSED)
 
@@ -126,6 +139,16 @@ def test_import_creates_idempotent_incident_scoped_report(monkeypatch: pytest.Mo
     assert first_response.json()["skipped"] == 1
     assert second_response.status_code == 200
     assert second_response.json()["imported"] == 0
+
+    reports_response = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
+    assert reports_response.status_code == 200
+    report_items = reports_response.json()["reports"]
+    assert len(report_items) == 2
+    assert report_items[0]["submission_type"] == "A new report about a person"
+    assert report_items[0]["person_name"] == "Resident B"
+    assert report_items[0]["approximate_age"] == "72"
+    assert report_items[0]["gender"] == "Female"
+    assert report_items[0]["current_status"] == "Family cannot reach her."
 
     with next(override_get_db()) as db:
         reports = db.query(Report).order_by(Report.id).all()

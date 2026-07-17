@@ -46,6 +46,11 @@ class ReportListItem(ApiModel):
     permission_to_contact: Optional[bool] = None
     location_text: str
     original_narrative_preview: str
+    submission_type: Optional[str] = None
+    person_name: Optional[str] = None
+    approximate_age: Optional[str] = None
+    gender: Optional[str] = None
+    current_status: Optional[str] = None
     linked_case: Optional[ReportCaseSummary] = None
     legacy_case_id: Optional[int] = None
     is_legacy_backfill: bool

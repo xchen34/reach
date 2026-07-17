@@ -3,6 +3,8 @@ import type {
   CurrentStaffSession,
   PublicIncidentReportPageResponse,
   PublicBoardResponse,
+  StaffIncidentSummary,
+  StaffReportInboxResponse,
   StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
   StaffCaseActionResponse,
@@ -81,6 +83,10 @@ export function getPublicIncidentReportPage(incidentSlug: string) {
   );
 }
 
+export function getCurrentPublicIncidentReportPage() {
+  return apiFetch<PublicIncidentReportPageResponse>("/incidents/current/report");
+}
+
 export function requestStaffMagicLink(email: string) {
   return apiFetch<StaffMagicLinkRequestResponse>("/auth/request-magic-link", {
     method: "POST",
@@ -103,6 +109,19 @@ export function getCurrentStaffSession(accessToken: string) {
 
 export function getStaffPublishQueue(accessToken: string) {
   return apiFetch<StaffQueueResponse>("/staff/cases/queue", {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffIncidents(accessToken: string) {
+  return apiFetch<StaffIncidentSummary[]>("/staff/incidents", {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffReports(accessToken: string, incidentId?: number | null) {
+  const query = incidentId ? `?incident_id=${encodeURIComponent(String(incidentId))}` : "";
+  return apiFetch<StaffReportInboxResponse>(`/staff/reports${query}`, {
     headers: buildBearerHeaders(accessToken),
   });
 }

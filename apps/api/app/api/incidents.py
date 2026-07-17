@@ -18,6 +18,16 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 staff_router = APIRouter(prefix="/staff/incidents", tags=["staff-incidents"])
 
 
+@router.get("/current/report", response_model=PublicIncidentReportPageResponse)
+def get_current_public_incident_report_page(
+    db: Session = Depends(get_db),
+) -> PublicIncidentReportPageResponse:
+    incident = IncidentService(db).get_current_public_report_page()
+    if incident is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident intake is not available.")
+    return incident
+
+
 @router.get("/{incident_slug}/report", response_model=PublicIncidentReportPageResponse)
 def get_public_incident_report_page(
     incident_slug: str,

@@ -13,6 +13,14 @@ export const caseActionTypes = ["note", "status_change", "claim", "reassign"] as
 export const voiceProcessingStatuses = ["pending", "completed", "failed"] as const;
 export const voiceTranscriptStates = ["generated", "confirmed", "edited"] as const;
 export const voiceRetentionStates = ["retained", "deleted"] as const;
+export const reportTriageStatuses = [
+  "awaiting_review",
+  "linked_to_case",
+  "linked_to_new_case",
+  "linked_to_existing_case",
+  "out_of_scope",
+  "invalid_or_insufficient",
+] as const;
 
 export const caseStatuses = [
   "pending_review",
@@ -27,6 +35,7 @@ export type UrgencyLevel = (typeof urgencyLevels)[number];
 export type StaffRole = (typeof staffRoles)[number];
 export type CaseActionType = (typeof caseActionTypes)[number];
 export type CaseStatus = (typeof caseStatuses)[number];
+export type ReportTriageStatus = (typeof reportTriageStatuses)[number];
 export type ShareLinkScope = "status_only";
 export type VoiceProcessingStatus = (typeof voiceProcessingStatuses)[number];
 export type VoiceTranscriptState = (typeof voiceTranscriptStates)[number];
@@ -108,6 +117,30 @@ export interface CurrentStaffSession {
   session_expires_at: string;
 }
 
+export interface StaffIncidentIntakeSource {
+  id: number;
+  incident_id: number;
+  source_type: "google_sheets";
+  google_form_url: string;
+  google_form_id: string | null;
+  google_sheet_name: string;
+  last_imported_row: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffIncidentSummary {
+  id: number;
+  internal_name: string;
+  public_name: string;
+  slug: string;
+  disaster_type: string;
+  affected_area: string;
+  status: IncidentStatus;
+  intake_sources: StaffIncidentIntakeSource[];
+}
+
 export interface StaffCaseListItem {
   id: number;
   incident_id: number;
@@ -159,6 +192,59 @@ export interface StaffQueueResponse {
   source: "staff-queue-adapter";
   events: StaffQueueGroup[];
   summary: StaffQueueSummary;
+}
+
+export interface ReportCaseSummary {
+  id: number;
+  incident_id: number;
+  case_code: string;
+  person_label: string | null;
+  safety_status:
+    | "unknown"
+    | "possibly_at_risk"
+    | "confirmed_safe"
+    | "suspected_deceased_awaiting_authorized_confirmation"
+    | "confirmed_deceased";
+  handling_status:
+    | "awaiting_action"
+    | "being_investigated"
+    | "escalated_to_rescuers"
+    | "awaiting_external_feedback"
+    | "archived";
+}
+
+export interface StaffReportListItem {
+  id: number;
+  incident_id: number;
+  intake_source_id: number | null;
+  report_code: string;
+  source_channel: "google_form" | "anonymous_web" | "voice" | "manual_staff_entry" | "legacy_migration";
+  source_form_id: string | null;
+  source_form_name: string | null;
+  source_entry_id: string | null;
+  submitted_at: string | null;
+  received_at: string;
+  language_code: string;
+  triage_status: ReportTriageStatus;
+  reporter_relationship: string | null;
+  is_first_hand: boolean | null;
+  permission_to_contact: boolean | null;
+  location_text: string;
+  original_narrative_preview: string;
+  submission_type: string | null;
+  person_name: string | null;
+  approximate_age: string | null;
+  gender: string | null;
+  current_status: string | null;
+  linked_case: ReportCaseSummary | null;
+  legacy_case_id: number | null;
+  is_legacy_backfill: boolean;
+  migration_note: string | null;
+  source_label: string;
+}
+
+export interface StaffReportInboxResponse {
+  reports: StaffReportListItem[];
 }
 
 export interface StaffCaseDetailResponse extends StaffCaseListItem {

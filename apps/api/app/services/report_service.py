@@ -424,6 +424,11 @@ class ReportService:
             permission_to_contact=report.permission_to_contact,
             location_text=report.location_text,
             original_narrative_preview=self._preview(report.original_narrative),
+            submission_type=self._raw_answer_text(report, "submission_type"),
+            person_name=self._raw_answer_text(report, "person_name") or report.reporter_name,
+            approximate_age=self._raw_answer_text(report, "approximate_age"),
+            gender=self._raw_answer_text(report, "gender"),
+            current_status=self._raw_answer_text(report, "current_status"),
             linked_case=self._to_case_summary(report.case_link.case) if report.case_link else None,
             legacy_case_id=report.legacy_case_id,
             is_legacy_backfill=report.is_legacy_backfill,
@@ -464,6 +469,16 @@ class ReportService:
         if report.intake_source_id is not None:
             return "Google Forms / Google Sheets intake"
         return report.source_channel.value
+
+    @staticmethod
+    def _raw_answer_text(report: Report, key: str) -> Optional[str]:
+        if not isinstance(report.raw_answers_json, dict):
+            return None
+        value = report.raw_answers_json.get(key)
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
 
     @staticmethod
     def _report_audit(
