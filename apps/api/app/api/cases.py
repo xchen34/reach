@@ -9,6 +9,7 @@ from app.schemas.case import (
     CaseSubmissionResponse,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCaseOutcomeRequest,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
     StaffCaseRelationRequest,
@@ -94,6 +95,61 @@ def create_case_action(
 ) -> StaffCaseActionResponse:
     try:
         return CaseService(db).create_action(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/assign", response_model=CaseDetailResponse)
+def assign_case_to_self(
+    case_id: int,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    try:
+        return CaseService(db).assign_to_self(case_id, session_context.user)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/return-unassigned", response_model=CaseDetailResponse)
+def return_case_to_unassigned(
+    case_id: int,
+    payload: StaffCaseOutcomeRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    try:
+        return CaseService(db).return_to_unassigned(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/mark-safe", response_model=CaseDetailResponse)
+def mark_case_safe_information_received(
+    case_id: int,
+    payload: StaffCaseOutcomeRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    try:
+        return CaseService(db).mark_safe_information_received(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/mark-deceased", response_model=CaseDetailResponse)
+def mark_case_death_confirmed(
+    case_id: int,
+    payload: StaffCaseOutcomeRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    try:
+        return CaseService(db).mark_death_confirmed(case_id, session_context.user, payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PermissionError as exc:

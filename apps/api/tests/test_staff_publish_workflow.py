@@ -74,8 +74,9 @@ def test_publish_workflow_updates_public_board_fields() -> None:
     board_response = client.get("/board")
     assert board_response.status_code == 200
     record = board_response.json()["records"][0]
-    assert record["board_status"] == "needs_follow_up"
+    assert record["operational_status"] == "in_progress"
     assert (
         record["latest_public_update"]
         == "Volunteers are checking with building contacts and waiting for a callback."
     )
+    assert "platform_last_updated_at" in record

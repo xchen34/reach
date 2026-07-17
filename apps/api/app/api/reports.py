@@ -12,6 +12,7 @@ from app.schemas.report import (
     ReportInboxResponse,
     StaffReportCreateCaseRequest,
     StaffReportCreateCaseResponse,
+    StaffReportCreateTaskRequest,
     StaffReportLinkCaseRequest,
     StaffReportLinkCaseResponse,
     StaffReportNoteRequest,
@@ -56,6 +57,21 @@ def create_case_from_report(
 ) -> StaffReportCreateCaseResponse:
     try:
         return ReportService(db).create_case_from_report(report_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post("/{report_id}/create-task", response_model=StaffReportCreateCaseResponse)
+def create_task_from_report(
+    report_id: int,
+    payload: StaffReportCreateTaskRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> StaffReportCreateCaseResponse:
+    try:
+        return ReportService(db).create_task_from_report(report_id, session_context.user, payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:

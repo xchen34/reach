@@ -19,6 +19,7 @@ from app.schemas.common import ApiModel
 from app.schemas.staff import StaffUserSummary
 
 StaffCaseRelationType = Literal["possible_duplicate", "confirmed_duplicate", "related_update"]
+OperationalStatus = Literal["unassigned", "in_progress", "found_alive", "confirmed_deceased"]
 
 
 class AnonymousCaseSubmissionRequest(BaseModel):
@@ -58,10 +59,15 @@ class CaseListItem(ApiModel):
     needs_summary: str
     latest_public_update: Optional[str] = None
     person_label: Optional[str] = None
+    approximate_age: Optional[str] = None
+    last_known_location: Optional[str] = None
     safety_status: CaseSafetyStatus = CaseSafetyStatus.UNKNOWN
     handling_status: CaseHandlingStatus = CaseHandlingStatus.AWAITING_ACTION
     verification_task: CaseVerificationTask = CaseVerificationTask.NONE
     assigned_staff_user: Optional[StaffUserSummary] = None
+    operational_status: OperationalStatus
+    source_report_count: int = 0
+    platform_last_updated_at: datetime
     created_at: datetime
     updated_at: datetime
 
@@ -71,13 +77,11 @@ class CaseDetailResponse(CaseListItem):
     reporter_name: Optional[str] = None
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = None
-    approximate_age: Optional[str] = None
     appearance: Optional[str] = None
     clothing: Optional[str] = None
     identifying_details: Optional[str] = None
     mobility: Optional[str] = None
     companions: Optional[str] = None
-    last_known_location: Optional[str] = None
     last_known_time: Optional[datetime] = None
     confirmation_source: Optional[str] = None
     confirmation_source_type: Optional[str] = None
@@ -149,6 +153,11 @@ class StaffCaseRelationResponse(ApiModel):
     relation_type: StaffCaseRelationType
     note: Optional[str] = None
     created_at: datetime
+
+
+class StaffCaseOutcomeRequest(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=4000)
+    confirmation_source: Optional[str] = Field(default=None, max_length=280)
 
 
 class AuditLogEntryResponse(ApiModel):

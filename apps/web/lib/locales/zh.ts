@@ -210,8 +210,13 @@ export const zh = {
     statusLegendTitle: "状态说明",
     embedTitle: "嵌入式公开表格",
     embedDescription: "如果你发布了 Google Sheet 或类似公开表格，可以在这里嵌入，方便高密度浏览。",
-    liveTitle: "实时公开记录",
-    liveDescription: "更新由工作人员发布。不会显示原始上报、私人联系方式或精确地点。",
+    liveTitle: "公开状态记录",
+    liveDescription: "Reach 显示经过选择的人物/任务记录。不会显示原始上报、私人联系方式、志愿者详情或精确地点。",
+    statusDisclaimerTitle: "关于页面状态",
+    statusDisclaimerParagraphs: [
+      "本页面显示的是 Reach 志愿协作网络目前记录的信息，并非官方名单，也不保证实时更新。志愿者通常会优先直接联系家属、避难场所、医院、救援人员及其他有关机构，因此未必能及时返回平台更新状态。",
+      "“尚未分配”或“志愿者正在跟进”并不一定表示当事人仍然失联、尚未有人联系，或没有任何进展。家属及受影响人员应优先以直接联系，以及警方、医院、紧急救援部门和其他官方机构发布的信息为准。",
+    ],
     sourceModeDerived: "当前数据源：由现有 REACH case 队列派生。",
     loading: "正在加载公开板记录...",
     loadError: "当前无法加载实时公开板。你仍可先使用首页入口和外部镜像板。",
@@ -225,6 +230,9 @@ export const zh = {
     updatedAtLabel: "最后核实",
     latestUpdateLabel: "最新公开更新",
     latestUpdateFallback: "目前还没有公开更新。",
+    platformLastUpdatedLabel: "平台最后更新时间",
+    personFallbackLabel: "需要跟进的人员",
+    lastKnownLocationLabel: "最后已知地点",
     resultLabel: "处理结果",
     filterLabel: "按状态筛选",
     searchLabel: "搜索记录",
@@ -233,17 +241,21 @@ export const zh = {
       all: "全部状态",
     },
     publicStatuses: {
-      pending: {
-        label: "待处理",
-        description: "已收到，但还在等待人工核实。",
+      unassigned: {
+        label: "Reach 上尚未分配",
+        description: "Reach 尚未记录分配情况。",
       },
       inProgress: {
-        label: "处理中",
-        description: "志愿者正在核实或协调中。",
+        label: "Reach 上已分配跟进",
+        description: "Reach 已记录有人正在跟进。",
       },
-      resolved: {
-        label: "已处理",
-        description: "已有明确处理结果。",
+      foundAlive: {
+        label: "Reach 已收到当事人安全的消息",
+        description: "这是 Reach 记录的信息，不一定是官方认定。",
+      },
+      confirmedDeceased: {
+        label: "Reach 已收到死亡确认",
+        description: "Reach 已记录确认来源或说明。",
       },
     },
     results: {

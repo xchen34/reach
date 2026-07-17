@@ -5,6 +5,7 @@ import type {
   PublicBoardResponse,
   StaffIncidentSummary,
   StaffReportInboxResponse,
+  StaffCaseOutcomeRequest,
   StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
   StaffCaseActionResponse,
@@ -126,9 +127,80 @@ export function getStaffReports(accessToken: string, incidentId?: number | null)
   });
 }
 
+export function createFollowUpTaskFromReport(accessToken: string, reportId: number, note?: string) {
+  return apiFetch(`/staff/reports/${reportId}/create-task`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({ note: note || null }),
+  });
+}
+
+export function linkReportToExistingTask(accessToken: string, reportId: number, caseId: number) {
+  return apiFetch(`/staff/reports/${reportId}/link-case`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({
+      case_id: caseId,
+      link_reason: "Added to existing person/task.",
+    }),
+  });
+}
+
+export function dismissIncomingReport(accessToken: string, reportId: number, note: string) {
+  return apiFetch(`/staff/reports/${reportId}/invalid-or-insufficient`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({ note }),
+  });
+}
+
 export function getStaffCaseDetail(accessToken: string, caseId: number) {
   return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}`, {
     headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function assignStaffCaseToSelf(accessToken: string, caseId: number) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/assign`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({}),
+  });
+}
+
+export function returnStaffCaseToUnassigned(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCaseOutcomeRequest = {},
+) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/return-unassigned`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function markStaffCaseSafe(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCaseOutcomeRequest,
+) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/mark-safe`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function markStaffCaseDeceased(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCaseOutcomeRequest,
+) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/mark-deceased`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
   });
 }
 

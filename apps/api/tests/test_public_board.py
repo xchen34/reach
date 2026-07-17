@@ -56,7 +56,7 @@ def _authenticate_staff(email: str = "board-reviewer@example.com") -> dict[str, 
     return {"Authorization": f"Bearer {access_token}"}
 
 
-def test_public_board_only_lists_explicitly_published_updates() -> None:
+def test_public_board_lists_case_tasks_without_private_contact() -> None:
     first_case = _submit_case(
         urgency="high",
         incident_type="medical",
@@ -70,44 +70,33 @@ def test_public_board_only_lists_explicitly_published_updates() -> None:
         needs="Family reports they reached shelter safely.",
     )
     headers = _authenticate_staff()
-
-    action_response = client.post(
-        f"/staff/cases/{second_case['id']}/actions",
+    assign_response = client.post(f"/staff/cases/{first_case['id']}/assign", headers=headers)
+    assert assign_response.status_code == 200
+    safe_response = client.post(
+        f"/staff/cases/{second_case['id']}/mark-safe",
         headers=headers,
-        json={"action_type": "status_change", "to_status": "safe_resolved"},
+        json={"note": "Family reached the person directly."},
     )
-    assert action_response.status_code == 200
-
-    publish_response = client.post(
-        f"/staff/cases/{second_case['id']}/publish",
-        headers=headers,
-        json={
-            "to_status": "safe_resolved",
-            "latest_public_update": "The coordination team confirmed a safe check-in.",
-        },
-    )
-    assert publish_response.status_code == 200
+    assert safe_response.status_code == 200
 
     board_response = client.get("/board")
     assert board_response.status_code == 200
     payload = board_response.json()
 
-    assert payload["source_mode"] == "derived_from_cases"
+    assert payload["source_mode"] == "case_tasks"
     assert payload["summary"] == {
-        "total_records": 1,
-        "unverified": 0,
-        "responding": 0,
-        "needs_follow_up": 0,
-        "safe_confirmed": 1,
-        "archived": 0,
+        "total_records": 2,
+        "unassigned": 0,
+        "in_progress": 1,
+        "found_alive": 1,
+        "confirmed_deceased": 0,
     }
 
     records = payload["records"]
-    assert len(records) == 1
-    record = records[0]
+    assert len(records) == 2
+    statuses = {record["operational_status"] for record in records}
 
-    assert record["board_status"] == "safe_confirmed"
-    assert record["latest_public_update"] == "The coordination team confirmed a safe check-in."
+    assert statuses == {"in_progress", "found_alive"}
 
     for private_field in (
         "case_code",
@@ -121,10 +110,11 @@ def test_public_board_only_lists_explicitly_published_updates() -> None:
         "reporter_phone",
         "id",
     ):
-        assert private_field not in record
+        assert private_field not in records[0]
+    assert "platform_last_updated_at" in records[0]
 
 
-def test_public_board_hides_archived_records_by_default() -> None:
+def test_public_board_uses_careful_death_confirmation_status() -> None:
     case_payload = _submit_case(
         urgency="low",
         incident_type="other",
@@ -132,32 +122,25 @@ def test_public_board_hides_archived_records_by_default() -> None:
         needs="Duplicate report already resolved.",
     )
     headers = _authenticate_staff("board-archive@example.com")
+    with next(override_get_db()) as db:
+        from app.models.enums import StaffRole
+        from app.models.user import User
 
-    publish_response = client.post(
-        f"/staff/cases/{case_payload['id']}/publish",
-        headers=headers,
-        json={
-            "to_status": "safe_resolved",
-            "latest_public_update": "This update is no longer current.",
-        },
-    )
-    assert publish_response.status_code == 200
+        user = db.query(User).filter(User.email == "board-archive@example.com").one()
+        user.role = StaffRole.COORDINATOR
+        db.commit()
+    headers = _authenticate_staff("board-archive@example.com")
 
-    action_response = client.post(
-        f"/staff/cases/{case_payload['id']}/actions",
+    death_response = client.post(
+        f"/staff/cases/{case_payload['id']}/mark-deceased",
         headers=headers,
-        json={"action_type": "status_change", "to_status": "closed"},
+        json={"confirmation_source": "Hospital coordinator confirmed."},
     )
-    assert action_response.status_code == 200
+    assert death_response.status_code == 200
 
     board_response = client.get("/board")
     assert board_response.status_code == 200
     payload = board_response.json()
-    assert payload["summary"]["total_records"] == 0
-    assert payload["records"] == []
-
-    archived_response = client.get("/board?include_archived=true")
-    assert archived_response.status_code == 200
-    archived_payload = archived_response.json()
-    assert archived_payload["summary"]["archived"] == 1
-    assert archived_payload["records"][0]["board_status"] == "archived"
+    assert payload["summary"]["confirmed_deceased"] == 1
+    assert payload["records"][0]["operational_status"] == "confirmed_deceased"
+    assert payload["records"][0]["latest_public_update"] == "Reach has received confirmed information that the person has died."

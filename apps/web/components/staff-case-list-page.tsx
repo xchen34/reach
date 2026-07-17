@@ -4,12 +4,19 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  assignStaffCaseToSelf,
   ApiError,
+  createFollowUpTaskFromReport,
+  dismissIncomingReport,
   getCurrentStaffSession,
   getStaffIncidents,
   getStaffPublishQueue,
   getStaffReports,
   logoutStaffSession,
+  markStaffCaseDeceased,
+  markStaffCaseSafe,
+  returnStaffCaseToUnassigned,
+  linkReportToExistingTask,
 } from "@/lib/api";
 import type {
   CurrentStaffSession,
@@ -17,6 +24,7 @@ import type {
   StaffQueueResponse,
   StaffReportInboxResponse,
   StaffReportListItem,
+  StaffCaseListItem,
 } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
@@ -231,6 +239,22 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     }
   }
 
+  async function reloadWorkspace() {
+    if (state.status !== "ready" || state.mode !== "live") {
+      return;
+    }
+    const accessToken = state.accessToken ?? readStoredStaffAccessToken();
+    const [dashboard, reports] = await Promise.all([
+      withStaffAuthorization(accessToken, getStaffPublishQueue),
+      withStaffAuthorization(accessToken, (token) => getStaffReports(token, state.selectedIncidentId)),
+    ]);
+    setState({
+      ...state,
+      dashboard,
+      reports,
+    });
+  }
+
   if (state.status === "loading") {
     return (
       <AppShell
@@ -268,8 +292,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   }
 
   const dashboard = state.dashboard;
-  const queueGroups = getOpenQueueGroups(dashboard);
   const reportSummary = summarizeReports(state.reports.reports);
+  const taskCases = dashboard.events
+    .flatMap((group) => group.related_cases)
+    .filter((task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId);
+  const taskSummary = summarizeTasks(taskCases);
 
   return (
     <AppShell
@@ -293,15 +320,18 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
       <div className="staff-dashboard-shell">
         <div className="staff-toolbar">
           <div>
-            <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.title}</h1>
-            <p className="lede emergency-lede">{dictionary.staff.cases.description}</p>
+            <h1 className="headline headline-compact staff-headline">Volunteer task board</h1>
+            <p className="lede emergency-lede">
+              Create lightweight follow-up tasks, assign them externally, and record only meaningful outcomes.
+            </p>
           </div>
         </div>
 
         <section className="staff-dashboard-source" aria-labelledby="staff-dashboard-source-title">
           <p className="field-hint compact-copy" id="staff-dashboard-source-title">
             {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
-            {dictionary.staff.cases.summaryCards.openCases}: {dashboard.summary.open_cases} ·{" "}
+            Not yet assigned: {taskSummary.unassigned} · Being followed up: {taskSummary.inProgress} ·{" "}
+            Safe information received: {taskSummary.foundAlive} · Death confirmed: {taskSummary.confirmedDeceased} ·{" "}
             Reports: {reportSummary.total} ·{" "}
             {dictionary.staff.cases.lastUpdatedLabel}{" "}
             {dashboard.summary.last_updated_at
@@ -314,11 +344,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           <div className="staff-section-header">
             <div>
               <h2 className="section-title" id="staff-report-list-title">
-                Incident reports
+                Incoming reports
               </h2>
               <p className="field-hint compact-copy">
-                Untriaged: {reportSummary.untriaged} · Linked to new Case: {reportSummary.linkedNew} · Linked to existing Case:{" "}
-                {reportSummary.linkedExisting} · Rejected or skipped: {reportSummary.rejected}
+                Need decision: {reportSummary.untriaged} · Follow-up tasks created: {reportSummary.linkedNew} · Added to existing:{" "}
+                {reportSummary.linkedExisting} · Dismissed: {reportSummary.rejected}
               </p>
             </div>
             {state.mode === "live" && state.incidents.length > 0 ? (
@@ -346,9 +376,12 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
             <div className="staff-case-stack">
               {state.reports.reports.map((report) => (
                 <ReportCard
+                  accessToken={state.accessToken}
+                  candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
                   dateFormatter={dateFormatter}
                   key={report.id}
                   locale={locale}
+                  onReload={() => void reloadWorkspace()}
                   report={report}
                 />
               ))}
@@ -359,80 +392,28 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
         <section className="staff-case-list" aria-labelledby="staff-event-list-title">
           <div className="staff-section-header">
             <h2 className="section-title" id="staff-event-list-title">
-              {dictionary.staff.cases.listTitle}
+              People requiring follow-up
             </h2>
             <p className="field-hint compact-copy">
-              {dictionary.staff.cases.summaryCards.unassigned}: {dashboard.summary.unassigned_cases}
+              Use Reach as the desk record; volunteers should prioritize real-world contact over platform updates.
             </p>
           </div>
 
-          {queueGroups.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.empty}</p>
+          {taskCases.length === 0 ? (
+            <p className="support-copy">No follow-up tasks have been created yet.</p>
           ) : (
             <div className="staff-case-stack">
-              {queueGroups.map((group) => {
-                const leadCase = getLeadOpenCase(group);
-                const caseCodes = group.related_cases.map((item) => item.case_code).join(" + ");
-                const isMergedGroup = group.case_count > 1;
-
-                return (
-                <article className="detail-card staff-event-card" key={group.id}>
-                  <div className="staff-case-header">
-                    <div>
-                      <div className="staff-card-badges">
-                        <p className={getStatusPillClassName(group.status)}>
-                          {dictionary.caseStatus.labels[group.status]}
-                        </p>
-                        {isMergedGroup ? (
-                          <p className="status-pill status-pill-neutral">
-                            {dictionary.staff.cases.mergedGroupLabel}
-                          </p>
-                        ) : null}
-                      </div>
-                      <p className="field-hint compact-copy">{caseCodes}</p>
-                      <h3 className="section-title staff-case-title">{group.title}</h3>
-                      <p className="field-hint compact-copy staff-event-summary-line">
-                        {dictionary.home.form.incidentType.options[group.incident_type]} ·{" "}
-                        {dictionary.home.form.urgency.options[group.highest_urgency]} ·{" "}
-                        {dictionary.staff.cases.caseCountLabel}: {group.case_count}
-                      </p>
-                      <p className="support-copy compact-copy">{group.summary}</p>
-                    </div>
-                    <div className="staff-card-side">
-                      <p className="field-hint compact-copy">
-                        {dictionary.staff.cases.assignedLabel}:{" "}
-                        {leadCase?.assigned_staff_user?.email ?? dictionary.staff.cases.unassigned}
-                      </p>
-                      <p className="field-hint compact-copy staff-event-summary-line">
-                        {dictionary.staff.cases.lastUpdatedLabel}{" "}
-                        {dateFormatter.format(new Date(group.last_updated_at))}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isMergedGroup ? (
-                    <div className="staff-merged-case-list" aria-label={dictionary.staff.cases.mergedCasesLabel}>
-                      {group.related_cases.map((item) => (
-                        <div className="staff-merged-case-row" key={item.id}>
-                          <span className="field-hint compact-copy">{item.case_code}</span>
-                          <span>{item.location_summary}</span>
-                          <span className={getStatusPillClassName(item.status)}>
-                            {dictionary.caseStatus.labels[item.status]}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <Link
-                    className="button-primary staff-link-button"
-                    href={`/${locale}/staff/cases/${leadCase?.id ?? group.related_cases[0]?.id}`}
-                  >
-                    {dictionary.staff.cases.openCase}
-                  </Link>
-                </article>
-                );
-              })}
+              {taskCases.map((task) => (
+                <TaskCard
+                  accessToken={state.accessToken}
+                  dateFormatter={dateFormatter}
+                  key={task.id}
+                  locale={locale}
+                  onReload={() => void reloadWorkspace()}
+                  sessionRole={state.session.user.role}
+                  task={task}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -442,16 +423,38 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 }
 
 function ReportCard({
+  accessToken,
+  candidateCases,
   dateFormatter,
   locale,
+  onReload,
   report,
 }: {
+  accessToken: string | null;
+  candidateCases: StaffCaseListItem[];
   dateFormatter: Intl.DateTimeFormat;
   locale: Locale;
+  onReload: () => void;
   report: StaffReportListItem;
 }) {
+  const [selectedCaseId, setSelectedCaseId] = useState(candidateCases[0]?.id ?? null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const primaryText = getReportPrimaryText(report);
   const submittedAt = report.submitted_at ?? report.received_at;
+  const isOpen = report.triage_status === "awaiting_review";
+
+  async function runAction(action: () => Promise<unknown>) {
+    if (!accessToken || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await action();
+      onReload();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <article className="detail-card staff-event-card">
@@ -476,15 +479,174 @@ function ReportCard({
             Source time {dateFormatter.format(new Date(submittedAt))}
           </p>
           <p className="field-hint compact-copy">
-            {report.linked_case ? `Linked Case ${report.linked_case.case_code}` : "No Case linked"}
+            {report.linked_case ? `Linked task ${report.linked_case.case_code}` : "No task linked"}
           </p>
         </div>
       </div>
-      {report.linked_case ? (
+      {isOpen ? (
+        <div className="button-row">
+          <button
+            className="button-primary"
+            disabled={isSubmitting}
+            type="button"
+            onClick={() => void runAction(() => createFollowUpTaskFromReport(accessToken ?? "", report.id))}
+          >
+            Create follow-up task
+          </button>
+          {candidateCases.length > 0 ? (
+            <>
+              <select
+                className="input-field"
+                value={selectedCaseId ?? ""}
+                onChange={(event) => setSelectedCaseId(Number(event.target.value))}
+              >
+                {candidateCases.map((task) => (
+                  <option key={task.id} value={task.id}>
+                    {task.person_label || task.location_summary}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="button-secondary"
+                disabled={isSubmitting || selectedCaseId === null}
+                type="button"
+                onClick={() =>
+                  void runAction(() =>
+                    linkReportToExistingTask(accessToken ?? "", report.id, selectedCaseId ?? 0),
+                  )
+                }
+              >
+                Add to existing person/task
+              </button>
+            </>
+          ) : null}
+          <button
+            className="button-secondary"
+            disabled={isSubmitting}
+            type="button"
+            onClick={() =>
+              void runAction(() =>
+                dismissIncomingReport(
+                  accessToken ?? "",
+                  report.id,
+                  "Dismissed as duplicate, test, spam, unrelated, or unusable.",
+                ),
+              )
+            }
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : report.linked_case ? (
         <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
-          Open linked Case
+          Open linked task
         </Link>
       ) : null}
+    </article>
+  );
+}
+
+function TaskCard({
+  accessToken,
+  dateFormatter,
+  locale,
+  onReload,
+  sessionRole,
+  task,
+}: {
+  accessToken: string | null;
+  dateFormatter: Intl.DateTimeFormat;
+  locale: Locale;
+  onReload: () => void;
+  sessionRole: "volunteer" | "coordinator";
+  task: StaffCaseListItem;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function runAction(action: () => Promise<unknown>) {
+    if (!accessToken || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await action();
+      onReload();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <article className="detail-card staff-event-card">
+      <div className="staff-case-header">
+        <div>
+          <div className="staff-card-badges">
+            <p className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
+              {operationalStatusLabel(task.operational_status ?? "unassigned")}
+            </p>
+          </div>
+          <p className="field-hint compact-copy">{task.case_code}</p>
+          <h3 className="section-title staff-case-title">{task.person_label || task.location_summary}</h3>
+          <p className="field-hint compact-copy">
+            {task.approximate_age ? `Age: ${task.approximate_age}` : "Age not recorded"}
+          </p>
+          <p className="support-copy compact-copy">{task.needs_summary}</p>
+          <p className="field-hint compact-copy">
+            Last known location: {task.last_known_location || task.location_summary}
+          </p>
+        </div>
+        <div className="staff-card-side">
+          <p className="field-hint compact-copy">
+            Assigned: {task.assigned_staff_user?.email ?? "Not yet assigned"}
+          </p>
+          <p className="field-hint compact-copy">
+            Platform last updated {dateFormatter.format(new Date(task.platform_last_updated_at ?? task.updated_at))}
+          </p>
+          <p className="field-hint compact-copy">Source reports: {task.source_report_count ?? 0}</p>
+        </div>
+      </div>
+      <div className="button-row">
+        <button
+          className="button-primary"
+          disabled={isSubmitting}
+          type="button"
+          onClick={() => void runAction(() => assignStaffCaseToSelf(accessToken ?? "", task.id))}
+        >
+          {task.assigned_staff_user ? "Reassign to me" : "Assign to me"}
+        </button>
+        <button
+          className="button-secondary"
+          disabled={isSubmitting}
+          type="button"
+          onClick={() => void runAction(() => returnStaffCaseToUnassigned(accessToken ?? "", task.id))}
+        >
+          Return to unassigned
+        </button>
+        <button
+          className="button-secondary"
+          disabled={isSubmitting}
+          type="button"
+          onClick={() => void runAction(() => markStaffCaseSafe(accessToken ?? "", task.id, {}))}
+        >
+          Mark safe information received
+        </button>
+        <button
+          className="button-secondary"
+          disabled={isSubmitting || sessionRole !== "coordinator"}
+          type="button"
+          onClick={() => {
+            const source = window.prompt("Confirmation source or explanation is required.");
+            if (source) {
+              void runAction(() => markStaffCaseDeceased(accessToken ?? "", task.id, { confirmation_source: source }));
+            }
+          }}
+        >
+          Mark death confirmed
+        </button>
+        <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${task.id}`}>
+          Open details
+        </Link>
+      </div>
     </article>
   );
 }
@@ -518,30 +680,46 @@ function getReportStatusPillClassName(status: StaffReportListItem["triage_status
   return "status-pill status-pill-alert";
 }
 
-function getOpenQueueGroups(dashboard: StaffQueueResponse) {
-  return dashboard.events
-    .filter((group) => group.related_cases.some((item) => item.status !== "safe_resolved" && item.status !== "closed"))
-    .sort((left, right) => {
-      const urgency = urgencyPriority[right.highest_urgency] - urgencyPriority[left.highest_urgency];
-      return urgency || Date.parse(right.last_updated_at) - Date.parse(left.last_updated_at);
-    });
+function operationalStatusLabel(status: StaffCaseListItem["operational_status"]) {
+  if (status === "unassigned") {
+    return "Not yet assigned";
+  }
+  if (status === "in_progress") {
+    return "Being followed up";
+  }
+  if (status === "found_alive") {
+    return "Reach has received information that the person is safe";
+  }
+  return "Reach has received confirmed information that the person has died";
 }
 
-function getLeadOpenCase(group: StaffQueueResponse["events"][number]) {
-  return (
-    group.related_cases.find((item) => item.status !== "safe_resolved" && item.status !== "closed") ??
-    group.related_cases[0] ??
-    null
-  );
-}
-
-const urgencyPriority = { critical: 4, high: 3, medium: 2, low: 1 } as const;
-
-function getStatusPillClassName(status: StaffQueueResponse["events"][number]["status"]) {
-  if (status === "pending_review" || status === "waiting_for_information") {
+function getOperationalStatusClassName(status: StaffCaseListItem["operational_status"]) {
+  if (status === "unassigned") {
     return "status-pill status-pill-warning";
   }
-  return "status-pill status-pill-alert";
+  if (status === "in_progress") {
+    return "status-pill status-pill-alert";
+  }
+  return "status-pill";
+}
+
+function summarizeTasks(tasks: StaffCaseListItem[]) {
+  return tasks.reduce(
+    (summary, task) => {
+      const status = task.operational_status ?? "unassigned";
+      if (status === "unassigned") {
+        summary.unassigned += 1;
+      } else if (status === "in_progress") {
+        summary.inProgress += 1;
+      } else if (status === "found_alive") {
+        summary.foundAlive += 1;
+      } else {
+        summary.confirmedDeceased += 1;
+      }
+      return summary;
+    },
+    { unassigned: 0, inProgress: 0, foundAlive: 0, confirmedDeceased: 0 },
+  );
 }
 
 function toQueueResponse(dashboard: ReturnType<typeof buildStaffDashboardData>): StaffQueueResponse {

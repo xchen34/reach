@@ -107,6 +107,10 @@ class StaffReportCreateCaseRequest(ApiModel):
     note: Optional[str] = Field(default=None, max_length=4000)
 
 
+class StaffReportCreateTaskRequest(ApiModel):
+    note: Optional[str] = Field(default=None, max_length=4000)
+
+
 class StaffReportLinkCaseRequest(ApiModel):
     case_id: int = Field(gt=0)
     link_reason: Optional[str] = Field(default=None, max_length=400)

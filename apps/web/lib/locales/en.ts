@@ -225,8 +225,14 @@ export const en = {
     embedTitle: "Embedded public sheet",
     embedDescription:
       "If you publish a Google Sheet or similar board view, you can embed it here for a denser spreadsheet-style scan.",
-    liveTitle: "Live board records",
-    liveDescription: "Staff publish these updates. Original reports, private contacts, and exact locations are not shown.",
+    liveTitle: "Public status records",
+    liveDescription:
+      "Reach shows selected person/task records. Original reports, private contacts, volunteer details, and exact locations are not shown.",
+    statusDisclaimerTitle: "About these statuses",
+    statusDisclaimerParagraphs: [
+      "This page shows information currently recorded by the Reach volunteer network. It is not an official or real-time register. Volunteers usually prioritize directly contacting families, shelters, hospitals, responders, and other relevant organizations, and may not return to update the platform promptly.",
+      "A status such as 'Not yet assigned' or 'Being followed up' does not necessarily mean that the person is still missing, that nobody has contacted them, or that no progress has been made. Families and affected people should rely first on direct communication and information from police, hospitals, emergency services, and other official authorities.",
+    ],
     sourceModeDerived: "Current source: derived from the existing REACH case queue.",
     loading: "Loading current board records...",
     loadError: "The live board feed could not be loaded right now. You can still use the intake links and external mirror while volunteers recover the feed.",
@@ -240,6 +246,9 @@ export const en = {
     updatedAtLabel: "Last reviewed",
     latestUpdateLabel: "Latest public update",
     latestUpdateFallback: "No public update has been posted yet.",
+    platformLastUpdatedLabel: "Platform last updated",
+    personFallbackLabel: "Person requiring follow-up",
+    lastKnownLocationLabel: "Last known location",
     resultLabel: "Result",
     filterLabel: "Filter by status",
     searchLabel: "Search records",
@@ -248,17 +257,21 @@ export const en = {
       all: "All statuses",
     },
     publicStatuses: {
-      pending: {
-        label: "Pending",
-        description: "Received but still waiting for human verification.",
+      unassigned: {
+        label: "Not yet assigned on Reach",
+        description: "Reach has not yet recorded an assignment.",
       },
       inProgress: {
-        label: "In progress",
-        description: "Volunteers are actively verifying or coordinating.",
+        label: "Follow-up assigned on Reach",
+        description: "Reach has recorded that someone is following up.",
       },
-      resolved: {
-        label: "Resolved",
-        description: "A clear public result is available.",
+      foundAlive: {
+        label: "Reach has received safe information",
+        description: "This is information recorded by Reach, not necessarily an official determination.",
+      },
+      confirmedDeceased: {
+        label: "Reach has received confirmed death information",
+        description: "Reach has recorded a confirmation source or explanation.",
       },
     },
     results: {

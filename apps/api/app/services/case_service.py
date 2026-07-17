@@ -38,6 +38,7 @@ from app.schemas.case import (
     ShareLinkSummary,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCaseOutcomeRequest,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
     StaffCaseRelationRequest,
@@ -228,6 +229,108 @@ class CaseService:
 
         return StaffCaseActionResponse.model_validate(action)
 
+    def assign_to_self(self, case_id: int, actor: StaffUserSummary) -> CaseDetailResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        previous_status = case.status
+        case.assigned_staff_user_id = actor.id
+        if case.safety_status not in {CaseSafetyStatus.CONFIRMED_SAFE, CaseSafetyStatus.CONFIRMED_DECEASED}:
+            self.apply_legacy_status(case, CaseStatus.ACTIVE)
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.CLAIM,
+            note="Follow-up assigned.",
+            from_status=previous_status,
+            to_status=case.status,
+            target_staff_user_id=actor.id,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
+    def return_to_unassigned(self, case_id: int, actor: StaffUserSummary, payload: StaffCaseOutcomeRequest) -> CaseDetailResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        previous_status = case.status
+        case.assigned_staff_user_id = None
+        if case.safety_status not in {CaseSafetyStatus.CONFIRMED_SAFE, CaseSafetyStatus.CONFIRMED_DECEASED}:
+            self.apply_legacy_status(case, CaseStatus.PENDING_REVIEW)
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.REASSIGN,
+            note=payload.note or "Returned to unassigned follow-up.",
+            from_status=previous_status,
+            to_status=case.status,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
+    def mark_safe_information_received(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCaseOutcomeRequest,
+    ) -> CaseDetailResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        previous_status = case.status
+        self.apply_legacy_status(case, CaseStatus.SAFE_RESOLVED)
+        case.confirmation_source = payload.confirmation_source or payload.note
+        case.confirmation_source_type = "reach_received_safe_information"
+        case.confirmed_at = datetime.now(timezone.utc)
+        case.latest_public_update = "Reach has received information that the person is safe."
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.STATUS_CHANGE,
+            note=payload.note,
+            from_status=previous_status,
+            to_status=case.status,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
+    def mark_death_confirmed(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCaseOutcomeRequest,
+    ) -> CaseDetailResponse:
+        if actor.role != StaffRole.COORDINATOR:
+            raise PermissionError("Only coordinators can confirm death information.")
+        source = (payload.confirmation_source or payload.note or "").strip()
+        if not source:
+            raise ValueError("Death confirmation requires a confirmation source or explanation.")
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        previous_status = case.status
+        case.status = CaseStatus.CLOSED
+        case.safety_status = CaseSafetyStatus.CONFIRMED_DECEASED
+        case.handling_status = CaseHandlingStatus.ARCHIVED
+        case.confirmation_source = source
+        case.confirmation_source_type = "death_confirmation"
+        case.confirmed_at = datetime.now(timezone.utc)
+        case.latest_public_update = "Reach has received confirmed information that the person has died."
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.STATUS_CHANGE,
+            note=source,
+            from_status=previous_status,
+            to_status=case.status,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
     def publish_case_update(
         self,
         case_id: int,
@@ -378,10 +481,15 @@ class CaseService:
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
             person_label=case.person_label,
+            approximate_age=case.approximate_age,
+            last_known_location=case.last_known_location,
             safety_status=case.safety_status,
             handling_status=case.handling_status,
             verification_task=case.verification_task,
             assigned_staff_user=assigned_staff_user,
+            operational_status=self._operational_status(case),
+            source_report_count=len(case.case_reports or []),
+            platform_last_updated_at=case.updated_at,
             created_at=case.created_at,
             updated_at=case.updated_at,
         )
@@ -394,13 +502,11 @@ class CaseService:
             reporter_name=case.reporter_name,
             reporter_email=case.reporter_email,
             reporter_phone=case.reporter_phone,
-            approximate_age=case.approximate_age,
             appearance=case.appearance,
             clothing=case.clothing,
             identifying_details=case.identifying_details,
             mobility=case.mobility,
             companions=case.companions,
-            last_known_location=case.last_known_location,
             last_known_time=case.last_known_time,
             confirmation_source=case.confirmation_source,
             confirmation_source_type=case.confirmation_source_type,
@@ -414,6 +520,55 @@ class CaseService:
         safety_status, handling_status = CaseService.map_legacy_status(status)
         case.safety_status = safety_status
         case.handling_status = handling_status
+
+    def _record_case_action(
+        self,
+        *,
+        case: Case,
+        actor: StaffUserSummary,
+        action_type: CaseActionType,
+        note: Optional[str],
+        from_status: Optional[CaseStatus] = None,
+        to_status: Optional[CaseStatus] = None,
+        target_staff_user_id: Optional[int] = None,
+    ) -> None:
+        self.db.add(
+            CaseAction(
+                case_id=case.id,
+                actor_user_id=actor.id,
+                action_type=action_type,
+                note=note,
+                from_status=from_status,
+                to_status=to_status,
+                target_staff_user_id=target_staff_user_id,
+            )
+        )
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.STAFF,
+                actor_user_id=actor.id,
+                case_id=case.id,
+                event_type=AuditEventType.CASE_ACTION_CREATED,
+                metadata_json={
+                    "action_type": action_type.value,
+                    "operational_status": self._operational_status(case),
+                },
+            )
+        )
+
+    @staticmethod
+    def _operational_status(case: Case) -> str:
+        if case.safety_status == CaseSafetyStatus.CONFIRMED_DECEASED:
+            return "confirmed_deceased"
+        if case.safety_status == CaseSafetyStatus.CONFIRMED_SAFE:
+            return "found_alive"
+        if case.assigned_staff_user_id is not None or case.handling_status in {
+            CaseHandlingStatus.BEING_INVESTIGATED,
+            CaseHandlingStatus.ESCALATED_TO_RESCUERS,
+            CaseHandlingStatus.AWAITING_EXTERNAL_FEEDBACK,
+        }:
+            return "in_progress"
+        return "unassigned"
 
     @staticmethod
     def map_legacy_status(status: CaseStatus) -> tuple[CaseSafetyStatus, CaseHandlingStatus]:

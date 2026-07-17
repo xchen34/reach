@@ -9,8 +9,9 @@ from app.deps import get_db
 from app.main import app
 from app.models.case import Case
 from app.models.case_report import CaseReport
-from app.models.enums import CaseStatus
+from app.models.enums import CaseSafetyStatus, CaseStatus, StaffRole
 from app.models.report import Report
+from app.models.user import User
 from test_app import engine, override_get_db
 
 
@@ -35,6 +36,13 @@ def _authenticate_staff(email: str = "reports@example.com") -> dict[str, str]:
     verify_response = client.post("/auth/verify-magic-link", json={"token": signed_token})
     assert verify_response.status_code == 200
     return {"Authorization": f"Bearer {verify_response.json()['access_token']}"}
+
+
+def _promote_user(email: str, role: StaffRole) -> None:
+    with next(override_get_db()) as db:
+        user = db.query(User).filter(User.email == email).one()
+        user.role = role
+        db.commit()
 
 
 def _ingest(entry_id: str = "entry-report-1") -> int:
@@ -114,6 +122,70 @@ def test_create_case_from_report_links_report_and_uses_compatibility_statuses() 
         assert db.query(CaseReport).count() == 1
         case = db.query(Case).one()
         assert case.status is CaseStatus.ACTIVE
+
+
+def test_simplified_task_workflow_preserves_original_report_and_requires_death_source() -> None:
+    report_id = _ingest("entry-task-workflow")
+    headers = _authenticate_staff("task-volunteer@example.com")
+
+    create_response = client.post(
+        f"/staff/reports/{report_id}/create-task",
+        headers=headers,
+        json={},
+    )
+    assert create_response.status_code == 200
+    created = create_response.json()
+    case_id = created["case"]["id"]
+    assert created["case"]["operational_status"] == "unassigned"
+    assert created["case"]["source_report_count"] == 1
+    assert created["report"]["triage_status"] == "linked_to_new_case"
+
+    assign_response = client.post(f"/staff/cases/{case_id}/assign", headers=headers)
+    assert assign_response.status_code == 200
+    assert assign_response.json()["operational_status"] == "in_progress"
+
+    safe_response = client.post(
+        f"/staff/cases/{case_id}/mark-safe",
+        headers=headers,
+        json={"note": "Family reported direct contact."},
+    )
+    assert safe_response.status_code == 200
+    assert safe_response.json()["operational_status"] == "found_alive"
+
+    blocked_death_response = client.post(
+        f"/staff/cases/{case_id}/mark-deceased",
+        headers=headers,
+        json={"confirmation_source": "Hospital desk confirmation."},
+    )
+    assert blocked_death_response.status_code == 403
+
+    coordinator_email = "task-coordinator@example.com"
+    coordinator_headers = _authenticate_staff(coordinator_email)
+    _promote_user(coordinator_email, StaffRole.COORDINATOR)
+    coordinator_headers = _authenticate_staff(coordinator_email)
+    missing_source_response = client.post(
+        f"/staff/cases/{case_id}/mark-deceased",
+        headers=coordinator_headers,
+        json={},
+    )
+    assert missing_source_response.status_code == 400
+
+    death_response = client.post(
+        f"/staff/cases/{case_id}/mark-deceased",
+        headers=coordinator_headers,
+        json={"confirmation_source": "Hospital desk confirmation."},
+    )
+    assert death_response.status_code == 200
+    assert death_response.json()["operational_status"] == "confirmed_deceased"
+
+    with next(override_get_db()) as db:
+        stored_report = db.get(Report, report_id)
+        assert stored_report is not None
+        assert stored_report.original_narrative == "Synthetic reporter cannot reach one resident after evacuation."
+        stored_case = db.get(Case, case_id)
+        assert stored_case is not None
+        assert stored_case.safety_status is CaseSafetyStatus.CONFIRMED_DECEASED
+        assert stored_case.confirmation_source == "Hospital desk confirmation."
 
 
 def test_report_can_link_to_only_one_case_and_source_is_immutable() -> None:

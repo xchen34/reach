@@ -225,8 +225,14 @@ export const fr = {
     embedTitle: "Feuille publique integree",
     embedDescription:
       "Si vous publiez une Google Sheet ou une vue similaire, vous pouvez l'integrer ici pour une lecture plus dense de type tableur.",
-    liveTitle: "Fiches publiques en direct",
-    liveDescription: "L'equipe publie ces mises a jour. Les signalements bruts, contacts prives et lieux precis ne sont pas affiches.",
+    liveTitle: "Fiches publiques de statut",
+    liveDescription:
+      "Reach affiche des fiches personne/tache selectionnees. Les signalements bruts, contacts prives, details des benevoles et lieux precis ne sont pas affiches.",
+    statusDisclaimerTitle: "A propos de ces statuts",
+    statusDisclaimerParagraphs: [
+      "Cette page presente les informations actuellement enregistrees par le reseau de benevoles Reach. Il ne s'agit ni d'une liste officielle ni d'un suivi en temps reel. Les benevoles donnent generalement la priorite aux contacts directs avec les familles, les centres d'hebergement, les hopitaux, les secours et les organismes concernes, et peuvent ne pas mettre la plateforme a jour immediatement.",
+      "Un statut tel que « Pas encore attribue » ou « Suivi en cours » ne signifie pas necessairement que la personne est toujours portee disparue, que personne ne l'a contactee ou qu'aucun progres n'a ete realise. Les familles et les personnes concernees doivent privilegier les echanges directs ainsi que les informations fournies par la police, les hopitaux, les services de secours et les autres autorites officielles.",
+    ],
     sourceModeDerived: "Source actuelle : derivee de la file de dossiers REACH existante.",
     loading: "Chargement des fiches publiques...",
     loadError:
@@ -241,6 +247,9 @@ export const fr = {
     updatedAtLabel: "Derniere revue",
     latestUpdateLabel: "Derniere mise a jour publique",
     latestUpdateFallback: "Aucune mise a jour publique pour le moment.",
+    platformLastUpdatedLabel: "Derniere mise a jour sur la plateforme",
+    personFallbackLabel: "Personne necessitant un suivi",
+    lastKnownLocationLabel: "Dernier lieu connu",
     resultLabel: "Resultat",
     filterLabel: "Filtrer par statut",
     searchLabel: "Rechercher des fiches",
@@ -249,17 +258,21 @@ export const fr = {
       all: "Tous les statuts",
     },
     publicStatuses: {
-      pending: {
-        label: "En attente",
-        description: "Recu mais encore en attente de verification humaine.",
+      unassigned: {
+        label: "Pas encore attribue sur Reach",
+        description: "Reach n'a pas encore enregistre d'attribution.",
       },
       inProgress: {
-        label: "En cours",
-        description: "Les benevoles verifient ou coordonnent actuellement.",
+        label: "Suivi attribue sur Reach",
+        description: "Reach a enregistre qu'une personne effectue un suivi.",
       },
-      resolved: {
-        label: "Traite",
-        description: "Un resultat public clair est disponible.",
+      foundAlive: {
+        label: "Reach a recu des informations indiquant que la personne est en securite",
+        description: "Il s'agit d'une information enregistree par Reach, pas necessairement d'une decision officielle.",
+      },
+      confirmedDeceased: {
+        label: "Reach a recu une confirmation du deces",
+        description: "Reach a enregistre une source ou une explication de confirmation.",
       },
     },
     results: {

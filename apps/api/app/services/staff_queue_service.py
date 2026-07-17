@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit_log_entry import AuditLogEntry
 from app.models.case import Case
-from app.models.enums import AuditEventType, CaseStatus, UrgencyLevel
+from app.models.enums import AuditEventType, CaseHandlingStatus, CaseSafetyStatus, CaseStatus, UrgencyLevel
 from app.schemas.case import CaseListItem
 from app.schemas.staff import StaffUserSummary
 from app.schemas.staff_queue import StaffQueueGroup, StaffQueueResponse, StaffQueueSummary
@@ -136,7 +136,16 @@ class StaffQueueService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            person_label=case.person_label,
+            approximate_age=case.approximate_age,
+            last_known_location=case.last_known_location,
+            safety_status=case.safety_status,
+            handling_status=case.handling_status,
+            verification_task=case.verification_task,
             assigned_staff_user=assigned_staff_user,
+            operational_status=self._operational_status(case),
+            source_report_count=len(case.case_reports or []),
+            platform_last_updated_at=case.updated_at,
             created_at=case.created_at,
             updated_at=case.updated_at,
         )
@@ -180,6 +189,20 @@ class StaffQueueService:
     @staticmethod
     def _is_closed_status(status: CaseStatus) -> bool:
         return status in {CaseStatus.SAFE_RESOLVED, CaseStatus.CLOSED}
+
+    @staticmethod
+    def _operational_status(case: Case) -> str:
+        if case.safety_status == CaseSafetyStatus.CONFIRMED_DECEASED:
+            return "confirmed_deceased"
+        if case.safety_status == CaseSafetyStatus.CONFIRMED_SAFE:
+            return "found_alive"
+        if case.assigned_staff_user_id is not None or case.handling_status in {
+            CaseHandlingStatus.BEING_INVESTIGATED,
+            CaseHandlingStatus.ESCALATED_TO_RESCUERS,
+            CaseHandlingStatus.AWAITING_EXTERNAL_FEEDBACK,
+        }:
+            return "in_progress"
+        return "unassigned"
 
     @staticmethod
     def _status_priority(status: CaseStatus) -> int:

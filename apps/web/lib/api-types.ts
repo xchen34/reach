@@ -48,6 +48,7 @@ export type PublicBoardStatus =
   | "archived";
 
 export type IncidentStatus = "draft" | "active" | "intake_paused" | "closed" | "archived";
+export type OperationalStatus = "unassigned" | "in_progress" | "found_alive" | "confirmed_deceased";
 
 export interface PublicIncidentReportPageResponse {
   id: number;
@@ -72,22 +73,26 @@ export interface ShareLinkCaseView {
 }
 
 export interface PublicBoardRecord {
-  board_status: PublicBoardStatus;
-  latest_public_update: string;
-  updated_at: string;
+  public_id: string;
+  operational_status: OperationalStatus;
+  person_label: string | null;
+  approximate_age: string | null;
+  gender: string | null;
+  last_known_location: string;
+  latest_public_update: string | null;
+  platform_last_updated_at: string;
 }
 
 export interface PublicBoardSummary {
   total_records: number;
-  unverified: number;
-  responding: number;
-  needs_follow_up: number;
-  safe_confirmed: number;
-  archived: number;
+  unassigned: number;
+  in_progress: number;
+  found_alive: number;
+  confirmed_deceased: number;
 }
 
 export interface PublicBoardResponse {
-  source_mode: "derived_from_cases";
+  source_mode: "case_tasks";
   records: PublicBoardRecord[];
   summary: PublicBoardSummary;
 }
@@ -151,7 +156,33 @@ export interface StaffCaseListItem {
   location_summary: string;
   needs_summary: string;
   latest_public_update: string | null;
+  person_label?: string | null;
+  approximate_age?: string | null;
+  last_known_location?: string | null;
+  safety_status?:
+    | "unknown"
+    | "possibly_at_risk"
+    | "confirmed_safe"
+    | "suspected_deceased_awaiting_authorized_confirmation"
+    | "confirmed_deceased";
+  handling_status?:
+    | "awaiting_action"
+    | "being_investigated"
+    | "escalated_to_rescuers"
+    | "awaiting_external_feedback"
+    | "archived";
+  verification_task?:
+    | "confirm_identity"
+    | "confirm_last_known_location"
+    | "compare_possible_same_person"
+    | "contact_reporter"
+    | "await_responder_feedback"
+    | "await_authorized_confirmation"
+    | "none";
   assigned_staff_user: StaffUserSummary | null;
+  operational_status?: OperationalStatus;
+  source_report_count?: number;
+  platform_last_updated_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -245,6 +276,11 @@ export interface StaffReportListItem {
 
 export interface StaffReportInboxResponse {
   reports: StaffReportListItem[];
+}
+
+export interface StaffCaseOutcomeRequest {
+  note?: string | null;
+  confirmation_source?: string | null;
 }
 
 export interface StaffCaseDetailResponse extends StaffCaseListItem {

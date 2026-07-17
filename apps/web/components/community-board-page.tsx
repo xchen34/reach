@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { PublicBoardResponse, PublicBoardStatus } from "@/lib/api-types";
+import type { OperationalStatus, PublicBoardResponse } from "@/lib/api-types";
 import { AppShell } from "@/components/app-shell";
 import { getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -73,6 +73,17 @@ export function CommunityBoardPage({
           {dictionary.board.emergencyNotice}
         </p>
 
+        <section className="community-entry-section" aria-labelledby="board-disclaimer-title">
+          <h2 className="section-title" id="board-disclaimer-title">
+            {dictionary.board.statusDisclaimerTitle}
+          </h2>
+          {dictionary.board.statusDisclaimerParagraphs.map((paragraph) => (
+            <p className="support-copy compact-copy" key={paragraph}>
+              {paragraph}
+            </p>
+          ))}
+        </section>
+
         <section className="community-entry-section" aria-labelledby="board-live-title">
           <div className="community-entry-header">
             <div>
@@ -89,16 +100,28 @@ export function CommunityBoardPage({
             ) : (
               <div className="community-board-records">
                 {boardData.records.map((record) => (
-                  <article className="community-board-card" key={`${record.updated_at}-${record.latest_public_update}`}>
+                  <article className="community-board-card" key={record.public_id}>
                     <div className="community-board-card-header">
-                      <span className={statusClassName(record.board_status)}>
-                        {publicStatusLabel(dictionary, record.board_status)}
+                      <span className={statusClassName(record.operational_status)}>
+                        {publicStatusLabel(dictionary, record.operational_status)}
                       </span>
-                      <time dateTime={record.updated_at}>
-                        {dateFormatter.format(new Date(record.updated_at))}
+                      <time dateTime={record.platform_last_updated_at}>
+                        {dictionary.board.platformLastUpdatedLabel}{" "}
+                        {dateFormatter.format(new Date(record.platform_last_updated_at))}
                       </time>
                     </div>
-                    <p>{record.latest_public_update}</p>
+                    <h3 className="section-title staff-case-title">
+                      {record.person_label ?? dictionary.board.personFallbackLabel}
+                    </h3>
+                    <p>
+                      {dictionary.board.lastKnownLocationLabel}: {record.last_known_location}
+                    </p>
+                    {record.approximate_age || record.gender ? (
+                      <p className="field-hint compact-copy">
+                        {[record.approximate_age, record.gender].filter(Boolean).join(" / ")}
+                      </p>
+                    ) : null}
+                    {record.latest_public_update ? <p>{record.latest_public_update}</p> : null}
                   </article>
                 ))}
               </div>
@@ -114,22 +137,28 @@ export function CommunityBoardPage({
   );
 }
 
-function statusClassName(status: PublicBoardStatus) {
-  if (status === "responding" || status === "needs_follow_up") {
+function statusClassName(status: OperationalStatus) {
+  if (status === "in_progress") {
     return "status-pill status-pill-alert";
+  }
+  if (status === "unassigned") {
+    return "status-pill status-pill-warning";
   }
   return "status-pill";
 }
 
 function publicStatusLabel(
   dictionary: Dictionary,
-  status: PublicBoardStatus,
+  status: OperationalStatus,
 ) {
-  if (status === "unverified") {
-    return dictionary.board.publicStatuses.pending.label;
+  if (status === "unassigned") {
+    return dictionary.board.publicStatuses.unassigned.label;
   }
-  if (status === "responding" || status === "needs_follow_up") {
+  if (status === "in_progress") {
     return dictionary.board.publicStatuses.inProgress.label;
   }
-  return dictionary.board.publicStatuses.resolved.label;
+  if (status === "found_alive") {
+    return dictionary.board.publicStatuses.foundAlive.label;
+  }
+  return dictionary.board.publicStatuses.confirmedDeceased.label;
 }

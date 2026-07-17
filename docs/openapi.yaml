@@ -297,6 +297,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/assign:
+    post:
+      tags:
+      - staff-cases
+      summary: Assign Case To Self
+      operationId: assign_case_to_self_staff_cases__case_id__assign_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/return-unassigned:
+    post:
+      tags:
+      - staff-cases
+      summary: Return Case To Unassigned
+      operationId: return_case_to_unassigned_staff_cases__case_id__return_unassigned_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCaseOutcomeRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/mark-safe:
+    post:
+      tags:
+      - staff-cases
+      summary: Mark Case Safe Information Received
+      operationId: mark_case_safe_information_received_staff_cases__case_id__mark_safe_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCaseOutcomeRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/mark-deceased:
+    post:
+      tags:
+      - staff-cases
+      summary: Mark Case Death Confirmed
+      operationId: mark_case_death_confirmed_staff_cases__case_id__mark_deceased_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCaseOutcomeRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /staff/reports:
     get:
       tags:
@@ -384,6 +514,40 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StaffReportCreateCaseRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffReportCreateCaseResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/create-task:
+    post:
+      tags:
+      - staff-reports
+      summary: Create Task From Report
+      operationId: create_task_from_report_staff_reports__report_id__create_task_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffReportCreateTaskRequest'
       responses:
         '200':
           description: Successful Response
@@ -937,6 +1101,16 @@ components:
           - type: string
           - type: 'null'
           title: Person Label
+        approximate_age:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approximate Age
+        last_known_location:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Known Location
         safety_status:
           $ref: '#/components/schemas/CaseSafetyStatus'
           default: unknown
@@ -950,6 +1124,22 @@ components:
           anyOf:
           - $ref: '#/components/schemas/StaffUserSummary'
           - type: 'null'
+        operational_status:
+          type: string
+          enum:
+          - unassigned
+          - in_progress
+          - found_alive
+          - confirmed_deceased
+          title: Operational Status
+        source_report_count:
+          type: integer
+          title: Source Report Count
+          default: 0
+        platform_last_updated_at:
+          type: string
+          format: date-time
+          title: Platform Last Updated At
         created_at:
           type: string
           format: date-time
@@ -977,11 +1167,6 @@ components:
           - type: string
           - type: 'null'
           title: Reporter Phone
-        approximate_age:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Approximate Age
         appearance:
           anyOf:
           - type: string
@@ -1007,11 +1192,6 @@ components:
           - type: string
           - type: 'null'
           title: Companions
-        last_known_location:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Last Known Location
         last_known_time:
           anyOf:
           - type: string
@@ -1049,6 +1229,8 @@ components:
       - incident_type
       - location_summary
       - needs_summary
+      - operational_status
+      - platform_last_updated_at
       - created_at
       - updated_at
       - language_code
@@ -1095,6 +1277,16 @@ components:
           - type: string
           - type: 'null'
           title: Person Label
+        approximate_age:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Approximate Age
+        last_known_location:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Known Location
         safety_status:
           $ref: '#/components/schemas/CaseSafetyStatus'
           default: unknown
@@ -1108,6 +1300,22 @@ components:
           anyOf:
           - $ref: '#/components/schemas/StaffUserSummary'
           - type: 'null'
+        operational_status:
+          type: string
+          enum:
+          - unassigned
+          - in_progress
+          - found_alive
+          - confirmed_deceased
+          title: Operational Status
+        source_report_count:
+          type: integer
+          title: Source Report Count
+          default: 0
+        platform_last_updated_at:
+          type: string
+          format: date-time
+          title: Platform Last Updated At
         created_at:
           type: string
           format: date-time
@@ -1126,6 +1334,8 @@ components:
       - incident_type
       - location_summary
       - needs_summary
+      - operational_status
+      - platform_last_updated_at
       - created_at
       - updated_at
       title: CaseListItem
@@ -1927,6 +2137,22 @@ components:
       - action_type
       - created_at
       title: StaffCaseActionResponse
+    StaffCaseOutcomeRequest:
+      properties:
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+        confirmation_source:
+          anyOf:
+          - type: string
+            maxLength: 280
+          - type: 'null'
+          title: Confirmation Source
+      type: object
+      title: StaffCaseOutcomeRequest
     StaffCaseVoiceResponse:
       properties:
         id:
@@ -2198,6 +2424,16 @@ components:
       - case
       - action
       title: StaffReportCreateCaseResponse
+    StaffReportCreateTaskRequest:
+      properties:
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+      type: object
+      title: StaffReportCreateTaskRequest
     StaffReportLinkCaseRequest:
       properties:
         case_id:

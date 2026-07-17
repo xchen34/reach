@@ -15,10 +15,15 @@ from app.models.case_report import CaseReport
 from app.models.enums import (
     AuditActorType,
     AuditEventType,
+    CaseHandlingStatus,
+    CaseSafetyStatus,
+    CaseStatus,
+    IncidentType,
     CaseVerificationTask,
     ReportSourceChannel,
     ReportTriageActionType,
     ReportTriageStatus,
+    UrgencyLevel,
 )
 from app.models.report import Report
 from app.models.report_triage_action import ReportTriageAction
@@ -33,6 +38,7 @@ from app.schemas.report import (
     ReportTriageActionResponse,
     StaffReportCreateCaseRequest,
     StaffReportCreateCaseResponse,
+    StaffReportCreateTaskRequest,
     StaffReportLinkCaseRequest,
     StaffReportLinkCaseResponse,
     StaffReportNoteResponse,
@@ -171,6 +177,55 @@ class ReportService:
         self.db.refresh(report)
         self.db.refresh(action)
 
+        case_detail = CaseService(self.db).get_case(case.id)
+        if case_detail is None:
+            raise LookupError("Case not found after creation.")
+        return StaffReportCreateCaseResponse(
+            report=self._to_detail(report),
+            case=case_detail,
+            action=ReportTriageActionResponse.model_validate(action),
+        )
+
+    def create_task_from_report(
+        self,
+        report_id: int,
+        actor: StaffUserSummary,
+        payload: StaffReportCreateTaskRequest,
+    ) -> StaffReportCreateCaseResponse:
+        report = self._get_report_for_triage(report_id)
+        self._ensure_report_can_be_linked(report)
+        case = Case(
+            incident_id=report.incident_id,
+            case_code=CaseService._generate_case_code(),
+            status=CaseStatus.PENDING_REVIEW,
+            urgency=UrgencyLevel.MEDIUM,
+            incident_type=IncidentType.OTHER,
+            language_code=report.language_code,
+            location_summary=report.location_text,
+            needs_summary=report.original_narrative,
+            latest_public_update=None,
+            person_label=self._raw_answer_text(report, "person_name") or report.reporter_name,
+            approximate_age=self._raw_answer_text(report, "approximate_age"),
+            identifying_details=self._raw_answer_text(report, "identifying_description"),
+            last_known_location=report.location_text,
+            safety_status=CaseSafetyStatus.UNKNOWN,
+            handling_status=CaseHandlingStatus.AWAITING_ACTION,
+            verification_task=CaseVerificationTask.NONE,
+        )
+        self.db.add(case)
+        self.db.flush()
+        action = self._link_report_to_case(
+            report=report,
+            case=case,
+            actor=actor,
+            action_type=ReportTriageActionType.CREATE_CASE,
+            link_reason="Created follow-up task from incoming report.",
+            note=payload.note,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        self.db.refresh(report)
+        self.db.refresh(action)
         case_detail = CaseService(self.db).get_case(case.id)
         if case_detail is None:
             raise LookupError("Case not found after creation.")
