@@ -151,6 +151,7 @@ export function StaffCaseDetailPage({
       await withStaffAuthorization(accessToken, logoutStaffSession);
     } finally {
       clearStaffAccessToken();
+      window.dispatchEvent(new Event("Reach.staff-session-changed"));
       router.replace(buildStaffLoginHref(locale, "logged_out"));
     }
   }

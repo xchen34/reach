@@ -53,6 +53,7 @@ export function StaffMagicLinkVerifier({
         const nextPath = `/${locale}/staff`;
 
         storeStaffAccessToken(session.access_token);
+        window.dispatchEvent(new Event("Reach.staff-session-changed"));
 
         if (!isMounted) {
           window.location.replace(nextPath);

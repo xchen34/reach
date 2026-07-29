@@ -353,6 +353,9 @@ export const en = {
   },
   staff: {
     eyebrow: "REACH staff",
+    dashboardLabel: "Staff dashboard",
+    returnToDashboard: "Back to dashboard",
+    loginCta: "Staff sign in",
     logout: "Sign out",
     logoutSubmitting: "Signing out...",
     roleLabels: {

@@ -207,6 +207,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
       }
     } finally {
       clearStaffAccessToken();
+      window.dispatchEvent(new Event("Reach.staff-session-changed"));
       router.replace(buildStaffLoginHref(locale, "logged_out"));
     }
   }

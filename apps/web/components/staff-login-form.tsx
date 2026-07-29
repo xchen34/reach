@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ApiError, requestStaffMagicLink } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import {
@@ -9,6 +10,7 @@ import {
   clearStaffAccessToken,
   type StaffAuthReason,
 } from "@/lib/staff-session";
+import { useStaffSessionStatus } from "@/lib/use-staff-session-status";
 import { AppShell } from "@/components/app-shell";
 
 type StaffLoginFormProps = {
@@ -18,6 +20,8 @@ type StaffLoginFormProps = {
 };
 
 export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormProps) {
+  const router = useRouter();
+  const staffSessionStatus = useStaffSessionStatus("staff-login");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -25,6 +29,26 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reasonMessage = reason ? dictionary.staff.login.reasons[reason] : null;
+
+  useEffect(() => {
+    if (staffSessionStatus === "authenticated" && reason !== "logged_out") {
+      router.replace(`/${locale}/staff`);
+    }
+  }, [locale, reason, router, staffSessionStatus]);
+
+  if (staffSessionStatus === "authenticated" && reason !== "logged_out") {
+    return (
+      <AppShell
+        homeLabel={dictionary.staff.login.backHome}
+        languageLabel={dictionary.home.languagePicker}
+        locale={locale}
+        publicBoardLabel={dictionary.home.boardCta}
+        sectionLabel={dictionary.staff.eyebrow}
+      >
+        <p className="lede">{dictionary.staff.session.loading}</p>
+      </AppShell>
+    );
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

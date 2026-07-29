@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { StaffDashboardEntryLink } from "@/components/staff-dashboard-entry-link";
 import type { PublicIncidentReportPageResponse } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
@@ -100,9 +101,11 @@ export function CommunityCoordinationHome({
         </section>
 
         <nav className="community-home-links" aria-label={dictionary.home.entryTitle}>
-          <Link className="community-home-staff-link" href={`/${locale}/staff/login`}>
-            {dictionary.home.staffCta}
-          </Link>
+          <StaffDashboardEntryLink
+            authenticatedLabel={dictionary.staff.returnToDashboard}
+            locale={locale}
+            loginLabel={dictionary.staff.loginCta}
+          />
         </nav>
       </div>
     </AppShell>

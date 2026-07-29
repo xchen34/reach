@@ -334,6 +334,9 @@ export const zh = {
   },
   staff: {
     eyebrow: "REACH 志愿者",
+    dashboardLabel: "工作后台",
+    returnToDashboard: "返回后台",
+    loginCta: "登录后台",
     logout: "退出登录",
     logoutSubmitting: "正在退出...",
     roleLabels: {
