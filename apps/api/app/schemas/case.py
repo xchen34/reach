@@ -166,6 +166,11 @@ class StaffCaseOutcomeRequest(BaseModel):
     confirmation_source: Optional[str] = Field(default=None, max_length=280)
 
 
+class StaffCaseOperationalStatusRequest(BaseModel):
+    target_status: OperationalStatus
+    note: Optional[str] = Field(default=None, max_length=4000)
+
+
 class AuditLogEntryResponse(ApiModel):
     id: int
     actor_type: str

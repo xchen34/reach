@@ -16,7 +16,7 @@ from app.models.enums import (
     SubjectType,
     UrgencyLevel,
 )
-from app.schemas.case import CaseDetailResponse
+from app.schemas.case import CaseDetailResponse, OperationalStatus
 from app.schemas.attachment import StaffAttachmentResponse
 from app.schemas.common import ApiModel
 
@@ -29,6 +29,8 @@ class ReportCaseSummary(ApiModel):
     subject_type: SubjectType = SubjectType.UNKNOWN
     safety_status: CaseSafetyStatus
     handling_status: CaseHandlingStatus
+    operational_status: OperationalStatus
+    can_modify_status: bool = True
 
 
 class ReportListItem(ApiModel):

@@ -477,6 +477,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /staff/cases/{case_id}/operational-status:
+    patch:
+      tags:
+      - staff-cases
+      summary: Correct Case Operational Status
+      operationId: correct_case_operational_status_staff_cases__case_id__operational_status_patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: case_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Case Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCaseOperationalStatusRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /staff/reports:
     get:
       tags:
@@ -1886,6 +1920,18 @@ components:
           $ref: '#/components/schemas/CaseSafetyStatus'
         handling_status:
           $ref: '#/components/schemas/CaseHandlingStatus'
+        operational_status:
+          type: string
+          enum:
+          - unassigned
+          - in_progress
+          - found_alive
+          - confirmed_deceased
+          title: Operational Status
+        can_modify_status:
+          type: boolean
+          title: Can Modify Status
+          default: true
       type: object
       required:
       - id
@@ -1893,6 +1939,7 @@ components:
       - case_code
       - safety_status
       - handling_status
+      - operational_status
       title: ReportCaseSummary
     ReportDetailResponse:
       properties:
@@ -2481,6 +2528,26 @@ components:
       - action_type
       - created_at
       title: StaffCaseActionResponse
+    StaffCaseOperationalStatusRequest:
+      properties:
+        target_status:
+          type: string
+          enum:
+          - unassigned
+          - in_progress
+          - found_alive
+          - confirmed_deceased
+          title: Target Status
+        note:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - target_status
+      title: StaffCaseOperationalStatusRequest
     StaffCaseOutcomeRequest:
       properties:
         note:

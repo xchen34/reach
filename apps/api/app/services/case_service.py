@@ -39,6 +39,7 @@ from app.schemas.case import (
     ShareLinkSummary,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCaseOperationalStatusRequest,
     StaffCaseOutcomeRequest,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
@@ -332,6 +333,81 @@ class CaseService:
         self.db.refresh(case)
         return self._to_case_detail(case)
 
+    def correct_operational_status(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCaseOperationalStatusRequest,
+    ) -> CaseDetailResponse:
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+
+        previous_case_status = case.status
+        previous_operational_status = self._operational_status(case)
+        target_status = payload.target_status
+
+        if target_status == "unassigned":
+            case.assigned_staff_user_id = None
+            case.confirmed_at = None
+            case.confirmation_source = None
+            case.confirmation_source_type = None
+            self.apply_legacy_status(case, CaseStatus.PENDING_REVIEW)
+            case.latest_public_update = self._pending_public_update(case.subject_type)
+        elif target_status == "in_progress":
+            case.assigned_staff_user_id = actor.id
+            case.confirmed_at = None
+            case.confirmation_source = None
+            case.confirmation_source_type = None
+            self.apply_legacy_status(case, CaseStatus.ACTIVE)
+            case.latest_public_update = self._in_progress_public_update(case.subject_type)
+        elif target_status == "found_alive":
+            self.apply_legacy_status(case, CaseStatus.SAFE_RESOLVED)
+            case.confirmation_source = payload.note
+            case.confirmation_source_type = "status_correction"
+            case.confirmed_at = datetime.now(timezone.utc)
+            case.latest_public_update = self._safe_public_update(case.subject_type)
+        else:
+            case.status = CaseStatus.CLOSED
+            case.safety_status = CaseSafetyStatus.CONFIRMED_DECEASED
+            case.handling_status = CaseHandlingStatus.ARCHIVED
+            case.confirmation_source = payload.note or "Corrected to confirmed deceased by volunteer action."
+            case.confirmation_source_type = "status_correction"
+            case.confirmed_at = datetime.now(timezone.utc)
+            case.latest_public_update = self._deceased_public_update(case.subject_type)
+
+        new_operational_status = self._operational_status(case)
+        note = payload.note.strip() if payload.note else None
+        self.db.add(
+            CaseAction(
+                case_id=case.id,
+                actor_user_id=actor.id,
+                action_type=CaseActionType.STATUS_CHANGE,
+                note=note,
+                from_status=previous_case_status,
+                to_status=case.status,
+            )
+        )
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.STAFF,
+                actor_user_id=actor.id,
+                case_id=case.id,
+                event_type=AuditEventType.CASE_ACTION_CREATED,
+                metadata_json={
+                    "action_type": "operational_status_correction",
+                    "from_operational_status": previous_operational_status,
+                    "to_operational_status": new_operational_status,
+                    "from_status": previous_case_status.value,
+                    "to_status": case.status.value,
+                    "note": note,
+                },
+            )
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
     def publish_case_update(
         self,
         case_id: int,
@@ -584,6 +660,18 @@ class CaseService:
         if subject_type == SubjectType.PET:
             return "Reach has received confirmed information that the pet has died."
         return "Reach has received confirmed information that the person has died."
+
+    @staticmethod
+    def _pending_public_update(subject_type: SubjectType) -> str:
+        if subject_type == SubjectType.PET:
+            return "Pet requiring follow-up."
+        return "Person requiring follow-up."
+
+    @staticmethod
+    def _in_progress_public_update(subject_type: SubjectType) -> str:
+        if subject_type == SubjectType.PET:
+            return "Volunteer follow-up is in progress for this pet."
+        return "Volunteer follow-up is in progress for this person."
 
     @staticmethod
     def map_legacy_status(status: CaseStatus) -> tuple[CaseSafetyStatus, CaseHandlingStatus]:

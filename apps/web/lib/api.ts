@@ -6,6 +6,7 @@ import type {
   PublicBoardResponse,
   StaffIncidentSummary,
   StaffReportInboxResponse,
+  StaffCaseOperationalStatusRequest,
   StaffCaseOutcomeRequest,
   StaffCaseIntakeReviewResponse,
   StaffCaseActionRequest,
@@ -232,6 +233,18 @@ export function markStaffCaseDeceased(
 ) {
   return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/mark-deceased`, {
     method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function correctStaffCaseOperationalStatus(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCaseOperationalStatusRequest,
+) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/operational-status`, {
+    method: "PATCH",
     headers: buildBearerHeaders(accessToken),
     body: JSON.stringify(payload),
   });

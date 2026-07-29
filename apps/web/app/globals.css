@@ -1061,6 +1061,13 @@ textarea {
   align-content: start;
 }
 
+.staff-detail-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .staff-detail-container {
   width: min(1000px, calc(100% - 32px));
   margin-inline: auto;
@@ -1073,6 +1080,12 @@ textarea {
 .staff-subtitle {
   margin: 0 0 0.35rem;
   font-size: 1rem;
+}
+
+.status-correction-dialog {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
 }
 
 .published-update-card {

@@ -27,6 +27,7 @@ import type {
   StaffCaseListItem,
   StaffAttachment,
   SubjectType,
+  OperationalStatus,
 } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
@@ -455,6 +456,8 @@ function ReportCard({
   const primaryText = getReportPrimaryText(report);
   const submittedAt = report.submitted_at ?? report.received_at;
   const isOpen = report.triage_status === "awaiting_review";
+  const linkedTaskStatus = report.linked_case?.operational_status;
+  const reportBadges = getReportBadges(dictionary, report, candidateCases.length);
 
   async function runAction(action: () => Promise<unknown>) {
     if (!accessToken || isSubmitting) {
@@ -476,10 +479,23 @@ function ReportCard({
         <div className="staff-compact-content">
           <div className="staff-compact-top-row">
             <h3 className="staff-compact-title">{primaryText.personName}</h3>
-            <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, report.subject_type)}</span>
-            <span className={getReportStatusPillClassName(report.triage_status)}>
-              {formatReportTriageStatus(dictionary, report.triage_status)}
-            </span>
+            {report.subject_type === "person" || report.subject_type === "pet" ? (
+              <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, report.subject_type)}</span>
+            ) : null}
+            {linkedTaskStatus ? (
+              <span className={getOperationalStatusClassName(linkedTaskStatus)}>
+                {operationalStatusLabel(dictionary, linkedTaskStatus, report.linked_case?.subject_type ?? report.subject_type)}
+              </span>
+            ) : isOpen ? (
+              <span className={getReportStatusPillClassName(report.triage_status)}>
+                {formatReportTriageStatus(dictionary, report.triage_status)}
+              </span>
+            ) : null}
+            {reportBadges.map((badge) => (
+              <span className="status-pill status-pill-neutral" key={badge}>
+                {badge}
+              </span>
+            ))}
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
             {report.location_text}
@@ -493,9 +509,6 @@ function ReportCard({
                 {dictionary.staff.cases.reportTimeLabel}: {dateFormatter.format(new Date(submittedAt))}
               </p>
             </div>
-          ) : null}
-          {report.linked_case ? (
-            <p className="status-pill">{dictionary.staff.cases.addedToHelpListStatus}</p>
           ) : null}
           {!isOpen && !report.linked_case ? (
             <p className="status-pill status-pill-neutral">{formatReportTriageStatus(dictionary, report.triage_status)}</p>
@@ -561,11 +574,8 @@ function ReportCard({
         </div>
       ) : report.linked_case ? (
         <div className="button-row staff-compact-actions">
-          <button className="button-secondary" type="button" onClick={() => setIsDetailsOpen((value) => !value)}>
-            {dictionary.staff.cases.viewReportAction}
-          </button>
-          <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
-            {dictionary.staff.cases.viewHelpRequestAction}
+          <Link className="button-primary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
+            {dictionary.staff.cases.openTaskAction}
           </Link>
         </div>
       ) : null}
@@ -721,7 +731,7 @@ function getReportStatusPillClassName(status: StaffReportListItem["triage_status
 
 function operationalStatusLabel(
   dictionary: Dictionary,
-  status: StaffCaseListItem["operational_status"],
+  status: OperationalStatus,
   subjectType: SubjectType,
 ) {
   if (status === "unassigned") {
@@ -740,7 +750,7 @@ function operationalStatusLabel(
     : dictionary.staff.cases.operationalStatuses.personConfirmedDeceased;
 }
 
-function getOperationalStatusClassName(status: StaffCaseListItem["operational_status"]) {
+function getOperationalStatusClassName(status: OperationalStatus) {
   if (status === "unassigned") {
     return "status-pill status-pill-warning";
   }
@@ -748,6 +758,45 @@ function getOperationalStatusClassName(status: StaffCaseListItem["operational_st
     return "status-pill status-pill-alert";
   }
   return "status-pill";
+}
+
+function getReportBadges(
+  dictionary: Dictionary,
+  report: StaffReportListItem,
+  candidateCaseCount: number,
+) {
+  const badges: string[] = [];
+
+  if (report.linked_case) {
+    if (report.triage_status === "linked_to_existing_case") {
+      badges.push(dictionary.staff.cases.mergedIntoExistingTaskLabel);
+    }
+    if (isLikelyUpdateReport(report)) {
+      badges.push(dictionary.staff.cases.possibleUpdateLabel);
+    }
+    return badges;
+  }
+
+  if (report.triage_status === "invalid_or_insufficient") {
+    badges.push(dictionary.staff.cases.incompleteDetailsLabel);
+  }
+
+  if (report.subject_type === "unknown") {
+    badges.push(dictionary.staff.cases.unknownSubjectTypeLabel);
+  }
+
+  if (candidateCaseCount > 0 && report.triage_status === "awaiting_review") {
+    badges.push(isLikelyUpdateReport(report)
+      ? dictionary.staff.cases.possibleUpdateLabel
+      : dictionary.staff.cases.possibleDuplicateLabel);
+  }
+
+  return badges;
+}
+
+function isLikelyUpdateReport(report: StaffReportListItem) {
+  const text = `${report.submission_type ?? ""} ${report.original_narrative_preview ?? ""}`.toLowerCase();
+  return report.triage_status === "linked_to_existing_case" || text.includes("update") || text.includes("补充");
 }
 
 function summarizeTasks(tasks: StaffCaseListItem[]) {

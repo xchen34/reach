@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   assignStaffCaseToSelf,
   ApiError,
+  correctStaffCaseOperationalStatus,
   createStaffCaseAction,
   getCurrentStaffSession,
   getStaffCaseDetail,
@@ -21,6 +22,7 @@ import {
   type AuditLogEntryResponse,
   type CaseStatus,
   type CurrentStaffSession,
+  type OperationalStatus,
   type StaffCaseListItem,
   type StaffCaseDetailResponse,
   type StaffCaseRelationType,
@@ -74,6 +76,10 @@ export function StaffCaseDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [isLinkingRelation, setIsLinkingRelation] = useState(false);
+  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [correctionTarget, setCorrectionTarget] = useState<OperationalStatus>("unassigned");
+  const [correctionNote, setCorrectionNote] = useState("");
+  const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
 
   const dateFormatter = useMemo(
     () =>
@@ -242,6 +248,46 @@ export function StaffCaseDetailPage({
     }
   }
 
+  async function handleStatusCorrection(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (state.status !== "ready" || isSubmittingCorrection) {
+      return;
+    }
+
+    const currentStatus = state.caseDetail.operational_status ?? "unassigned";
+    const fromLabel = operationalStatusLabel(dictionary, currentStatus, state.caseDetail.subject_type);
+    const toLabel = correctionStatusLabel(dictionary, correctionTarget);
+    const prompt = dictionary.staff.detail.confirmStatusCorrectionPrompt
+      .replace("{from}", fromLabel)
+      .replace("{to}", toLabel);
+
+    if (!window.confirm(prompt)) {
+      return;
+    }
+
+    setActionError(null);
+    setActionSuccess(null);
+    setIsSubmittingCorrection(true);
+
+    try {
+      await withStaffAuthorization(state.accessToken, (token) =>
+        correctStaffCaseOperationalStatus(token, caseId, {
+          target_status: correctionTarget,
+          note: correctionNote.trim() || null,
+        }),
+      );
+      setIsCorrectionOpen(false);
+      setCorrectionNote("");
+      setActionSuccess(dictionary.staff.detail.statusCorrectionSuccess);
+      await loadCase();
+    } catch (error) {
+      await handleActionError(error);
+    } finally {
+      setIsSubmittingCorrection(false);
+    }
+  }
+
   async function handleRelation(caseToRelate: StaffCaseListItem, relationType: StaffCaseRelationType) {
     if (state.status !== "ready") {
       return;
@@ -365,9 +411,10 @@ export function StaffCaseDetailPage({
   const relatedMarkers = auditEntries
     .map((entry) => getRelatedMarker(entry))
     .filter((marker): marker is RelatedMarker => marker !== null);
+  const caseOperationalStatus = caseDetail.operational_status ?? "unassigned";
   const isFinal =
-    caseDetail.operational_status === "found_alive" ||
-    caseDetail.operational_status === "confirmed_deceased";
+    caseOperationalStatus === "found_alive" ||
+    caseOperationalStatus === "confirmed_deceased";
   const isAssignedToCurrentUser = caseDetail.assigned_staff_user?.id === session.user.id;
   const canClaim = !caseDetail.assigned_staff_user && !isFinal;
   const canCoordinatorReassign =
@@ -376,8 +423,13 @@ export function StaffCaseDetailPage({
     (isAssignedToCurrentUser || session.user.role === "coordinator") &&
     Boolean(caseDetail.assigned_staff_user) &&
     !isFinal;
+  const currentOperationalStatusLabel = operationalStatusLabel(
+    dictionary,
+    caseOperationalStatus,
+    caseDetail.subject_type,
+  );
   const reviewSummaryItems = [
-    { label: dictionary.staff.detail.statusLabel, value: dictionary.caseStatus.labels[caseDetail.status] },
+    { label: dictionary.staff.detail.statusLabel, value: currentOperationalStatusLabel },
     { label: dictionary.staff.detail.assignedLabel, value: assignedEmail },
     { label: dictionary.staff.detail.urgencyLabel, value: dictionary.home.form.urgency.options[caseDetail.urgency] },
     { label: dictionary.staff.detail.updatedAtLabel, value: dateFormatter.format(new Date(caseDetail.updated_at)) },
@@ -408,7 +460,12 @@ export function StaffCaseDetailPage({
       <div className="staff-detail-container">
         <div className="staff-toolbar">
           <div>
-            <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
+            <div className="staff-detail-title-row">
+              <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
+              <span className={getOperationalStatusClassName(caseOperationalStatus)}>
+                {currentOperationalStatusLabel}
+              </span>
+            </div>
             <p className="lede emergency-lede">{dictionary.staff.detail.description}</p>
           </div>
         </div>
@@ -466,8 +523,8 @@ export function StaffCaseDetailPage({
                   </h2>
                 </div>
                 <div className="staff-inline-status">
-                  <span className={getStatusPillClassName(caseDetail.status)}>
-                    {dictionary.caseStatus.labels[caseDetail.status]}
+                  <span className={getOperationalStatusClassName(caseOperationalStatus)}>
+                    {currentOperationalStatusLabel}
                   </span>
                 </div>
               </div>
@@ -530,10 +587,80 @@ export function StaffCaseDetailPage({
                       </button>
                     </>
                   ) : null}
+                  {isFinal ? (
+                    <button
+                      className="button-primary"
+                      type="button"
+                      onClick={() => {
+                        setCorrectionTarget(caseOperationalStatus);
+                        setCorrectionNote("");
+                        setIsCorrectionOpen(true);
+                      }}
+                    >
+                      {dictionary.staff.detail.correctStatusAction}
+                    </button>
+                  ) : null}
                   {!canClaim && !canCoordinatorReassign && !canResolve ? (
-                    <p className="field-hint compact-copy">{dictionary.staff.detail.noPrimaryAction}</p>
+                    isFinal ? null : (
+                      <p className="field-hint compact-copy">{dictionary.staff.detail.noPrimaryAction}</p>
+                    )
                   ) : null}
                 </div>
+                {isCorrectionOpen ? (
+                  <form
+                    aria-labelledby="staff-status-correction-title"
+                    className="status-correction-dialog form-stack"
+                    role="dialog"
+                    onSubmit={(event) => void handleStatusCorrection(event)}
+                  >
+                    <h4 className="section-title staff-action-title" id="staff-status-correction-title">
+                      {dictionary.staff.detail.statusCorrectionTitle}
+                    </h4>
+                    <p className="field-hint compact-copy">
+                      {dictionary.staff.detail.currentStatusLabel}: {currentOperationalStatusLabel}
+                    </p>
+                    <label className="form-field">
+                      <span>{dictionary.staff.detail.targetStatusLabel}</span>
+                      <select
+                        className="input-field"
+                        value={correctionTarget}
+                        onChange={(event) => setCorrectionTarget(event.target.value as OperationalStatus)}
+                      >
+                        {correctionStatusOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {correctionStatusLabel(dictionary, option)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="form-field">
+                      <span>{dictionary.staff.detail.optionalNoteLabel}</span>
+                      <textarea
+                        className="input-field"
+                        maxLength={4000}
+                        placeholder={dictionary.staff.detail.optionalNotePlaceholder}
+                        rows={3}
+                        value={correctionNote}
+                        onChange={(event) => setCorrectionNote(event.target.value)}
+                      />
+                    </label>
+                    <div className="button-row">
+                      <button
+                        className="button-secondary"
+                        disabled={isSubmittingCorrection}
+                        type="button"
+                        onClick={() => setIsCorrectionOpen(false)}
+                      >
+                        {dictionary.staff.detail.cancelStatusCorrection}
+                      </button>
+                      <button className="button-primary" disabled={isSubmittingCorrection} type="submit">
+                        {isSubmittingCorrection
+                          ? dictionary.staff.detail.submitting
+                          : dictionary.staff.detail.confirmStatusCorrection}
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
               </div>
             </section>
 
@@ -679,7 +806,7 @@ function getAuditEntryTitle(dictionary: Dictionary, entry: AuditLogEntryResponse
   if (metadata.action_type === "note") {
     return dictionary.staff.detail.auditEvents.noteAdded;
   }
-  if (metadata.action_type === "status_change") {
+  if (metadata.action_type === "status_change" || metadata.action_type === "operational_status_correction") {
     return dictionary.staff.detail.auditEvents.statusChanged;
   }
   if (metadata.action_type === "claim") {
@@ -702,6 +829,7 @@ function isUsefulAuditEntry(entry: AuditLogEntryResponse) {
     actionType === "relation_marked" ||
     actionType === "note" ||
     actionType === "status_change" ||
+    actionType === "operational_status_correction" ||
     actionType === "claim"
   );
 }
@@ -716,6 +844,15 @@ function getAuditEntryDescription(dictionary: Dictionary, entry: AuditLogEntryRe
   }
   if (typeof metadata.note === "string" && metadata.note.trim()) {
     return metadata.note;
+  }
+  if (
+    metadata.action_type === "operational_status_correction" &&
+    typeof metadata.from_operational_status === "string" &&
+    typeof metadata.to_operational_status === "string"
+  ) {
+    const fromLabel = correctionStatusLabel(dictionary, metadata.from_operational_status as OperationalStatus);
+    const toLabel = correctionStatusLabel(dictionary, metadata.to_operational_status as OperationalStatus);
+    return `${fromLabel} -> ${toLabel}`;
   }
   if (metadata.action_type === "status_change" && typeof metadata.to_status === "string") {
     const status = metadata.to_status as CaseStatus;
@@ -763,14 +900,53 @@ function getUrgencyPillClassName(urgency: StaffCaseDetailResponse["urgency"]) {
   return "status-pill";
 }
 
-function getStatusPillClassName(status: CaseStatus) {
-  if (status === "pending_review" || status === "waiting_for_information") {
+const correctionStatusOptions: OperationalStatus[] = [
+  "unassigned",
+  "in_progress",
+  "found_alive",
+  "confirmed_deceased",
+];
+
+function operationalStatusLabel(
+  dictionary: Dictionary,
+  status: OperationalStatus,
+  subjectType: StaffCaseDetailResponse["subject_type"],
+) {
+  if (status === "unassigned") {
+    return dictionary.staff.cases.operationalStatuses.unassigned;
+  }
+  if (status === "in_progress") {
+    return dictionary.staff.cases.operationalStatuses.inProgress;
+  }
+  if (status === "found_alive") {
+    return subjectType === "pet"
+      ? dictionary.staff.cases.operationalStatuses.petFoundAlive
+      : dictionary.staff.cases.operationalStatuses.personFoundAlive;
+  }
+  return subjectType === "pet"
+    ? dictionary.staff.cases.operationalStatuses.petConfirmedDeceased
+    : dictionary.staff.cases.operationalStatuses.personConfirmedDeceased;
+}
+
+function correctionStatusLabel(dictionary: Dictionary, status: OperationalStatus) {
+  if (status === "unassigned") {
+    return dictionary.staff.detail.correctionStatuses.unassigned;
+  }
+  if (status === "in_progress") {
+    return dictionary.staff.detail.correctionStatuses.inProgress;
+  }
+  if (status === "found_alive") {
+    return dictionary.staff.detail.correctionStatuses.foundAlive;
+  }
+  return dictionary.staff.detail.correctionStatuses.confirmedDeceased;
+}
+
+function getOperationalStatusClassName(status: OperationalStatus) {
+  if (status === "unassigned") {
     return "status-pill status-pill-warning";
   }
-
-  if (status === "safe_resolved" || status === "closed") {
-    return "status-pill status-pill-neutral";
+  if (status === "in_progress") {
+    return "status-pill status-pill-alert";
   }
-
   return "status-pill";
 }

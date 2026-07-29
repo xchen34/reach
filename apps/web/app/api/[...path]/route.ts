@@ -34,6 +34,7 @@ const allowedRoutes = [
   { method: "POST", pattern: /^staff\/cases\/\d+\/return-unassigned$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/mark-safe$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/mark-deceased$/ },
+  { method: "PATCH", pattern: /^staff\/cases\/\d+\/operational-status$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/actions$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/publish$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/relations$/ },

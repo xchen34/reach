@@ -532,6 +532,8 @@ class ReportService:
             subject_type=case.subject_type,
             safety_status=case.safety_status,
             handling_status=case.handling_status,
+            operational_status=CaseService._operational_status(case),
+            can_modify_status=True,
         )
 
     @staticmethod

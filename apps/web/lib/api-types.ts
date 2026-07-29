@@ -259,6 +259,8 @@ export interface ReportCaseSummary {
     | "escalated_to_rescuers"
     | "awaiting_external_feedback"
     | "archived";
+  operational_status: OperationalStatus;
+  can_modify_status: boolean;
 }
 
 export interface StaffAttachment {
@@ -327,6 +329,11 @@ export interface StaffReportInboxResponse {
 export interface StaffCaseOutcomeRequest {
   note?: string | null;
   confirmation_source?: string | null;
+}
+
+export interface StaffCaseOperationalStatusRequest {
+  target_status: OperationalStatus;
+  note?: string | null;
 }
 
 export interface StaffCaseDetailResponse extends StaffCaseListItem {
