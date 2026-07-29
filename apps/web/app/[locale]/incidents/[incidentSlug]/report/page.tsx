@@ -31,11 +31,11 @@ export default async function IncidentReportPage({
       languageLabel={dictionary.home.languagePicker}
       locale={params.locale}
       publicBoardLabel={dictionary.home.boardCta}
-      sectionLabel="Incident intake"
+      sectionLabel="事件上报"
     >
       <section className="incident-report-page">
         <div className="incident-report-heading">
-          <span className="eyebrow">Incident intake</span>
+          <span className="eyebrow">事件上报</span>
           <h1 className="headline">{incident.public_name}</h1>
           <p className="lede">
             {incident.affected_area}
@@ -44,11 +44,10 @@ export default async function IncidentReportPage({
         </div>
 
         <div className="alert-panel" role="note">
-          <strong>REACH is not an emergency service.</strong>
+          <strong>REACH 不是紧急救援服务。</strong>
           <p>
-            If anyone is in immediate danger, contact official emergency services or on-site responders now.
-            Every REACH submission is reviewed before any coordination action, and submitting this form does
-            not guarantee dispatch or rescue.
+            如果有人正处于立即危险中，请立刻联系官方紧急服务或现场救援人员。REACH 会先查看每一份上报，
+            再决定是否需要协调行动；提交表单不代表一定会派出救援。
           </p>
         </div>
 
@@ -56,18 +55,18 @@ export default async function IncidentReportPage({
           <iframe
             className="google-form-frame"
             src={incident.google_form_url}
-            title={`${incident.public_name} report form`}
+            title={`${incident.public_name} 上报表单`}
           />
         </div>
 
         <ReportPhotoUpload dictionary={dictionary} incidentSlug={params.incidentSlug} />
 
         <p className="fallback-copy">
-          If the embedded form does not load,{" "}
+          如果表单没有载入，请{" "}
           <a href={incident.google_form_url} rel="noopener noreferrer" target="_blank">
-            open the report form in a new tab
+            在新分页打开上报表单
           </a>
-          .
+          。
         </p>
       </section>
     </AppShell>

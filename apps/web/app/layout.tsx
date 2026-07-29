@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "REACH",
-  description: "Every report can help save a life.",
+  description: "每一次上报，都可能帮助挽救生命。",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-Hans">
       <body>{children}</body>
     </html>
   );

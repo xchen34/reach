@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import type { Locale } from "@/lib/i18n";
 
 type AppShellProps = {
@@ -28,7 +27,7 @@ export function AppShell({
   publicBoardLabel,
   homeLabel,
   contentVariant = "normal",
-  showLanguage = true,
+  showLanguage = false,
   showPublicBoard = true,
   showHome = true,
   logoutAction,
@@ -58,10 +57,8 @@ type GlobalHeaderProps = Omit<AppShellProps, "children" | "contentVariant">;
 function GlobalHeader({
   locale,
   sectionLabel,
-  languageLabel,
   publicBoardLabel,
   homeLabel,
-  showLanguage,
   showPublicBoard,
   showHome,
   logoutAction,
@@ -77,9 +74,6 @@ function GlobalHeader({
       <div className="global-header-inner">
         <div className="header-brand">REACH</div>
         <nav className="header-navigation" aria-label={sectionLabel}>
-          <div className="header-nav-slot header-nav-language">
-            {showLanguage ? <LanguageSwitcher currentLocale={locale} label={languageLabel} /> : null}
-          </div>
           <div className="header-nav-slot header-nav-board">
             {showPublicBoard ? (
               <Link
@@ -104,8 +98,8 @@ function GlobalHeader({
               </Link>
             ) : null}
           </div>
-          <div className="header-nav-slot header-nav-logout">{logoutAction}</div>
         </nav>
+        <div className="header-account">{logoutAction}</div>
       </div>
     </header>
   );

@@ -13,7 +13,7 @@ export default function StaffCaseDetailAliasPage({
     notFound();
   }
 
-  const locale = "en";
+  const locale = "zh";
   const dictionary = getDictionary(locale);
 
   return (

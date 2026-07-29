@@ -5,5 +5,5 @@ export default function IncidentReportRedirectPage({
 }: {
   params: { incidentSlug: string };
 }) {
-  redirect(`/en/incidents/${params.incidentSlug}/report`);
+  redirect(`/zh/incidents/${params.incidentSlug}/report`);
 }

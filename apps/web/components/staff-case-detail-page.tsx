@@ -404,7 +404,7 @@ export function StaffCaseDetailPage({
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.staff.eyebrow}
     >
-      <div>
+      <div className="staff-detail-container">
         <div className="staff-toolbar">
           <div>
             <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
@@ -568,9 +568,9 @@ export function StaffCaseDetailPage({
                           className="button-secondary"
                           disabled={isLinkingRelation}
                           type="button"
-                          onClick={() => void handleRelation(match.case, "possible_duplicate")}
+                          onClick={() => setActionSuccess(dictionary.staff.detail.keepSeparateSuccess)}
                         >
-                          {dictionary.staff.detail.markPossibleDuplicate}
+                          {dictionary.staff.detail.keepSeparate}
                         </button>
                         <button
                           className="button-primary"

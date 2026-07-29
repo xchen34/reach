@@ -351,19 +351,21 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                 {dictionary.staff.cases.incomingReportsTitle}
               </h2>
               <p className="field-hint compact-copy">
-                Need decision: {reportSummary.untriaged} · Follow-up tasks created: {reportSummary.linkedNew} · Added to existing:{" "}
-                {reportSummary.linkedExisting} · Dismissed: {reportSummary.rejected}
+                {dictionary.staff.cases.needsReviewLabel}: {reportSummary.untriaged} ·{" "}
+                {dictionary.staff.cases.addedToHelpListLabel}: {reportSummary.linkedNew} ·{" "}
+                {dictionary.staff.cases.combinedLabel}: {reportSummary.linkedExisting} ·{" "}
+                {dictionary.staff.cases.noActionNeededLabel}: {reportSummary.rejected}
               </p>
             </div>
             {state.mode === "live" && state.incidents.length > 0 ? (
               <label className="field-label compact-copy">
-                Incident
+                {dictionary.staff.cases.currentEventLabel}
                 <select
                   className="input-field"
                   value={state.selectedIncidentId ?? "all"}
                   onChange={(event) => void handleIncidentChange(event.target.value)}
                 >
-                  <option value="all">All incidents</option>
+                  <option value="all">{dictionary.staff.cases.allEventsOption}</option>
                   {state.incidents.map((incident) => (
                     <option key={incident.id} value={incident.id}>
                       {incident.public_name} ({incident.slug})
@@ -375,7 +377,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </div>
 
           {state.reports.reports.length === 0 ? (
-            <p className="support-copy">No incident reports match this filter.</p>
+            <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
           ) : (
             <div className="staff-case-stack">
               {state.reports.reports.map((report) => (
@@ -405,7 +407,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </div>
 
           {taskCases.length === 0 ? (
-            <p className="support-copy">No follow-up tasks have been created yet.</p>
+            <p className="support-copy">{dictionary.staff.cases.noHelpRequestsYet}</p>
           ) : (
             <div className="staff-case-stack">
               {taskCases.map((task) => (
@@ -448,6 +450,7 @@ function ReportCard({
 }) {
   const [selectedCaseId, setSelectedCaseId] = useState(candidateCases[0]?.id ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const primaryText = getReportPrimaryText(report);
   const submittedAt = report.submitted_at ?? report.received_at;
   const isOpen = report.triage_status === "awaiting_review";
@@ -474,30 +477,42 @@ function ReportCard({
             <h3 className="staff-compact-title">{primaryText.personName}</h3>
             <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, report.subject_type)}</span>
             <span className={getReportStatusPillClassName(report.triage_status)}>
-              {formatReportTriageStatus(report.triage_status)}
+              {formatReportTriageStatus(dictionary, report.triage_status)}
             </span>
-            <span className="field-hint compact-copy">{report.report_code}</span>
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
-            {report.location_text} · {primaryText.ageGender} · Source time{" "}
-            {dateFormatter.format(new Date(submittedAt))}
+            {report.location_text}
           </p>
-          <p className="support-copy compact-copy staff-clamped-copy">{primaryText.currentStatus}</p>
-          <p className="field-hint compact-copy staff-compact-meta">
-            {primaryText.submissionType} · {report.source_label} ·{" "}
-            {report.linked_case ? `Linked task ${report.linked_case.case_code}` : "No task linked"}
-          </p>
+          <p className="field-hint compact-copy staff-compact-meta">{primaryText.ageGender}</p>
+          <p className="support-copy compact-copy staff-clamped-copy">{primaryText.submissionType}</p>
+          {isDetailsOpen ? (
+            <div className="info-banner staff-report-details">
+              <p className="compact-copy">{primaryText.currentStatus}</p>
+              <p className="field-hint compact-copy">
+                {dictionary.staff.cases.reportTimeLabel}: {dateFormatter.format(new Date(submittedAt))}
+              </p>
+            </div>
+          ) : null}
+          {report.linked_case ? (
+            <p className="status-pill">{dictionary.staff.cases.addedToHelpListStatus}</p>
+          ) : null}
+          {!isOpen && !report.linked_case ? (
+            <p className="status-pill status-pill-neutral">{formatReportTriageStatus(dictionary, report.triage_status)}</p>
+          ) : null}
         </div>
       </div>
       {isOpen ? (
         <div className="button-row staff-compact-actions">
+          <button className="button-secondary" type="button" onClick={() => setIsDetailsOpen((value) => !value)}>
+            {dictionary.staff.cases.viewReportAction}
+          </button>
           <button
             className="button-primary"
             disabled={isSubmitting}
             type="button"
             onClick={() => void runAction(() => createFollowUpTaskFromReport(accessToken ?? "", report.id))}
           >
-            Create follow-up task
+            {dictionary.staff.cases.addToHelpListAction}
           </button>
           {candidateCases.length > 0 ? (
             <>
@@ -522,7 +537,7 @@ function ReportCard({
                   )
                 }
               >
-                Add to existing person/task
+                {dictionary.staff.cases.combineReportsAction}
               </button>
             </>
           ) : null}
@@ -540,13 +555,18 @@ function ReportCard({
               )
             }
           >
-            Dismiss
+            {dictionary.staff.cases.noActionNeededAction}
           </button>
         </div>
       ) : report.linked_case ? (
-        <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
-          Open linked task
-        </Link>
+        <div className="button-row staff-compact-actions">
+          <button className="button-secondary" type="button" onClick={() => setIsDetailsOpen((value) => !value)}>
+            {dictionary.staff.cases.viewReportAction}
+          </button>
+          <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
+            {dictionary.staff.cases.viewHelpRequestAction}
+          </Link>
+        </div>
       ) : null}
     </article>
   );
@@ -680,11 +700,8 @@ function redirectToLogin(
   router.replace(buildStaffLoginHref(locale, reason));
 }
 
-function formatReportTriageStatus(status: StaffReportListItem["triage_status"]) {
-  return status
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+function formatReportTriageStatus(dictionary: Dictionary, status: StaffReportListItem["triage_status"]) {
+  return dictionary.staff.cases.reportStatuses[status];
 }
 
 function getReportStatusPillClassName(status: StaffReportListItem["triage_status"]) {

@@ -37,6 +37,10 @@ You do not need to run `make migrate` every single time. Use it when:
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
 
+## Interface Language
+
+The active MVP UI is Chinese-only while the volunteer workflow is being finalized. English and French locale files remain in the codebase for later reuse, but the visible app does not expose language switching.
+
 ## Configure Environment
 
 Create a local `.env` at the repository root from the example:
