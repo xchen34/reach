@@ -209,6 +209,26 @@ export const fr = {
     errorBody:
       "Le serveur ne peut pas charger ce statut pour le moment. Reessayez plus tard.",
   },
+  subjectTypes: {
+    person: "Personne",
+    pet: "Animal",
+    unknown: "Inconnu",
+  },
+  reportAttachments: {
+    eyebrow: "Photos optionnelles",
+    title: "Ajouter des photos au signalement",
+    description:
+      "Vous pouvez televerser des photos ici sans connexion Google. Reach vous donnera un code a saisir dans le champ Google Form nomme Reach photo attachment code.",
+    inputLabel: "Choisir des photos",
+    limits: "JPEG, PNG ou WebP uniquement. Jusqu'a 4 images, 8 Mo chacune.",
+    emptySelection: "Aucune photo selectionnee.",
+    uploadButton: "Televerser les photos",
+    uploading: "Televersement...",
+    codeLabel: "Code de pieces jointes photo",
+    codeInstructions:
+      "Saisissez ce code dans le Google Form afin que l'equipe puisse associer ces photos au signalement. Elles ne seront pas publiques sans approbation explicite.",
+    error: "Les photos n'ont pas pu etre televersees. Verifiez le type et la taille, puis reessayez.",
+  },
   board: {
     eyebrow: "Tableau public",
     title: "Tableau communautaire de verification",
@@ -227,7 +247,7 @@ export const fr = {
       "Si vous publiez une Google Sheet ou une vue similaire, vous pouvez l'integrer ici pour une lecture plus dense de type tableur.",
     liveTitle: "Fiches publiques de statut",
     liveDescription:
-      "Reach affiche des fiches personne/tache selectionnees. Les signalements bruts, contacts prives, details des benevoles et lieux precis ne sont pas affiches.",
+      "Reach affiche des fiches selectionnees concernant des personnes, des animaux ou des suivis. Les signalements bruts, contacts prives, details des benevoles et lieux precis ne sont pas affiches.",
     statusDisclaimerTitle: "A propos de ces statuts",
     statusDisclaimerParagraphs: [
       "Cette page presente les informations actuellement enregistrees par le reseau de benevoles Reach. Il ne s'agit ni d'une liste officielle ni d'un suivi en temps reel. Les benevoles donnent generalement la priorite aux contacts directs avec les familles, les centres d'hebergement, les hopitaux, les secours et les organismes concernes, et peuvent ne pas mettre la plateforme a jour immediatement.",
@@ -249,6 +269,11 @@ export const fr = {
     latestUpdateFallback: "Aucune mise a jour publique pour le moment.",
     platformLastUpdatedLabel: "Derniere mise a jour sur la plateforme",
     personFallbackLabel: "Personne necessitant un suivi",
+    petFallbackLabel: "Animal necessitant un suivi",
+    unknownFallbackLabel: "Sujet necessitant un suivi",
+    subjectTypeLabel: "Type de sujet",
+    ageLabel: "Age",
+    detailsLabel: "Details",
     lastKnownLocationLabel: "Dernier lieu connu",
     resultLabel: "Resultat",
     filterLabel: "Filtrer par statut",

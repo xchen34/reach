@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import List, Literal, Optional
 
 from app.schemas.common import ApiModel
+from app.models.enums import SubjectType
+from app.schemas.attachment import PublicBoardAttachment
 
 
 PublicOperationalStatus = Literal["unassigned", "in_progress", "found_alive", "confirmed_deceased"]
@@ -12,12 +14,14 @@ PublicOperationalStatus = Literal["unassigned", "in_progress", "found_alive", "c
 class PublicBoardRecord(ApiModel):
     public_id: str
     operational_status: PublicOperationalStatus
+    subject_type: SubjectType = SubjectType.UNKNOWN
     person_label: Optional[str] = None
     approximate_age: Optional[str] = None
     gender: Optional[str] = None
     last_known_location: str
     latest_public_update: Optional[str] = None
     platform_last_updated_at: datetime
+    public_image: Optional[PublicBoardAttachment] = None
 
 
 class PublicBoardSummary(ApiModel):

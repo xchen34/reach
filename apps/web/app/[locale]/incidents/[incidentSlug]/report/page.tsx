@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { ReportPhotoUpload } from "@/components/report-photo-upload";
 import { ApiError, getPublicIncidentReportPage } from "@/lib/api";
 import { getDictionary, isSupportedLocale, type Locale } from "@/lib/i18n";
 
@@ -31,7 +32,6 @@ export default async function IncidentReportPage({
       locale={params.locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel="Incident intake"
-      showPublicBoard={false}
     >
       <section className="incident-report-page">
         <div className="incident-report-heading">
@@ -59,6 +59,8 @@ export default async function IncidentReportPage({
             title={`${incident.public_name} report form`}
           />
         </div>
+
+        <ReportPhotoUpload dictionary={dictionary} incidentSlug={params.incidentSlug} />
 
         <p className="fallback-copy">
           If the embedded form does not load,{" "}

@@ -87,7 +87,7 @@ def test_alembic_has_single_head() -> None:
     config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["0005_incident_sheets_intake"]
+    assert script.get_heads() == ["0006_subject_attachments"]
 
 
 def test_report_triage_schema_validation() -> None:

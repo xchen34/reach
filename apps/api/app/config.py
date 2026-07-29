@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     google_sheets_import_enabled: bool = False
     voice_storage_dir: str = "/tmp/Reach/voice_uploads"
     voice_max_upload_bytes: int = 10 * 1024 * 1024
+    report_attachment_storage_dir: str = "/tmp/Reach/report_attachments"
+    report_attachment_max_upload_bytes: int = 8 * 1024 * 1024
+    report_attachment_max_files: int = 4
 
 
 @lru_cache

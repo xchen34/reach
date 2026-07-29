@@ -195,6 +195,26 @@ export const zh = {
     errorTitle: "私人状态页面暂时不可用",
     errorBody: "服务器暂时无法加载该状态页面。请稍后重试。",
   },
+  subjectTypes: {
+    person: "人员",
+    pet: "宠物",
+    unknown: "不确定",
+  },
+  reportAttachments: {
+    eyebrow: "可选照片",
+    title: "添加报告照片",
+    description:
+      "你可以在这里上传照片，不需要登录 Google。Reach 会给你一个代码，请填入 Google Form 中名为 Reach photo attachment code 的字段。",
+    inputLabel: "选择照片",
+    limits: "仅支持 JPEG、PNG 或 WebP。最多 4 张，每张不超过 8 MB。",
+    emptySelection: "尚未选择照片。",
+    uploadButton: "上传照片",
+    uploading: "正在上传照片...",
+    codeLabel: "照片附件代码",
+    codeInstructions:
+      "请把此代码填入 Google Form，方便工作人员把照片与报告匹配。照片只有在工作人员明确批准后才会公开显示。",
+    error: "照片无法上传。请检查文件类型和大小后重试。",
+  },
   board: {
     eyebrow: "公开信息板",
     title: "社区核实信息板",
@@ -211,7 +231,7 @@ export const zh = {
     embedTitle: "嵌入式公开表格",
     embedDescription: "如果你发布了 Google Sheet 或类似公开表格，可以在这里嵌入，方便高密度浏览。",
     liveTitle: "公开状态记录",
-    liveDescription: "Reach 显示经过选择的人物/任务记录。不会显示原始上报、私人联系方式、志愿者详情或精确地点。",
+    liveDescription: "Reach 显示经过选择的人员、宠物或跟进任务记录。不会显示原始上报、私人联系方式、志愿者详情或精确地点。",
     statusDisclaimerTitle: "关于页面状态",
     statusDisclaimerParagraphs: [
       "本页面显示的是 Reach 志愿协作网络目前记录的信息，并非官方名单，也不保证实时更新。志愿者通常会优先直接联系家属、避难场所、医院、救援人员及其他有关机构，因此未必能及时返回平台更新状态。",
@@ -232,6 +252,11 @@ export const zh = {
     latestUpdateFallback: "目前还没有公开更新。",
     platformLastUpdatedLabel: "平台最后更新时间",
     personFallbackLabel: "需要跟进的人员",
+    petFallbackLabel: "需要跟进的宠物",
+    unknownFallbackLabel: "需要跟进的对象",
+    subjectTypeLabel: "对象类型",
+    ageLabel: "年龄",
+    detailsLabel: "识别信息",
     lastKnownLocationLabel: "最后已知地点",
     resultLabel: "处理结果",
     filterLabel: "按状态筛选",

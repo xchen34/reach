@@ -25,6 +25,7 @@ from app.models.enums import (
     IncidentType,
     ShareLinkScope,
     StaffRole,
+    SubjectType,
     UrgencyLevel,
 )
 from app.models.user import User
@@ -47,6 +48,7 @@ from app.schemas.case import (
 from app.schemas.staff import StaffUserSummary
 from app.services.voice_intake import VoiceIntakeService
 from app.services.incident_service import IncidentService
+from app.services.report_attachment_service import ReportAttachmentService
 
 
 class CaseService:
@@ -75,6 +77,7 @@ class CaseService:
             reporter_name=payload.reporter_name,
             reporter_email=payload.reporter_email,
             reporter_phone=payload.reporter_phone,
+            subject_type=payload.subject_type,
         )
         self.db.add(case)
         self.db.flush()
@@ -284,7 +287,7 @@ class CaseService:
         case.confirmation_source = payload.confirmation_source or payload.note
         case.confirmation_source_type = "reach_received_safe_information"
         case.confirmed_at = datetime.now(timezone.utc)
-        case.latest_public_update = "Reach has received information that the person is safe."
+        case.latest_public_update = self._safe_public_update(case.subject_type)
         self._record_case_action(
             case=case,
             actor=actor,
@@ -318,7 +321,7 @@ class CaseService:
         case.confirmation_source = source
         case.confirmation_source_type = "death_confirmation"
         case.confirmed_at = datetime.now(timezone.utc)
-        case.latest_public_update = "Reach has received confirmed information that the person has died."
+        case.latest_public_update = self._deceased_public_update(case.subject_type)
         self._record_case_action(
             case=case,
             actor=actor,
@@ -480,6 +483,7 @@ class CaseService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            subject_type=case.subject_type,
             person_label=case.person_label,
             approximate_age=case.approximate_age,
             last_known_location=case.last_known_location,
@@ -492,6 +496,7 @@ class CaseService:
             platform_last_updated_at=case.updated_at,
             created_at=case.created_at,
             updated_at=case.updated_at,
+            attachments=ReportAttachmentService(self.db).list_case_attachments(case.id),
         )
 
     def _to_case_detail(self, case: Case) -> CaseDetailResponse:
@@ -569,6 +574,18 @@ class CaseService:
         }:
             return "in_progress"
         return "unassigned"
+
+    @staticmethod
+    def _safe_public_update(subject_type: SubjectType) -> str:
+        if subject_type == SubjectType.PET:
+            return "Reach has received information that the pet is safe."
+        return "Reach has received information that the person is safe."
+
+    @staticmethod
+    def _deceased_public_update(subject_type: SubjectType) -> str:
+        if subject_type == SubjectType.PET:
+            return "Reach has received confirmed information that the pet has died."
+        return "Reach has received confirmed information that the person has died."
 
     @staticmethod
     def map_legacy_status(status: CaseStatus) -> tuple[CaseSafetyStatus, CaseHandlingStatus]:

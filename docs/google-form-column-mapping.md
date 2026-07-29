@@ -1,6 +1,16 @@
 # Google Form Column Mapping
 
-This file maps suggested Google Form question labels to Beacon's ingest payload for `POST /ingest/google-form`.
+This file maps suggested Google Form question labels to Reach's ingest payload for `POST /ingest/google-form`.
+
+For Incident-scoped Google Sheets imports, prefer stable machine-readable columns:
+
+- `subject_type`
+  - accepted values: `person`, `pet`, `unknown`
+  - missing values default to `unknown`
+  - do not infer pets from free text
+- `Reach photo attachment code`
+  - optional code returned by the Reach photo upload section
+  - used to link uploaded photos to the imported Report
 
 ## Shared notes
 
@@ -25,7 +35,7 @@ Suggested sheet columns:
 - `Public summary suggestion`
 - `Language code`
 
-Beacon mapping:
+Reach mapping:
 
 - `report_kind = "safe"`
 - `subject_name <- Who are you reporting about?`
@@ -52,7 +62,7 @@ Suggested sheet columns:
 - `Can a public-safe summary be shown on the board?`
 - `Language code`
 
-Beacon mapping:
+Reach mapping:
 
 - `report_kind = "missing"`
 - `subject_name <- Who are you trying to locate?`
@@ -79,7 +89,7 @@ Suggested sheet columns:
 - `Public summary suggestion`
 - `Language code`
 
-Beacon mapping:
+Reach mapping:
 
 - `report_kind = "update"`
 - `subject_name <- Who or what is this update about?`

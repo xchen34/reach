@@ -47,6 +47,7 @@ from app.schemas.report import (
 from app.schemas.staff import StaffUserSummary
 from app.services.case_service import CaseService
 from app.services.incident_service import IncidentService
+from app.services.report_attachment_service import ReportAttachmentService
 
 
 class ReportService:
@@ -74,12 +75,18 @@ class ReportService:
             reporter_relationship=payload.source_relationship,
             is_first_hand=payload.is_first_hand,
             permission_to_contact=payload.callback_allowed,
+            subject_type=payload.subject_type,
             triage_status=ReportTriageStatus.AWAITING_REVIEW,
         )
         self.db.add(report)
 
         try:
             self.db.flush()
+            ReportAttachmentService(self.db).link_code_to_report(
+                incident_id=report.incident_id,
+                report_id=report.id,
+                attachment_code=payload.attachment_code,
+            )
             self.db.add(
                 AuditLogEntry(
                     actor_type=AuditActorType.SYSTEM,
@@ -147,6 +154,7 @@ class ReportService:
             location_summary=payload.location_summary,
             needs_summary=payload.needs_summary,
             latest_public_update=None,
+            subject_type=report.subject_type,
             person_label=payload.person_label,
             approximate_age=payload.approximate_age,
             appearance=payload.appearance,
@@ -163,6 +171,7 @@ class ReportService:
         )
         self.db.add(case)
         self.db.flush()
+        ReportAttachmentService(self.db).link_report_attachments_to_case(report_id=report.id, case_id=case.id)
 
         action = self._link_report_to_case(
             report=report,
@@ -204,6 +213,7 @@ class ReportService:
             location_summary=report.location_text,
             needs_summary=report.original_narrative,
             latest_public_update=None,
+            subject_type=report.subject_type,
             person_label=self._raw_answer_text(report, "person_name") or report.reporter_name,
             approximate_age=self._raw_answer_text(report, "approximate_age"),
             identifying_details=self._raw_answer_text(report, "identifying_description"),
@@ -214,6 +224,7 @@ class ReportService:
         )
         self.db.add(case)
         self.db.flush()
+        ReportAttachmentService(self.db).link_report_attachments_to_case(report_id=report.id, case_id=case.id)
         action = self._link_report_to_case(
             report=report,
             case=case,
@@ -248,6 +259,7 @@ class ReportService:
             raise LookupError("Case not found.")
         if case.incident_id != report.incident_id:
             raise ValueError("Report and case belong to different incidents.")
+        ReportAttachmentService(self.db).link_report_attachments_to_case(report_id=report.id, case_id=case.id)
 
         action = self._link_report_to_case(
             report=report,
@@ -477,6 +489,7 @@ class ReportService:
             reporter_relationship=report.reporter_relationship,
             is_first_hand=report.is_first_hand,
             permission_to_contact=report.permission_to_contact,
+            subject_type=report.subject_type,
             location_text=report.location_text,
             original_narrative_preview=self._preview(report.original_narrative),
             submission_type=self._raw_answer_text(report, "submission_type"),
@@ -489,6 +502,7 @@ class ReportService:
             is_legacy_backfill=report.is_legacy_backfill,
             migration_note=report.migration_note,
             source_label=self._source_label(report),
+            attachments=ReportAttachmentService(self.db).list_report_attachments(report.id),
         )
 
     def _to_detail(self, report: Report) -> ReportDetailResponse:
@@ -515,6 +529,7 @@ class ReportService:
             incident_id=case.incident_id,
             case_code=case.case_code,
             person_label=case.person_label,
+            subject_type=case.subject_type,
             safety_status=case.safety_status,
             handling_status=case.handling_status,
         )

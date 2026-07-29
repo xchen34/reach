@@ -25,6 +25,8 @@ import type {
   StaffReportInboxResponse,
   StaffReportListItem,
   StaffCaseListItem,
+  StaffAttachment,
+  SubjectType,
 } from "@/lib/api-types";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
@@ -381,6 +383,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                   dateFormatter={dateFormatter}
                   key={report.id}
                   locale={locale}
+                  dictionary={dictionary}
                   onReload={() => void reloadWorkspace()}
                   report={report}
                 />
@@ -392,7 +395,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
         <section className="staff-case-list" aria-labelledby="staff-event-list-title">
           <div className="staff-section-header">
             <h2 className="section-title" id="staff-event-list-title">
-              People requiring follow-up
+              People and pets requiring follow-up
             </h2>
             <p className="field-hint compact-copy">
               Use Reach as the desk record; volunteers should prioritize real-world contact over platform updates.
@@ -409,6 +412,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                   dateFormatter={dateFormatter}
                   key={task.id}
                   locale={locale}
+                  dictionary={dictionary}
                   onReload={() => void reloadWorkspace()}
                   sessionRole={state.session.user.role}
                   task={task}
@@ -427,6 +431,7 @@ function ReportCard({
   candidateCases,
   dateFormatter,
   locale,
+  dictionary,
   onReload,
   report,
 }: {
@@ -434,6 +439,7 @@ function ReportCard({
   candidateCases: StaffCaseListItem[];
   dateFormatter: Intl.DateTimeFormat;
   locale: Locale;
+  dictionary: Dictionary;
   onReload: () => void;
   report: StaffReportListItem;
 }) {
@@ -457,34 +463,31 @@ function ReportCard({
   }
 
   return (
-    <article className="detail-card staff-event-card">
-      <div className="staff-case-header">
-        <div>
-          <div className="staff-card-badges">
-            <p className={getReportStatusPillClassName(report.triage_status)}>
+    <article className="detail-card staff-event-card staff-compact-card">
+      <div className="staff-compact-main">
+        <StaffAttachmentThumbnail accessToken={accessToken} attachment={report.attachments[0]} />
+        <div className="staff-compact-content">
+          <div className="staff-compact-top-row">
+            <h3 className="staff-compact-title">{primaryText.personName}</h3>
+            <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, report.subject_type)}</span>
+            <span className={getReportStatusPillClassName(report.triage_status)}>
               {formatReportTriageStatus(report.triage_status)}
-            </p>
-            <p className="status-pill status-pill-neutral">{report.source_label}</p>
+            </span>
+            <span className="field-hint compact-copy">{report.report_code}</span>
           </div>
-          <p className="field-hint compact-copy">{report.report_code}</p>
-          <h3 className="section-title staff-case-title">{primaryText.personName}</h3>
-          <p className="field-hint compact-copy staff-event-summary-line">
-            {primaryText.submissionType} · {primaryText.ageGender}
+          <p className="field-hint compact-copy staff-compact-meta">
+            {report.location_text} · {primaryText.ageGender} · Source time{" "}
+            {dateFormatter.format(new Date(submittedAt))}
           </p>
-          <p className="support-copy compact-copy">{primaryText.currentStatus}</p>
-          <p className="field-hint compact-copy">Last known location: {report.location_text}</p>
-        </div>
-        <div className="staff-card-side">
-          <p className="field-hint compact-copy">
-            Source time {dateFormatter.format(new Date(submittedAt))}
-          </p>
-          <p className="field-hint compact-copy">
+          <p className="support-copy compact-copy staff-clamped-copy">{primaryText.currentStatus}</p>
+          <p className="field-hint compact-copy staff-compact-meta">
+            {primaryText.submissionType} · {report.source_label} ·{" "}
             {report.linked_case ? `Linked task ${report.linked_case.case_code}` : "No task linked"}
           </p>
         </div>
       </div>
       {isOpen ? (
-        <div className="button-row">
+        <div className="button-row staff-compact-actions">
           <button
             className="button-primary"
             disabled={isSubmitting}
@@ -550,6 +553,7 @@ function TaskCard({
   accessToken,
   dateFormatter,
   locale,
+  dictionary,
   onReload,
   sessionRole,
   task,
@@ -557,6 +561,7 @@ function TaskCard({
   accessToken: string | null;
   dateFormatter: Intl.DateTimeFormat;
   locale: Locale;
+  dictionary: Dictionary;
   onReload: () => void;
   sessionRole: "volunteer" | "coordinator";
   task: StaffCaseListItem;
@@ -577,35 +582,33 @@ function TaskCard({
   }
 
   return (
-    <article className="detail-card staff-event-card">
-      <div className="staff-case-header">
-        <div>
-          <div className="staff-card-badges">
-            <p className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
-              {operationalStatusLabel(task.operational_status ?? "unassigned")}
-            </p>
+    <article className="detail-card staff-event-card staff-compact-card">
+      <div className="staff-compact-main">
+        <StaffAttachmentThumbnail accessToken={accessToken} attachment={task.attachments?.[0]} />
+        <div className="staff-compact-content">
+          <div className="staff-compact-top-row">
+            <h3 className="staff-compact-title">{task.person_label || task.location_summary}</h3>
+            <span className="status-pill status-pill-neutral">
+              {subjectTypeLabel(dictionary, task.subject_type ?? "unknown")}
+            </span>
+            <span className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
+              {operationalStatusLabel(task.operational_status ?? "unassigned", task.subject_type ?? "unknown")}
+            </span>
+            <span className="field-hint compact-copy">{task.case_code}</span>
           </div>
-          <p className="field-hint compact-copy">{task.case_code}</p>
-          <h3 className="section-title staff-case-title">{task.person_label || task.location_summary}</h3>
-          <p className="field-hint compact-copy">
-            {task.approximate_age ? `Age: ${task.approximate_age}` : "Age not recorded"}
+          <p className="field-hint compact-copy staff-compact-meta">
+            {task.last_known_location || task.location_summary} ·{" "}
+            {task.approximate_age ? `Age: ${task.approximate_age}` : "Age not recorded"} ·{" "}
+            {dateFormatter.format(new Date(task.platform_last_updated_at ?? task.updated_at))}
           </p>
-          <p className="support-copy compact-copy">{task.needs_summary}</p>
-          <p className="field-hint compact-copy">
-            Last known location: {task.last_known_location || task.location_summary}
+          <p className="support-copy compact-copy staff-clamped-copy">{task.needs_summary}</p>
+          <p className="field-hint compact-copy staff-compact-meta">
+            Assigned: {task.assigned_staff_user?.email ?? "Not yet assigned"} · Source reports:{" "}
+            {task.source_report_count ?? 0}
           </p>
-        </div>
-        <div className="staff-card-side">
-          <p className="field-hint compact-copy">
-            Assigned: {task.assigned_staff_user?.email ?? "Not yet assigned"}
-          </p>
-          <p className="field-hint compact-copy">
-            Platform last updated {dateFormatter.format(new Date(task.platform_last_updated_at ?? task.updated_at))}
-          </p>
-          <p className="field-hint compact-copy">Source reports: {task.source_report_count ?? 0}</p>
         </div>
       </div>
-      <div className="button-row">
+      <div className="button-row staff-compact-actions">
         <button
           className="button-primary"
           disabled={isSubmitting}
@@ -680,7 +683,7 @@ function getReportStatusPillClassName(status: StaffReportListItem["triage_status
   return "status-pill status-pill-alert";
 }
 
-function operationalStatusLabel(status: StaffCaseListItem["operational_status"]) {
+function operationalStatusLabel(status: StaffCaseListItem["operational_status"], subjectType: SubjectType) {
   if (status === "unassigned") {
     return "Not yet assigned";
   }
@@ -688,9 +691,13 @@ function operationalStatusLabel(status: StaffCaseListItem["operational_status"])
     return "Being followed up";
   }
   if (status === "found_alive") {
-    return "Reach has received information that the person is safe";
+    return subjectType === "pet"
+      ? "Reach has received information that the pet is safe"
+      : "Reach has received information that the person is safe";
   }
-  return "Reach has received confirmed information that the person has died";
+  return subjectType === "pet"
+    ? "Reach has received confirmed information that the pet has died"
+    : "Reach has received confirmed information that the person has died";
 }
 
 function getOperationalStatusClassName(status: StaffCaseListItem["operational_status"]) {
@@ -756,4 +763,86 @@ function toQueueResponse(dashboard: ReturnType<typeof buildStaffDashboardData>):
       last_updated_at: dashboard.summary.lastUpdatedAt,
     },
   };
+}
+
+function subjectTypeLabel(dictionary: Dictionary, subjectType: SubjectType) {
+  return dictionary.subjectTypes[subjectType];
+}
+
+function StaffAttachmentThumbnail({
+  accessToken,
+  attachment,
+}: {
+  accessToken: string | null;
+  attachment?: StaffAttachment;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken || !attachment) {
+      setImageUrl(null);
+      return;
+    }
+    let isMounted = true;
+    let objectUrl: string | null = null;
+    void (async () => {
+      try {
+        const response = await fetch(`/api/staff/attachments/${attachment.id}/content`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          return;
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (isMounted) {
+          setImageUrl(objectUrl);
+        }
+      } catch {
+        if (isMounted) {
+          setImageUrl(null);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [accessToken, attachment]);
+
+  if (!attachment || !imageUrl) {
+    return null;
+  }
+
+  return (
+    <>
+      <button
+        aria-label="Open attachment preview"
+        className="staff-attachment-thumb-button"
+        type="button"
+        onClick={() => setIsPreviewOpen(true)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img alt="" className="staff-attachment-thumb" src={imageUrl} />
+      </button>
+      {isPreviewOpen ? (
+        <div className="staff-attachment-preview" role="dialog" aria-modal="true">
+          <button
+            className="staff-attachment-preview-close button-secondary"
+            type="button"
+            onClick={() => setIsPreviewOpen(false)}
+          >
+            Close preview
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt="" className="staff-attachment-preview-image" src={imageUrl} />
+        </div>
+      ) : null}
+    </>
+  );
 }

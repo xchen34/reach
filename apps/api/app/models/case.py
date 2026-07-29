@@ -13,6 +13,7 @@ from app.models.enums import (
     CaseStatus,
     CaseVerificationTask,
     IncidentType,
+    SubjectType,
     UrgencyLevel,
 )
 
@@ -43,6 +44,11 @@ class Case(Base):
     reporter_name: Mapped[Optional[str]] = mapped_column(String(120))
     reporter_email: Mapped[Optional[str]] = mapped_column(String(320))
     reporter_phone: Mapped[Optional[str]] = mapped_column(String(40))
+    subject_type: Mapped[SubjectType] = mapped_column(
+        SAEnum(SubjectType, name="subject_type"),
+        nullable=False,
+        default=SubjectType.UNKNOWN,
+    )
     person_label: Mapped[Optional[str]] = mapped_column(String(160))
     approximate_age: Mapped[Optional[str]] = mapped_column(String(80))
     appearance: Mapped[Optional[str]] = mapped_column(Text)
@@ -95,3 +101,4 @@ class Case(Base):
     voice_intake = relationship("VoiceIntake", back_populates="case", uselist=False)
     case_reports = relationship("CaseReport", back_populates="case")
     merged_into_case = relationship("Case", remote_side=[id])
+    attachments = relationship("ReportAttachment", back_populates="case")

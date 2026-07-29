@@ -41,6 +41,18 @@ class ReportTriageActionType(str, Enum):
     NOTE = "note"
 
 
+class SubjectType(str, Enum):
+    PERSON = "person"
+    PET = "pet"
+    UNKNOWN = "unknown"
+
+
+class AttachmentModerationStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class CaseSafetyStatus(str, Enum):
     UNKNOWN = "unknown"
     POSSIBLY_AT_RISK = "possibly_at_risk"

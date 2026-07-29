@@ -51,6 +51,12 @@ test("getReportPrimaryText uses mapped Google Sheets fields before narrative fal
   });
 });
 
+test("getReportPrimaryText uses subject-aware unnamed fallbacks", () => {
+  assert.equal(getReportPrimaryText(makeReport({ subject_type: "person" })).personName, "Person not named");
+  assert.equal(getReportPrimaryText(makeReport({ subject_type: "pet" })).personName, "Pet not named");
+  assert.equal(getReportPrimaryText(makeReport({ subject_type: "unknown" })).personName, "Subject not named");
+});
+
 function makeIncident(overrides: Partial<StaffIncidentSummary>): StaffIncidentSummary {
   return {
     id: 1,
@@ -82,6 +88,7 @@ function makeReport(overrides: Partial<StaffReportListItem>): StaffReportListIte
     reporter_relationship: null,
     is_first_hand: null,
     permission_to_contact: null,
+    subject_type: "unknown",
     location_text: "North Tower",
     original_narrative_preview: "Narrative",
     submission_type: null,
@@ -94,6 +101,7 @@ function makeReport(overrides: Partial<StaffReportListItem>): StaffReportListIte
     is_legacy_backfill: false,
     migration_note: null,
     source_label: "Google Forms / Google Sheets intake",
+    attachments: [],
     ...overrides,
   };
 }

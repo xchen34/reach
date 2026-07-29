@@ -2,6 +2,7 @@ import type {
   AuditLogEntryResponse,
   CurrentStaffSession,
   PublicIncidentReportPageResponse,
+  PublicAttachmentUploadResponse,
   PublicBoardResponse,
   StaffIncidentSummary,
   StaffReportInboxResponse,
@@ -82,6 +83,38 @@ export function getPublicIncidentReportPage(incidentSlug: string) {
   return apiFetch<PublicIncidentReportPageResponse>(
     `/incidents/${encodeURIComponent(incidentSlug)}/report`,
   );
+}
+
+export async function uploadPublicIncidentAttachments(incidentSlug: string, files: File[]) {
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("images", file);
+  }
+
+  const { baseUrl, resolvedPath } = resolveApiPath(
+    `/public/incidents/${encodeURIComponent(incidentSlug)}/attachments`,
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${resolvedPath}`, {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError("Network request failed.");
+  }
+
+  if (!response.ok) {
+    const detail = await readErrorDetail(response);
+    throw new ApiError(detail ?? `API request failed with status ${response.status}.`, {
+      detail,
+      status: response.status,
+    });
+  }
+
+  return (await response.json()) as PublicAttachmentUploadResponse;
 }
 
 export function getCurrentPublicIncidentReportPage() {

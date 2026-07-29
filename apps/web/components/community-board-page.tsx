@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { OperationalStatus, PublicBoardResponse } from "@/lib/api-types";
+import type { OperationalStatus, PublicBoardRecord, PublicBoardResponse, SubjectType } from "@/lib/api-types";
 import { AppShell } from "@/components/app-shell";
 import { getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -61,7 +61,6 @@ export function CommunityBoardPage({
       locale={locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.board.eyebrow}
-      showPublicBoard={false}
     >
       <div className="community-board-shell">
         <div>
@@ -100,29 +99,12 @@ export function CommunityBoardPage({
             ) : (
               <div className="community-board-records">
                 {boardData.records.map((record) => (
-                  <article className="community-board-card" key={record.public_id}>
-                    <div className="community-board-card-header">
-                      <span className={statusClassName(record.operational_status)}>
-                        {publicStatusLabel(dictionary, record.operational_status)}
-                      </span>
-                      <time dateTime={record.platform_last_updated_at}>
-                        {dictionary.board.platformLastUpdatedLabel}{" "}
-                        {dateFormatter.format(new Date(record.platform_last_updated_at))}
-                      </time>
-                    </div>
-                    <h3 className="section-title staff-case-title">
-                      {record.person_label ?? dictionary.board.personFallbackLabel}
-                    </h3>
-                    <p>
-                      {dictionary.board.lastKnownLocationLabel}: {record.last_known_location}
-                    </p>
-                    {record.approximate_age || record.gender ? (
-                      <p className="field-hint compact-copy">
-                        {[record.approximate_age, record.gender].filter(Boolean).join(" / ")}
-                      </p>
-                    ) : null}
-                    {record.latest_public_update ? <p>{record.latest_public_update}</p> : null}
-                  </article>
+                  <BoardRecordCard
+                    dateFormatter={dateFormatter}
+                    dictionary={dictionary}
+                    key={record.public_id}
+                    record={record}
+                  />
                 ))}
               </div>
             )
@@ -134,6 +116,61 @@ export function CommunityBoardPage({
         </section>
       </div>
     </AppShell>
+  );
+}
+
+function BoardRecordCard({
+  dateFormatter,
+  dictionary,
+  record,
+}: {
+  dateFormatter: Intl.DateTimeFormat;
+  dictionary: Dictionary;
+  record: PublicBoardRecord;
+}) {
+  const subjectName = record.person_label ?? subjectFallbackLabel(dictionary, record.subject_type);
+  const imageUrl = record.public_image ? toProxiedAssetUrl(record.public_image.url) : null;
+
+  return (
+    <article className="community-board-card">
+      {imageUrl ? (
+        <div className="community-board-image-frame">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt="" className="community-board-image" src={imageUrl} />
+        </div>
+      ) : null}
+      <div className="community-board-card-body">
+        <div className="community-board-card-title-row">
+          <h3 className="community-board-title">{subjectName}</h3>
+          <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, record.subject_type)}</span>
+          <span className={statusClassName(record.operational_status)}>
+            {publicStatusLabel(dictionary, record.operational_status)}
+          </span>
+        </div>
+
+        <dl className="community-board-facts">
+          <div>
+            <dt>{dictionary.board.lastKnownLocationLabel}</dt>
+            <dd>{record.last_known_location}</dd>
+          </div>
+          {record.approximate_age || record.gender ? (
+            <div>
+              <dt>{dictionary.board.ageLabel}</dt>
+              <dd>{[record.approximate_age, record.gender].filter(Boolean).join(" / ")}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        {record.latest_public_update ? (
+          <p className="community-board-update-text">{record.latest_public_update}</p>
+        ) : null}
+
+        <time className="community-board-updated" dateTime={record.platform_last_updated_at}>
+          {dictionary.board.platformLastUpdatedLabel}{" "}
+          {dateFormatter.format(new Date(record.platform_last_updated_at))}
+        </time>
+      </div>
+    </article>
   );
 }
 
@@ -161,4 +198,25 @@ function publicStatusLabel(
     return dictionary.board.publicStatuses.foundAlive.label;
   }
   return dictionary.board.publicStatuses.confirmedDeceased.label;
+}
+
+function subjectTypeLabel(dictionary: Dictionary, subjectType: SubjectType) {
+  return dictionary.subjectTypes[subjectType];
+}
+
+function subjectFallbackLabel(dictionary: Dictionary, subjectType: SubjectType) {
+  if (subjectType === "pet") {
+    return dictionary.board.petFallbackLabel;
+  }
+  if (subjectType === "unknown") {
+    return dictionary.board.unknownFallbackLabel;
+  }
+  return dictionary.board.personFallbackLabel;
+}
+
+function toProxiedAssetUrl(url: string) {
+  if (url.startsWith("/")) {
+    return `/api${url}`;
+  }
+  return url;
 }

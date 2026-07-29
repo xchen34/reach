@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.audit_log_entry import AuditLogEntry
-from app.models.enums import AuditActorType, AuditEventType, ReportSourceChannel, ReportTriageStatus
+from app.models.enums import AuditActorType, AuditEventType, ReportSourceChannel, ReportTriageStatus, SubjectType
 from app.models.incident import Incident
 from app.models.incident_intake_source import IncidentIntakeSource
 from app.models.report import Report
@@ -26,6 +26,7 @@ from app.services.google_sheets_mapping import (
     map_google_sheet_row,
 )
 from app.services.report_service import ReportService
+from app.services.report_attachment_service import ReportAttachmentService
 
 
 class GoogleSheetsRowReader(Protocol):
@@ -197,10 +198,16 @@ class GoogleSheetsImportService:
             reporter_phone=reporter_phone,
             reporter_relationship=_clean_optional(mapped.get("reporter_relationship")),
             permission_to_contact=bool(mapped.get("reporter_contact")),
+            subject_type=SubjectType(mapped.get("subject_type") or SubjectType.UNKNOWN.value),
             triage_status=ReportTriageStatus.AWAITING_REVIEW,
         )
         self.db.add(report)
         self.db.flush()
+        link_errors = ReportAttachmentService(self.db).link_code_to_report(
+            incident_id=source.incident_id,
+            report_id=report.id,
+            attachment_code=mapped.get("attachment_code"),
+        )
 
         self.db.add(
             AuditLogEntry(
@@ -216,7 +223,7 @@ class GoogleSheetsImportService:
                 },
             )
         )
-        return ImportRowResult(imported=True, skipped=False, failed=False)
+        return ImportRowResult(imported=True, skipped=False, failed=False, error=link_errors[0] if link_errors else None)
 
     @staticmethod
     def _response(

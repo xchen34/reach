@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, JSO
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
-from app.models.enums import ReportSourceChannel, ReportTriageStatus
+from app.models.enums import ReportSourceChannel, ReportTriageStatus, SubjectType
 
 
 class Report(Base):
@@ -56,6 +56,11 @@ class Report(Base):
     reporter_relationship: Mapped[Optional[str]] = mapped_column(String(80))
     is_first_hand: Mapped[Optional[bool]] = mapped_column(Boolean)
     permission_to_contact: Mapped[Optional[bool]] = mapped_column(Boolean)
+    subject_type: Mapped[SubjectType] = mapped_column(
+        SAEnum(SubjectType, name="subject_type"),
+        nullable=False,
+        default=SubjectType.UNKNOWN,
+    )
     media_refs_json: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(JSON)
     voice_intake_id: Mapped[Optional[int]] = mapped_column(ForeignKey("voice_intakes.id"), unique=True)
     triage_status: Mapped[ReportTriageStatus] = mapped_column(
@@ -85,3 +90,4 @@ class Report(Base):
     intake_source = relationship("IncidentIntakeSource")
     triage_actions = relationship("ReportTriageAction", back_populates="report")
     voice_intake = relationship("VoiceIntake", back_populates="report", uselist=False)
+    attachments = relationship("ReportAttachment", back_populates="report")

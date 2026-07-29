@@ -84,6 +84,56 @@ paths:
           description: Missing, expired, revoked, or invalid bearer session.
       security:
       - bearerAuth: []
+  /public/incidents/{incident_slug}/attachments:
+    post:
+      tags:
+      - attachments
+      summary: Upload Public Incident Attachments
+      operationId: upload_public_incident_attachments_public_incidents__incident_slug__attachments_post
+      parameters:
+      - name: incident_slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Incident Slug
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_public_incident_attachments_public_incidents__incident_slug__attachments_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAttachmentUploadResponse'
+        '400':
+          description: Image validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Incident not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Image file exceeded the configured size limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /staff/me:
     get:
       tags:
@@ -697,6 +747,126 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /staff/reports/{report_id}/attachments:
+    get:
+      tags:
+      - staff-attachments
+      summary: List Staff Report Attachments
+      operationId: list_staff_report_attachments_staff_reports__report_id__attachments_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Report Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAttachmentResponse'
+                title: Response List Staff Report Attachments Staff Reports  Report
+                  Id  Attachments Get
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/attachments/{attachment_id}:
+    patch:
+      tags:
+      - staff-attachments
+      summary: Update Staff Attachment
+      operationId: update_staff_attachment_staff_attachments__attachment_id__patch
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Attachment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffAttachmentUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffAttachmentResponse'
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Attachment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /staff/attachments/{attachment_id}/content:
+    get:
+      tags:
+      - staff-attachments
+      summary: Get Staff Attachment Content
+      operationId: get_staff_attachment_content_staff_attachments__attachment_id__content_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Attachment Id
+      responses:
+        '200':
+          description: Successful Response
+        '401':
+          description: Missing, expired, revoked, or invalid bearer session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Attachment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /voice-intakes:
     post:
       tags:
@@ -990,6 +1160,9 @@ components:
             maxLength: 40
           - type: 'null'
           title: Reporter Phone
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
       type: object
       required:
       - incident_type
@@ -997,6 +1170,13 @@ components:
       - location_summary
       - needs_summary
       title: AnonymousCaseSubmissionRequest
+    AttachmentModerationStatus:
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+      title: AttachmentModerationStatus
     AuditLogEntryResponse:
       properties:
         id:
@@ -1040,6 +1220,18 @@ components:
       - event_type
       - created_at
       title: AuditLogEntryResponse
+    Body_upload_public_incident_attachments_public_incidents__incident_slug__attachments_post:
+      properties:
+        images:
+          items:
+            type: string
+            format: binary
+          type: array
+          title: Images
+      type: object
+      required:
+      - images
+      title: Body_upload_public_incident_attachments_public_incidents__incident_slug__attachments_post
     Body_upload_voice_intake_voice_intakes_post:
       properties:
         audio_file:
@@ -1096,6 +1288,9 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
         person_label:
           anyOf:
           - type: string
@@ -1148,6 +1343,12 @@ components:
           type: string
           format: date-time
           title: Updated At
+        attachments:
+          items:
+            $ref: '#/components/schemas/StaffAttachmentResponse'
+          type: array
+          title: Attachments
+          default: []
         language_code:
           type: string
           title: Language Code
@@ -1272,6 +1473,9 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
         person_label:
           anyOf:
           - type: string
@@ -1324,6 +1528,12 @@ components:
           type: string
           format: date-time
           title: Updated At
+        attachments:
+          items:
+            $ref: '#/components/schemas/StaffAttachmentResponse'
+          type: array
+          title: Attachments
+          default: []
       type: object
       required:
       - id
@@ -1558,6 +1768,47 @@ components:
       - expires_at
       - user
       title: MagicLinkVerifyResponse
+    PublicAttachmentUploadItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        original_filename:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Filename
+        content_type:
+          type: string
+          title: Content Type
+        byte_size:
+          type: integer
+          title: Byte Size
+      type: object
+      required:
+      - id
+      - content_type
+      - byte_size
+      title: PublicAttachmentUploadItem
+    PublicAttachmentUploadResponse:
+      properties:
+        attachment_code:
+          type: string
+          title: Attachment Code
+        max_images:
+          type: integer
+          title: Max Images
+        attachments:
+          items:
+            $ref: '#/components/schemas/PublicAttachmentUploadItem'
+          type: array
+          title: Attachments
+      type: object
+      required:
+      - attachment_code
+      - max_images
+      - attachments
+      title: PublicAttachmentUploadResponse
     PublicIncidentReportPageResponse:
       properties:
         id:
@@ -1623,6 +1874,9 @@ components:
           - type: string
           - type: 'null'
           title: Person Label
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
         safety_status:
           $ref: '#/components/schemas/CaseSafetyStatus'
         handling_status:
@@ -1698,6 +1952,9 @@ components:
           - type: boolean
           - type: 'null'
           title: Permission To Contact
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
         location_text:
           type: string
           title: Location Text
@@ -1749,6 +2006,12 @@ components:
         source_label:
           type: string
           title: Source Label
+        attachments:
+          items:
+            $ref: '#/components/schemas/StaffAttachmentResponse'
+          type: array
+          title: Attachments
+          default: []
         raw_answers_json:
           anyOf:
           - additionalProperties: true
@@ -1882,6 +2145,9 @@ components:
           - type: boolean
           - type: 'null'
           title: Permission To Contact
+        subject_type:
+          $ref: '#/components/schemas/SubjectType'
+          default: unknown
         location_text:
           type: string
           title: Location Text
@@ -1933,6 +2199,12 @@ components:
         source_label:
           type: string
           title: Source Label
+        attachments:
+          items:
+            $ref: '#/components/schemas/StaffAttachmentResponse'
+          type: array
+          title: Attachments
+          default: []
       type: object
       required:
       - id
@@ -2070,6 +2342,73 @@ components:
       - url
       - scope
       title: ShareLinkSummary
+    StaffAttachmentResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        report_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Report Id
+        case_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Case Id
+        attachment_code:
+          type: string
+          title: Attachment Code
+        original_filename:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Filename
+        content_type:
+          type: string
+          title: Content Type
+        byte_size:
+          type: integer
+          title: Byte Size
+        public_visibility:
+          type: boolean
+          title: Public Visibility
+        moderation_status:
+          $ref: '#/components/schemas/AttachmentModerationStatus'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        linked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Linked At
+      type: object
+      required:
+      - id
+      - attachment_code
+      - content_type
+      - byte_size
+      - public_visibility
+      - moderation_status
+      - created_at
+      title: StaffAttachmentResponse
+    StaffAttachmentUpdateRequest:
+      properties:
+        public_visibility:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Public Visibility
+        moderation_status:
+          anyOf:
+          - $ref: '#/components/schemas/AttachmentModerationStatus'
+          - type: 'null'
+      type: object
+      title: StaffAttachmentUpdateRequest
     StaffCaseActionRequest:
       properties:
         action_type:
@@ -2536,6 +2875,13 @@ components:
       - email
       - role
       title: StaffUserSummary
+    SubjectType:
+      type: string
+      enum:
+      - person
+      - pet
+      - unknown
+      title: SubjectType
     UrgencyLevel:
       type: string
       enum:

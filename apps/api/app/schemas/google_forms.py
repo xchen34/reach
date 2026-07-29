@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.enums import IncidentType, ReportTriageStatus, UrgencyLevel
+from app.models.enums import IncidentType, ReportTriageStatus, SubjectType, UrgencyLevel
 from app.schemas.common import ApiModel
 
 
@@ -25,6 +25,8 @@ class GoogleFormIngestRequest(BaseModel):
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = Field(default=None, max_length=40)
     subject_name: Optional[str] = Field(default=None, max_length=120)
+    subject_type: SubjectType = SubjectType.UNKNOWN
+    attachment_code: Optional[str] = Field(default=None, max_length=24)
     public_update_hint: Optional[str] = Field(default=None, max_length=4000)
     source_relationship: Optional[GoogleFormSourceRelationship] = None
     is_first_hand: Optional[bool] = None

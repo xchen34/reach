@@ -209,6 +209,26 @@ export const en = {
     errorBody:
       "The server could not load this case status right now. Please try again.",
   },
+  subjectTypes: {
+    person: "Person",
+    pet: "Pet",
+    unknown: "Unknown",
+  },
+  reportAttachments: {
+    eyebrow: "Optional photos",
+    title: "Add report photos",
+    description:
+      "You can upload photos here without signing in to Google. Reach will give you a code to enter in the Google Form field named Reach photo attachment code.",
+    inputLabel: "Choose photos",
+    limits: "JPEG, PNG, or WebP only. Up to 4 images, 8 MB each.",
+    emptySelection: "No photos selected.",
+    uploadButton: "Upload photos",
+    uploading: "Uploading photos...",
+    codeLabel: "Photo attachment code",
+    codeInstructions:
+      "Enter this code in the Google Form so staff can match these photos to your report. Photos are not shown publicly unless staff explicitly approve them.",
+    error: "The photos could not be uploaded. Check the file type and size, then try again.",
+  },
   board: {
     eyebrow: "Public board",
     title: "Community verification board",
@@ -227,7 +247,7 @@ export const en = {
       "If you publish a Google Sheet or similar board view, you can embed it here for a denser spreadsheet-style scan.",
     liveTitle: "Public status records",
     liveDescription:
-      "Reach shows selected person/task records. Original reports, private contacts, volunteer details, and exact locations are not shown.",
+      "Reach shows selected person, pet, or follow-up task records. Original reports, private contacts, volunteer details, and exact locations are not shown.",
     statusDisclaimerTitle: "About these statuses",
     statusDisclaimerParagraphs: [
       "This page shows information currently recorded by the Reach volunteer network. It is not an official or real-time register. Volunteers usually prioritize directly contacting families, shelters, hospitals, responders, and other relevant organizations, and may not return to update the platform promptly.",
@@ -248,6 +268,11 @@ export const en = {
     latestUpdateFallback: "No public update has been posted yet.",
     platformLastUpdatedLabel: "Platform last updated",
     personFallbackLabel: "Person requiring follow-up",
+    petFallbackLabel: "Pet requiring follow-up",
+    unknownFallbackLabel: "Subject requiring follow-up",
+    subjectTypeLabel: "Subject type",
+    ageLabel: "Age",
+    detailsLabel: "Details",
     lastKnownLocationLabel: "Last known location",
     resultLabel: "Result",
     filterLabel: "Filter by status",

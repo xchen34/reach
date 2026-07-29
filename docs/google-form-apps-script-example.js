@@ -1,5 +1,5 @@
-var BEACON_HOST = "https://YOUR_BEACON_HOST";
-var BEACON_INGEST_TOKEN = "YOUR_SHARED_INGEST_TOKEN";
+var Reach_HOST = "https://YOUR_Reach_HOST";
+var Reach_INGEST_TOKEN = "YOUR_SHARED_INGEST_TOKEN";
 
 var FORM_CONFIG = {
   "Safe Check-In Form": {
@@ -25,7 +25,7 @@ function onFormSubmit(e) {
   var formConfig = FORM_CONFIG[formName];
 
   if (!formConfig) {
-    throw new Error("No Beacon ingest mapping configured for form: " + formName);
+    throw new Error("No Reach ingest mapping configured for form: " + formName);
   }
 
   var payload = formConfig.mapRow(namedValues);
@@ -33,17 +33,17 @@ function onFormSubmit(e) {
   payload.source_form_name = formConfig.source_form_name;
   payload.source_entry_id = buildSourceEntryId_(e);
 
-  var response = UrlFetchApp.fetch(BEACON_HOST + "/ingest/google-form", {
+  var response = UrlFetchApp.fetch(Reach_HOST + "/ingest/google-form", {
     method: "post",
     contentType: "application/json",
     headers: {
-      "x-beacon-ingest-token": BEACON_INGEST_TOKEN
+      "x-Reach-ingest-token": Reach_INGEST_TOKEN
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
 
-  Logger.log("Beacon ingest status: " + response.getResponseCode());
+  Logger.log("Reach ingest status: " + response.getResponseCode());
   Logger.log(response.getContentText());
 }
 
@@ -63,6 +63,8 @@ function mapSafeCheckInRow(values) {
     reporter_email: firstValue_(values["Reporter contact email"]),
     reporter_phone: firstValue_(values["Reporter contact phone"]),
     subject_name: firstValue_(values["Who are you reporting about?"]),
+    subject_type: mapSubjectType_(firstValue_(values["Who is this report about?"])),
+    attachment_code: firstValue_(values["Reach photo attachment code"]),
     public_update_hint: firstValue_(values["Public summary suggestion"]) || "Safe check-in received. Waiting for volunteer verification.",
     source_relationship: mapSourceRelationship_(firstValue_(values["How do you know this?"])),
     public_visibility_requested: mapYesNo_(firstValue_(values["Can part of this update be shown publicly?"])),
@@ -86,6 +88,8 @@ function mapMissingPersonRow(values) {
     reporter_email: firstValue_(values["Reporter contact email"]),
     reporter_phone: firstValue_(values["Reporter contact phone"]),
     subject_name: firstValue_(values["Who are you trying to locate?"]),
+    subject_type: mapSubjectType_(firstValue_(values["Who is this report about?"])),
+    attachment_code: firstValue_(values["Reach photo attachment code"]),
     public_update_hint: "Missing-person report received. Waiting for volunteer verification.",
     source_relationship: mapSourceRelationship_(firstValue_(values["How do you know this?"])),
     callback_allowed: mapYesNo_(firstValue_(values["Can volunteers contact you for verification?"])),
@@ -111,6 +115,8 @@ function mapUpdateLeadRow(values) {
     reporter_email: firstValue_(values["Reporter contact email"]),
     reporter_phone: firstValue_(values["Reporter contact phone"]),
     subject_name: firstValue_(values["Who or what is this update about?"]),
+    subject_type: mapSubjectType_(firstValue_(values["Who is this report about?"])),
+    attachment_code: firstValue_(values["Reach photo attachment code"]),
     public_update_hint: firstValue_(values["Public summary suggestion"]) || "Community update received. Waiting for volunteer verification.",
     source_relationship: mapSourceRelationship_(firstValue_(values["How do you know this?"])),
     public_visibility_requested: mapYesNo_(firstValue_(values["Can this update be made public?"])),
@@ -161,6 +167,17 @@ function mapIncidentType_(value) {
     return "shelter";
   }
   return "other";
+}
+
+function mapSubjectType_(value) {
+  var normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "person" || normalized === "a person" || normalized === "une personne" || normalized === "人员" || normalized === "人員") {
+    return "person";
+  }
+  if (normalized === "pet" || normalized === "a pet" || normalized === "un animal de compagnie" || normalized === "宠物" || normalized === "寵物") {
+    return "pet";
+  }
+  return "unknown";
 }
 
 function mapUpdateCategory_(value) {

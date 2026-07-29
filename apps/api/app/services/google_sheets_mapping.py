@@ -7,6 +7,11 @@ from typing import Any, Optional
 GOOGLE_FORM_FIELD_MAP: dict[str, str] = {
     "Horodateur": "submitted_at",
     "What are you submitting?": "submission_type",
+    "subject_type": "subject_type",
+    "Who is this report about?": "subject_type",
+    "Qui est concerné par ce signalement ?": "subject_type",
+    "本报告涉及的是谁？": "subject_type",
+    "Reach photo attachment code": "attachment_code",
     "If update , what has changed?": "update_details",
     "Previous Report or Case Reference (Optional)": "previous_reference",
     "Full Name of the Person Being Reported": "person_name",
@@ -42,6 +47,24 @@ GOOGLE_FORM_FIELD_MAP: dict[str, str] = {
 
 CHECKBOX_FIELDS = {"vulnerabilities"}
 
+SUBJECT_TYPE_VALUES = {
+    "person": "person",
+    "a person": "person",
+    "une personne": "person",
+    "人员": "person",
+    "人員": "person",
+    "pet": "pet",
+    "a pet": "pet",
+    "un animal de compagnie": "pet",
+    "宠物": "pet",
+    "寵物": "pet",
+    "unknown": "unknown",
+    "not sure": "unknown",
+    "je ne sais pas": "unknown",
+    "不确定": "unknown",
+    "不確定": "unknown",
+}
+
 
 def map_google_sheet_row(row: dict[str, str], *, row_number: int) -> dict[str, Any]:
     mapped: dict[str, Any] = {"source_row_number": row_number, "raw_row": dict(row)}
@@ -60,12 +83,15 @@ def map_google_sheet_row(row: dict[str, str], *, row_number: int) -> dict[str, A
 
     submitted_at_parsed = _parse_datetime(mapped.get("submitted_at"))
     mapped["submitted_at_parsed"] = submitted_at_parsed.isoformat() if submitted_at_parsed else None
+    mapped["subject_type"] = normalize_subject_type(mapped.get("subject_type"))
+    mapped["attachment_code"] = normalize_attachment_code(mapped.get("attachment_code"))
     return mapped
 
 
 def build_original_narrative(mapped: dict[str, Any]) -> str:
     pieces = [
         ("Submission type", mapped.get("submission_type")),
+        ("Subject type", mapped.get("subject_type")),
         ("Person", mapped.get("person_name")),
         ("Current status", mapped.get("current_status")),
         ("Situation", mapped.get("situation_details")),
@@ -96,6 +122,16 @@ def extract_reporter_contact(mapped: dict[str, Any]) -> tuple[Optional[str], Opt
     if "@" in contact:
         return contact, None
     return None, contact or None
+
+
+def normalize_subject_type(value: Any) -> str:
+    normalized = str(value or "").strip().lower()
+    return SUBJECT_TYPE_VALUES.get(normalized, "unknown")
+
+
+def normalize_attachment_code(value: Any) -> Optional[str]:
+    code = "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+    return code or None
 
 
 def _parse_checkbox(value: Any) -> list[str]:

@@ -12,6 +12,7 @@ from app.models.enums import AuditEventType, CaseHandlingStatus, CaseSafetyStatu
 from app.schemas.case import CaseListItem
 from app.schemas.staff import StaffUserSummary
 from app.schemas.staff_queue import StaffQueueGroup, StaffQueueResponse, StaffQueueSummary
+from app.services.report_attachment_service import ReportAttachmentService
 
 
 class StaffQueueService:
@@ -136,6 +137,7 @@ class StaffQueueService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            subject_type=case.subject_type,
             person_label=case.person_label,
             approximate_age=case.approximate_age,
             last_known_location=case.last_known_location,
@@ -148,6 +150,7 @@ class StaffQueueService:
             platform_last_updated_at=case.updated_at,
             created_at=case.created_at,
             updated_at=case.updated_at,
+            attachments=ReportAttachmentService(self.db).list_case_attachments(case.id),
         )
 
     def _first_metadata_value(

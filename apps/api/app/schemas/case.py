@@ -13,8 +13,10 @@ from app.models.enums import (
     CaseVerificationTask,
     IncidentType,
     ShareLinkScope,
+    SubjectType,
     UrgencyLevel,
 )
+from app.schemas.attachment import StaffAttachmentResponse
 from app.schemas.common import ApiModel
 from app.schemas.staff import StaffUserSummary
 
@@ -32,6 +34,7 @@ class AnonymousCaseSubmissionRequest(BaseModel):
     reporter_name: Optional[str] = Field(default=None, max_length=120)
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = Field(default=None, max_length=40)
+    subject_type: SubjectType = SubjectType.UNKNOWN
 
 
 class ShareLinkSummary(BaseModel):
@@ -58,6 +61,7 @@ class CaseListItem(ApiModel):
     location_summary: str
     needs_summary: str
     latest_public_update: Optional[str] = None
+    subject_type: SubjectType = SubjectType.UNKNOWN
     person_label: Optional[str] = None
     approximate_age: Optional[str] = None
     last_known_location: Optional[str] = None
@@ -70,6 +74,7 @@ class CaseListItem(ApiModel):
     platform_last_updated_at: datetime
     created_at: datetime
     updated_at: datetime
+    attachments: list[StaffAttachmentResponse] = []
 
 
 class CaseDetailResponse(CaseListItem):

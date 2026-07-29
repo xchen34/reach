@@ -13,9 +13,11 @@ from app.models.enums import (
     ReportSourceChannel,
     ReportTriageActionType,
     ReportTriageStatus,
+    SubjectType,
     UrgencyLevel,
 )
 from app.schemas.case import CaseDetailResponse
+from app.schemas.attachment import StaffAttachmentResponse
 from app.schemas.common import ApiModel
 
 
@@ -24,6 +26,7 @@ class ReportCaseSummary(ApiModel):
     incident_id: int
     case_code: str
     person_label: Optional[str] = None
+    subject_type: SubjectType = SubjectType.UNKNOWN
     safety_status: CaseSafetyStatus
     handling_status: CaseHandlingStatus
 
@@ -44,6 +47,7 @@ class ReportListItem(ApiModel):
     reporter_relationship: Optional[str] = None
     is_first_hand: Optional[bool] = None
     permission_to_contact: Optional[bool] = None
+    subject_type: SubjectType = SubjectType.UNKNOWN
     location_text: str
     original_narrative_preview: str
     submission_type: Optional[str] = None
@@ -56,6 +60,7 @@ class ReportListItem(ApiModel):
     is_legacy_backfill: bool
     migration_note: Optional[str] = None
     source_label: str
+    attachments: list[StaffAttachmentResponse] = []
 
 
 class ReportDetailResponse(ReportListItem):

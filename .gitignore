@@ -13,3 +13,5 @@ apps/api/.venv
 apps/api/htmlcov
 .playwright-cli
 *.tsbuildinfo
+data/report_attachments
+uploads/report_attachments

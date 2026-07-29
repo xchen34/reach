@@ -7,6 +7,8 @@ const allowedRoutes = [
   { method: "GET", pattern: /^share\/[^/]+$/ },
   { method: "GET", pattern: /^incidents\/current\/report$/ },
   { method: "GET", pattern: /^incidents\/[^/]+\/report$/ },
+  { method: "POST", pattern: /^public\/incidents\/[^/]+\/attachments$/ },
+  { method: "GET", pattern: /^public\/attachments\/\d+\/content$/ },
   { method: "POST", pattern: /^auth\/request-magic-link$/ },
   { method: "POST", pattern: /^auth\/verify-magic-link$/ },
   { method: "POST", pattern: /^auth\/logout$/ },
@@ -15,6 +17,7 @@ const allowedRoutes = [
   { method: "POST", pattern: /^staff\/incidents\/\d+\/intake-sources\/\d+\/import$/ },
   { method: "GET", pattern: /^staff\/reports$/ },
   { method: "GET", pattern: /^staff\/reports\/\d+$/ },
+  { method: "GET", pattern: /^staff\/reports\/\d+\/attachments$/ },
   { method: "POST", pattern: /^staff\/reports\/\d+\/create-task$/ },
   { method: "POST", pattern: /^staff\/reports\/\d+\/create-case$/ },
   { method: "POST", pattern: /^staff\/reports\/\d+\/link-case$/ },
@@ -34,6 +37,8 @@ const allowedRoutes = [
   { method: "POST", pattern: /^staff\/cases\/\d+\/actions$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/publish$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/relations$/ },
+  { method: "PATCH", pattern: /^staff\/attachments\/\d+$/ },
+  { method: "GET", pattern: /^staff\/attachments\/\d+\/content$/ },
 ] as const;
 
 export async function GET(request: Request, context: RouteContext) {
@@ -41,6 +46,10 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  return proxyRequest(request, context);
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
   return proxyRequest(request, context);
 }
 
@@ -102,7 +111,7 @@ async function proxyRequest(request: Request, context: RouteContext) {
 
   if (!contentType?.includes("application/json")) {
     if (upstreamResponse.ok) {
-      return new Response(await upstreamResponse.text(), {
+      return new Response(await upstreamResponse.arrayBuffer(), {
         status: upstreamResponse.status,
         headers: responseHeaders,
       });

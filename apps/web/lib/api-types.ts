@@ -21,6 +21,8 @@ export const reportTriageStatuses = [
   "out_of_scope",
   "invalid_or_insufficient",
 ] as const;
+export const subjectTypes = ["person", "pet", "unknown"] as const;
+export const attachmentModerationStatuses = ["pending", "approved", "rejected"] as const;
 
 export const caseStatuses = [
   "pending_review",
@@ -36,6 +38,8 @@ export type StaffRole = (typeof staffRoles)[number];
 export type CaseActionType = (typeof caseActionTypes)[number];
 export type CaseStatus = (typeof caseStatuses)[number];
 export type ReportTriageStatus = (typeof reportTriageStatuses)[number];
+export type SubjectType = (typeof subjectTypes)[number];
+export type AttachmentModerationStatus = (typeof attachmentModerationStatuses)[number];
 export type ShareLinkScope = "status_only";
 export type VoiceProcessingStatus = (typeof voiceProcessingStatuses)[number];
 export type VoiceTranscriptState = (typeof voiceTranscriptStates)[number];
@@ -75,12 +79,21 @@ export interface ShareLinkCaseView {
 export interface PublicBoardRecord {
   public_id: string;
   operational_status: OperationalStatus;
+  subject_type: SubjectType;
   person_label: string | null;
   approximate_age: string | null;
   gender: string | null;
   last_known_location: string;
   latest_public_update: string | null;
   platform_last_updated_at: string;
+  public_image: PublicBoardAttachment | null;
+}
+
+export interface PublicBoardAttachment {
+  id: number;
+  url: string;
+  content_type: string;
+  byte_size: number;
 }
 
 export interface PublicBoardSummary {
@@ -156,6 +169,7 @@ export interface StaffCaseListItem {
   location_summary: string;
   needs_summary: string;
   latest_public_update: string | null;
+  subject_type?: SubjectType;
   person_label?: string | null;
   approximate_age?: string | null;
   last_known_location?: string | null;
@@ -183,6 +197,7 @@ export interface StaffCaseListItem {
   operational_status?: OperationalStatus;
   source_report_count?: number;
   platform_last_updated_at?: string;
+  attachments?: StaffAttachment[];
   created_at: string;
   updated_at: string;
 }
@@ -230,6 +245,7 @@ export interface ReportCaseSummary {
   incident_id: number;
   case_code: string;
   person_label: string | null;
+  subject_type: SubjectType;
   safety_status:
     | "unknown"
     | "possibly_at_risk"
@@ -242,6 +258,20 @@ export interface ReportCaseSummary {
     | "escalated_to_rescuers"
     | "awaiting_external_feedback"
     | "archived";
+}
+
+export interface StaffAttachment {
+  id: number;
+  report_id: number | null;
+  case_id: number | null;
+  attachment_code: string;
+  original_filename: string | null;
+  content_type: string;
+  byte_size: number;
+  public_visibility: boolean;
+  moderation_status: AttachmentModerationStatus;
+  created_at: string;
+  linked_at: string | null;
 }
 
 export interface StaffReportListItem {
@@ -260,6 +290,7 @@ export interface StaffReportListItem {
   reporter_relationship: string | null;
   is_first_hand: boolean | null;
   permission_to_contact: boolean | null;
+  subject_type: SubjectType;
   location_text: string;
   original_narrative_preview: string;
   submission_type: string | null;
@@ -272,6 +303,20 @@ export interface StaffReportListItem {
   is_legacy_backfill: boolean;
   migration_note: string | null;
   source_label: string;
+  attachments: StaffAttachment[];
+}
+
+export interface PublicAttachmentUploadItem {
+  id: number;
+  original_filename: string | null;
+  content_type: string;
+  byte_size: number;
+}
+
+export interface PublicAttachmentUploadResponse {
+  attachment_code: string;
+  max_images: number;
+  attachments: PublicAttachmentUploadItem[];
 }
 
 export interface StaffReportInboxResponse {

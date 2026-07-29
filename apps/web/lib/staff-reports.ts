@@ -58,8 +58,18 @@ export function getReportTriageBucket(status: ReportTriageStatus): ReportTriageB
 export function getReportPrimaryText(report: StaffReportListItem) {
   return {
     submissionType: report.submission_type ?? "Submission",
-    personName: report.person_name ?? "Person not named",
+    personName: report.person_name ?? subjectFallback(report.subject_type),
     ageGender: [report.approximate_age, report.gender].filter(Boolean).join(" / ") || "Age or gender not provided",
     currentStatus: report.current_status ?? report.original_narrative_preview,
   };
+}
+
+function subjectFallback(subjectType: StaffReportListItem["subject_type"]) {
+  if (subjectType === "pet") {
+    return "Pet not named";
+  }
+  if (subjectType === "unknown") {
+    return "Subject not named";
+  }
+  return "Person not named";
 }

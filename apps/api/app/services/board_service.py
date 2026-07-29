@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.case import Case
 from app.models.enums import CaseHandlingStatus, CaseSafetyStatus
 from app.schemas.board import PublicBoardRecord, PublicBoardResponse, PublicBoardSummary
+from app.services.report_attachment_service import ReportAttachmentService
 
 
 class BoardService:
@@ -26,12 +27,14 @@ class BoardService:
                 PublicBoardRecord(
                     public_id=case.case_code,
                     operational_status=status,
+                    subject_type=case.subject_type,
                     person_label=case.person_label,
                     approximate_age=case.approximate_age,
                     gender=None,
                     last_known_location=case.last_known_location or case.location_summary,
                     latest_public_update=case.latest_public_update,
                     platform_last_updated_at=case.updated_at,
+                    public_image=ReportAttachmentService(self.db).first_public_board_attachment(case),
                 )
             )
 

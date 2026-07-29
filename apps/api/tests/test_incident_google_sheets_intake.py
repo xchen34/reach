@@ -15,17 +15,20 @@ from app.models.enums import (
     CaseSafetyStatus,
     CaseStatus,
     CaseVerificationTask,
+    AttachmentModerationStatus,
     IncidentStatus,
     IncidentType,
     IntakeSourceType,
     ReportSourceChannel,
     ReportTriageStatus,
     StaffRole,
+    SubjectType,
     UrgencyLevel,
 )
 from app.models.incident import Incident
 from app.models.incident_intake_source import IncidentIntakeSource
 from app.models.report import Report
+from app.models.report_attachment import ReportAttachment
 from app.models.user import User
 from test_app import engine, override_get_db
 
@@ -70,6 +73,8 @@ SHEET_HEADERS = [
     "Preferred Contact Method",
     "Consent and Acknowledgment",
     "Unexpected Extra Column",
+    "subject_type",
+    "Reach photo attachment code",
 ]
 
 
@@ -149,6 +154,7 @@ def test_import_creates_idempotent_incident_scoped_report(monkeypatch: pytest.Mo
     assert report_items[0]["approximate_age"] == "72"
     assert report_items[0]["gender"] == "Female"
     assert report_items[0]["current_status"] == "Family cannot reach her."
+    assert report_items[0]["subject_type"] == "person"
 
     with next(override_get_db()) as db:
         reports = db.query(Report).order_by(Report.id).all()
@@ -157,9 +163,108 @@ def test_import_creates_idempotent_incident_scoped_report(monkeypatch: pytest.Mo
         assert reports[0].intake_source_id == source_id
         assert reports[0].triage_status.value == "awaiting_review"
         assert reports[0].raw_answers_json["person_name"] == "Resident A"
+        assert reports[0].subject_type == SubjectType.PERSON
         assert reports[0].raw_answers_json["unknown_columns"]["Unexpected Extra Column"] == "preserved"
         assert reports[1].submitted_at is None
         assert db.query(Case).count() == 0
+
+
+def test_import_defaults_missing_subject_type_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    legacy_headers = SHEET_HEADERS[:-2]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: [legacy_headers, _sheet_row()[:-2]],
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    response = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    with next(override_get_db()) as db:
+        report = db.query(Report).one()
+        assert report.subject_type == SubjectType.UNKNOWN
+
+
+def test_attachment_upload_linking_and_public_filtering(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    upload_response = client.post(
+        "/public/incidents/high-rise-fire/attachments",
+        files={"images": ("pet.png", b"\x89PNG\r\n\x1a\nimage", "image/png")},
+    )
+    assert upload_response.status_code == 201
+    attachment_code = upload_response.json()["attachment_code"]
+    row = _sheet_row(subject_type="pet", attachment_code=attachment_code)
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: [SHEET_HEADERS, row],
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    first_import = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+    second_import = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+
+    assert first_import.status_code == 200
+    assert first_import.json()["imported"] == 1
+    assert second_import.status_code == 200
+    assert second_import.json()["imported"] == 0
+
+    reports_response = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
+    report = reports_response.json()["reports"][0]
+    assert report["subject_type"] == "pet"
+    assert len(report["attachments"]) == 1
+    assert "storage_key" not in report["attachments"][0]
+    report_id = report["id"]
+
+    create_task = client.post(f"/staff/reports/{report_id}/create-task", headers=headers, json={})
+    assert create_task.status_code == 200
+    case_id = create_task.json()["case"]["id"]
+    assert create_task.json()["case"]["subject_type"] == "pet"
+    assert create_task.json()["case"]["attachments"][0]["moderation_status"] == "pending"
+
+    pending_board = client.get("/board")
+    assert pending_board.status_code == 200
+    assert pending_board.json()["records"][0]["subject_type"] == "pet"
+    assert pending_board.json()["records"][0]["public_image"] is None
+
+    with next(override_get_db()) as db:
+        attachment = db.query(ReportAttachment).one()
+        attachment.public_visibility = True
+        attachment.moderation_status = AttachmentModerationStatus.APPROVED
+        db.commit()
+
+    approved_board = client.get("/board")
+    public_image = approved_board.json()["records"][0]["public_image"]
+    assert public_image["url"] == f"/public/attachments/{public_image['id']}/content"
+    assert "storage_key" not in public_image
+    assert db_case_subject(case_id) == SubjectType.PET
+
+
+def test_attachment_upload_rejects_invalid_type_and_oversize(monkeypatch: pytest.MonkeyPatch) -> None:
+    _create_incident_with_source()
+    monkeypatch.setenv("Reach_REPORT_ATTACHMENT_MAX_UPLOAD_BYTES", "8")
+    get_settings.cache_clear()
+
+    invalid = client.post(
+        "/public/incidents/high-rise-fire/attachments",
+        files={"images": ("bad.svg", b"<svg/>", "image/svg+xml")},
+    )
+    oversize = client.post(
+        "/public/incidents/high-rise-fire/attachments",
+        files={"images": ("large.png", b"\x89PNG\r\n\x1a\nx", "image/png")},
+    )
+
+    assert invalid.status_code == 400
+    assert oversize.status_code == 413
 
 
 def test_volunteer_cannot_trigger_import() -> None:
@@ -276,7 +381,7 @@ def _authenticate_staff(email: str, role: StaffRole) -> dict[str, str]:
     return {"Authorization": f"Bearer {verify_response.json()['access_token']}"}
 
 
-def _sheet_row() -> list[str]:
+def _sheet_row(*, subject_type: str = "person", attachment_code: str = "") -> list[str]:
     return [
         "07/13/2026 12:27:00",
         "A new report about a person",
@@ -311,6 +416,8 @@ def _sheet_row() -> list[str]:
         "reporter@example.com",
         "I confirm this is accurate.",
         "preserved",
+        subject_type,
+        attachment_code,
     ]
 
 
@@ -321,3 +428,8 @@ def _malformed_timestamp_row() -> list[str]:
     row[30] = "+1 555 9999"
     row[32] = "extra"
     return row
+
+
+def db_case_subject(case_id: int) -> SubjectType:
+    with next(override_get_db()) as db:
+        return db.get(Case, case_id).subject_type

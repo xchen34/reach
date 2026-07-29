@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.audit import router as audit_router
+from app.api.attachments import router as attachments_router
+from app.api.attachments import staff_router as staff_attachments_router
 from app.api.auth import router as auth_router
 from app.api.board import router as board_router
 from app.api.cases import router as cases_router
@@ -38,6 +40,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(attachments_router)
 app.include_router(staff_router)
 app.include_router(board_router)
 app.include_router(cases_router)
@@ -46,6 +49,7 @@ app.include_router(incidents_router)
 app.include_router(staff_incidents_router)
 app.include_router(staff_cases_router)
 app.include_router(reports_router)
+app.include_router(staff_attachments_router)
 app.include_router(voice_router)
 app.include_router(staff_voice_router)
 app.include_router(share_links_router)
