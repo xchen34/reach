@@ -1288,6 +1288,11 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        reporter_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Phone
         subject_type:
           $ref: '#/components/schemas/SubjectType'
           default: unknown
@@ -1363,11 +1368,6 @@ components:
             format: email
           - type: 'null'
           title: Reporter Email
-        reporter_phone:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Reporter Phone
         appearance:
           anyOf:
           - type: string
@@ -1473,6 +1473,11 @@ components:
           - type: string
           - type: 'null'
           title: Latest Public Update
+        reporter_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporter Phone
         subject_type:
           $ref: '#/components/schemas/SubjectType'
           default: unknown

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  assignStaffCaseToSelf,
   ApiError,
   createStaffCaseAction,
   getCurrentStaffSession,
@@ -11,7 +12,9 @@ import {
   getStaffPublishQueue,
   listStaffCaseAudit,
   logoutStaffSession,
-  publishStaffCaseUpdate,
+  markStaffCaseDeceased,
+  markStaffCaseSafe,
+  returnStaffCaseToUnassigned,
   relateStaffCase,
 } from "@/lib/api";
 import {
@@ -42,14 +45,6 @@ type StaffCaseDetailPageProps = {
   locale: Locale;
 };
 
-type PublicPublishStage = "pending" | "in_progress" | "resolved";
-type ResolvedOutcome =
-  | "safe_confirmed"
-  | "deceased_confirmed"
-  | "assisted_resolved"
-  | "duplicate_merged"
-  | "custom";
-
 type DetailState =
   | { status: "loading" }
   | {
@@ -71,16 +66,13 @@ export function StaffCaseDetailPage({
   const router = useRouter();
   const [state, setState] = useState<DetailState>({ status: "loading" });
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
-  const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
+  const [isSubmittingOutcome, setIsSubmittingOutcome] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [publishStage, setPublishStage] = useState<PublicPublishStage>("pending");
-  const [resolvedOutcome, setResolvedOutcome] = useState<ResolvedOutcome>("safe_confirmed");
-  const [publicUpdateDraft, setPublicUpdateDraft] = useState("");
   const [isLinkingRelation, setIsLinkingRelation] = useState(false);
 
   const dateFormatter = useMemo(
@@ -116,9 +108,6 @@ export function StaffCaseDetailPage({
         auditEntries,
         queue,
       });
-      setPublishStage(getPublicPublishStage(caseDetail.status));
-      setResolvedOutcome(getResolvedOutcome(caseDetail.latest_public_update));
-      setPublicUpdateDraft(caseDetail.latest_public_update ?? "");
     } catch (error) {
       if (error instanceof MissingStaffSessionError) {
         redirectToLogin(router, locale, "missing");
@@ -202,34 +191,31 @@ export function StaffCaseDetailPage({
     }
   }
 
-  async function handleStatusSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function handleOutcome(action: "safe" | "deceased" | "return") {
     if (state.status !== "ready") {
       return;
     }
 
     setActionError(null);
     setActionSuccess(null);
-    if (publicUpdateDraft.trim().length < 5) {
-      setActionError(dictionary.staff.detail.publicUpdateRequired);
-      return;
-    }
-    setIsSubmittingStatus(true);
+    setIsSubmittingOutcome(true);
 
     try {
-      await withStaffAuthorization(state.accessToken, (token) =>
-        publishStaffCaseUpdate(token, caseId, {
-          to_status: mapPublishStageToCaseStatus(publishStage),
-          latest_public_update: publicUpdateDraft.trim(),
-        }),
-      );
-      setActionSuccess(dictionary.staff.detail.publishSuccess);
+      if (action === "safe") {
+        await withStaffAuthorization(state.accessToken, (token) => markStaffCaseSafe(token, caseId, {}));
+        setActionSuccess(dictionary.staff.detail.foundSafeSuccess);
+      } else if (action === "deceased") {
+        await withStaffAuthorization(state.accessToken, (token) => markStaffCaseDeceased(token, caseId, {}));
+        setActionSuccess(dictionary.staff.detail.confirmDeathSuccess);
+      } else {
+        await withStaffAuthorization(state.accessToken, (token) => returnStaffCaseToUnassigned(token, caseId));
+        setActionSuccess(dictionary.staff.detail.returnSuccess);
+      }
       await loadCase();
     } catch (error) {
       await handleActionError(error);
     } finally {
-      setIsSubmittingStatus(false);
+      setIsSubmittingOutcome(false);
     }
   }
 
@@ -244,9 +230,7 @@ export function StaffCaseDetailPage({
 
     try {
       await withStaffAuthorization(state.accessToken, (token) =>
-        createStaffCaseAction(token, caseId, {
-          action_type: "claim",
-        }),
+        assignStaffCaseToSelf(token, caseId),
       );
       setActionSuccess(dictionary.staff.detail.claimSuccess);
       await loadCase();
@@ -377,17 +361,20 @@ export function StaffCaseDetailPage({
   const locationSummary = caseDetail.location_summary.trim() || dictionary.staff.detail.summaryFallback;
   const needsSummary = caseDetail.needs_summary.trim() || dictionary.staff.detail.summaryFallback;
   const latestUpdate = caseDetail.latest_public_update ?? dictionary.staff.detail.latestUpdateFallback;
-  const publishStageOptions: PublicPublishStage[] = ["pending", "in_progress", "resolved"];
-  const resolvedOutcomeOptions: ResolvedOutcome[] = [
-    "safe_confirmed",
-    "deceased_confirmed",
-    "assisted_resolved",
-    "duplicate_merged",
-    "custom",
-  ];
   const relatedMarkers = auditEntries
     .map((entry) => getRelatedMarker(entry))
     .filter((marker): marker is RelatedMarker => marker !== null);
+  const isFinal =
+    caseDetail.operational_status === "found_alive" ||
+    caseDetail.operational_status === "confirmed_deceased";
+  const isAssignedToCurrentUser = caseDetail.assigned_staff_user?.id === session.user.id;
+  const canClaim = !caseDetail.assigned_staff_user && !isFinal;
+  const canCoordinatorReassign =
+    session.user.role === "coordinator" && Boolean(caseDetail.assigned_staff_user) && !isFinal;
+  const canResolve =
+    (isAssignedToCurrentUser || session.user.role === "coordinator") &&
+    Boolean(caseDetail.assigned_staff_user) &&
+    !isFinal;
   const reviewSummaryItems = [
     { label: dictionary.staff.detail.statusLabel, value: dictionary.caseStatus.labels[caseDetail.status] },
     { label: dictionary.staff.detail.assignedLabel, value: assignedEmail },
@@ -396,8 +383,7 @@ export function StaffCaseDetailPage({
   ];
   const recentAuditEntries = [...auditEntries].filter(isUsefulAuditEntry).reverse().slice(0, 5);
   const suggestedMatches = findSuggestedCaseMatches(caseDetail, queue.events.flatMap((event) => event.related_cases));
-  const latestPublishedEntry = [...auditEntries].reverse().find(isPublishAuditEntry);
-  const hasPublishedUpdate = Boolean(caseDetail.latest_public_update?.trim());
+  const showCoordinatorTools = session.user.role === "coordinator";
 
   return (
     <AppShell
@@ -496,121 +482,61 @@ export function StaffCaseDetailPage({
                 </p>
               ) : null}
 
-              <form className="detail-card form-stack staff-action-card" onSubmit={handleStatusSubmit}>
-                <div>
-                  <h3 className="section-title staff-action-title">{dictionary.staff.detail.statusPanelTitle}</h3>
-                  <p className="field-hint compact-copy">{dictionary.staff.detail.publicUpdateScope}</p>
-                </div>
-                <section
-                  className={hasPublishedUpdate ? "published-update-card" : "published-update-card published-update-card-empty"}
-                  aria-labelledby="published-update-title"
-                >
-                  <div className="staff-section-heading">
-                    <div>
-                      <h4 className="staff-subtitle" id="published-update-title">
-                        {dictionary.staff.detail.publishedUpdateTitle}
-                      </h4>
-                      <p className="field-hint compact-copy">
-                        {latestPublishedEntry
-                          ? `${dictionary.staff.detail.publishedAtLabel} ${dateFormatter.format(new Date(latestPublishedEntry.created_at))}`
-                          : dictionary.staff.detail.notPublishedYet}
-                      </p>
-                    </div>
-                    {hasPublishedUpdate ? (
-                      <span className="status-pill">{dictionary.staff.detail.publishedStateLabel}</span>
-                    ) : null}
-                  </div>
-                  <p className="staff-narrative-text">
-                    {hasPublishedUpdate ? caseDetail.latest_public_update : dictionary.staff.detail.latestUpdateFallback}
-                  </p>
-                </section>
-                <label className="field">
-                  <span className="field-label">{dictionary.staff.detail.statusChangeLabel}</span>
-                  <select
-                    className="field-control"
-                    value={publishStage}
-                    onChange={(event) => setPublishStage(event.target.value as PublicPublishStage)}
-                  >
-                    {publishStageOptions.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {dictionary.staff.detail.publicStages[stage]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {publishStage === "resolved" ? (
-                  <label className="field">
-                    <span className="field-label">{dictionary.staff.detail.resolvedOutcomeLabel}</span>
-                    <select
-                      className="field-control"
-                      value={resolvedOutcome}
-                      onChange={(event) => {
-                        const nextOutcome = event.target.value as ResolvedOutcome;
-                        setResolvedOutcome(nextOutcome);
-                        const template = getResolvedOutcomeTemplate(dictionary, nextOutcome);
-                        if (template) {
-                          setPublicUpdateDraft(template);
-                        }
-                      }}
+              <div className="detail-card form-stack staff-action-card">
+                <h3 className="section-title staff-action-title">{dictionary.staff.detail.nextActionTitle}</h3>
+                <div className="button-row staff-primary-actions">
+                  {canClaim || canCoordinatorReassign ? (
+                    <button
+                      className="button-primary"
+                      disabled={isClaiming}
+                      type="button"
+                      onClick={() => void handleClaim()}
                     >
-                      {resolvedOutcomeOptions.map((outcome) => (
-                        <option key={outcome} value={outcome}>
-                          {dictionary.staff.detail.resolvedOutcomes[outcome]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <div className="info-banner" role="status">
-                  {dictionary.staff.detail.publishStageDescriptions[publishStage]}
+                      {canCoordinatorReassign
+                        ? dictionary.staff.detail.reassignToMeAction
+                        : dictionary.staff.detail.claimSubmit}
+                    </button>
+                  ) : null}
+                  {canResolve ? (
+                    <>
+                      <button
+                        className="button-primary"
+                        disabled={isSubmittingOutcome}
+                        type="button"
+                        onClick={() => void handleOutcome("safe")}
+                      >
+                        {dictionary.staff.detail.foundSafeAction}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        disabled={isSubmittingOutcome}
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(dictionary.staff.detail.confirmDeathPrompt)) {
+                            void handleOutcome("deceased");
+                          }
+                        }}
+                      >
+                        {dictionary.staff.detail.confirmDeathAction}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        disabled={isSubmittingOutcome}
+                        type="button"
+                        onClick={() => void handleOutcome("return")}
+                      >
+                        {dictionary.staff.detail.returnAction}
+                      </button>
+                    </>
+                  ) : null}
+                  {!canClaim && !canCoordinatorReassign && !canResolve ? (
+                    <p className="field-hint compact-copy">{dictionary.staff.detail.noPrimaryAction}</p>
+                  ) : null}
                 </div>
-                {publishStage === "resolved" ? (
-                  <div className="button-row">
-                    {resolvedOutcomeOptions
-                      .filter((outcome) => outcome !== "custom")
-                      .map((outcome) => (
-                        <button
-                          key={outcome}
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => {
-                            setResolvedOutcome(outcome);
-                            setPublicUpdateDraft(getResolvedOutcomeTemplate(dictionary, outcome));
-                          }}
-                        >
-                          {dictionary.staff.detail.resolvedOutcomes[outcome]}
-                        </button>
-                      ))}
-                  </div>
-                ) : null}
-                <label className="field">
-                  <span className="field-label">
-                    {hasPublishedUpdate
-                      ? dictionary.staff.detail.publicUpdateEditLabel
-                      : dictionary.staff.detail.publicUpdateLabel}
-                  </span>
-                  <span className="field-hint">{dictionary.staff.detail.publicUpdateHint}</span>
-                  <textarea
-                    className="field-control field-textarea"
-                    maxLength={4000}
-                    rows={4}
-                    value={publicUpdateDraft}
-                    onChange={(event) => {
-                      setResolvedOutcome("custom");
-                      setPublicUpdateDraft(event.target.value);
-                    }}
-                  />
-                </label>
-                <button className="button-primary" disabled={isSubmittingStatus} type="submit">
-                  {isSubmittingStatus
-                    ? dictionary.staff.detail.submitting
-                    : hasPublishedUpdate
-                      ? dictionary.staff.detail.statusEditSubmit
-                      : dictionary.staff.detail.statusSubmit}
-                </button>
-              </form>
+              </div>
             </section>
 
+            {showCoordinatorTools ? (
             <section className="staff-review-panel" aria-labelledby="staff-duplicates-title">
               <div className="staff-section-heading">
                 <div>
@@ -675,6 +601,7 @@ export function StaffCaseDetailPage({
                 </div>
               ) : null}
             </section>
+            ) : null}
 
             <section className="staff-review-panel" aria-labelledby="staff-audit-title">
               <div className="staff-section-heading">
@@ -778,10 +705,6 @@ function isUsefulAuditEntry(entry: AuditLogEntryResponse) {
   );
 }
 
-function isPublishAuditEntry(entry: AuditLogEntryResponse) {
-  return entry.metadata_json?.action_type === "publish_update";
-}
-
 function getAuditEntryDescription(dictionary: Dictionary, entry: AuditLogEntryResponse) {
   const metadata = entry.metadata_json ?? {};
   if (metadata.action_type === "publish_update" && typeof metadata.latest_public_update === "string") {
@@ -849,82 +772,4 @@ function getStatusPillClassName(status: CaseStatus) {
   }
 
   return "status-pill";
-}
-
-function getPublicPublishStage(status: CaseStatus): PublicPublishStage {
-  if (status === "safe_resolved" || status === "closed") {
-    return "resolved";
-  }
-
-  if (status === "active") {
-    return "in_progress";
-  }
-
-  return "pending";
-}
-
-function mapPublishStageToCaseStatus(stage: PublicPublishStage): CaseStatus {
-  if (stage === "resolved") {
-    return "safe_resolved";
-  }
-
-  if (stage === "in_progress") {
-    return "active";
-  }
-
-  return "pending_review";
-}
-
-function getResolvedOutcome(update: string | null): ResolvedOutcome {
-  if (!update) {
-    return "safe_confirmed";
-  }
-
-  const normalized = update.toLowerCase();
-  if (
-    normalized.includes("duplicate") ||
-    normalized.includes("merged") ||
-    update.includes("重复") ||
-    update.includes("合并")
-  ) {
-    return "duplicate_merged";
-  }
-
-  if (
-    normalized.includes("deceased") ||
-    normalized.includes("passed away") ||
-    update.includes("去世") ||
-    update.includes("死亡")
-  ) {
-    return "deceased_confirmed";
-  }
-
-  if (
-    normalized.includes("rescued") ||
-    normalized.includes("assisted") ||
-    normalized.includes("help delivered") ||
-    update.includes("救助") ||
-    update.includes("获救")
-  ) {
-    return "assisted_resolved";
-  }
-
-  if (
-    normalized.includes("safe") ||
-    normalized.includes("accounted") ||
-    update.includes("平安") ||
-    update.includes("安全")
-  ) {
-    return "safe_confirmed";
-  }
-
-  return "custom";
-}
-
-function getResolvedOutcomeTemplate(dictionary: Dictionary, outcome: ResolvedOutcome) {
-  if (outcome === "custom") {
-    return "";
-  }
-
-  return dictionary.staff.detail.resolvedOutcomeTemplates[outcome];
 }

@@ -61,6 +61,7 @@ class CaseListItem(ApiModel):
     location_summary: str
     needs_summary: str
     latest_public_update: Optional[str] = None
+    reporter_phone: Optional[str] = None
     subject_type: SubjectType = SubjectType.UNKNOWN
     person_label: Optional[str] = None
     approximate_age: Optional[str] = None

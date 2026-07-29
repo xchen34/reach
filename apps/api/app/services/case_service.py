@@ -306,11 +306,9 @@ class CaseService:
         actor: StaffUserSummary,
         payload: StaffCaseOutcomeRequest,
     ) -> CaseDetailResponse:
-        if actor.role != StaffRole.COORDINATOR:
-            raise PermissionError("Only coordinators can confirm death information.")
         source = (payload.confirmation_source or payload.note or "").strip()
         if not source:
-            raise ValueError("Death confirmation requires a confirmation source or explanation.")
+            source = "Confirmed deceased by volunteer action."
         case = self.db.get(Case, case_id)
         if case is None:
             raise LookupError("Case not found.")
@@ -483,6 +481,7 @@ class CaseService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            reporter_phone=case.reporter_phone,
             subject_type=case.subject_type,
             person_label=case.person_label,
             approximate_age=case.approximate_age,
@@ -506,7 +505,6 @@ class CaseService:
             language_code=case.language_code,
             reporter_name=case.reporter_name,
             reporter_email=case.reporter_email,
-            reporter_phone=case.reporter_phone,
             appearance=case.appearance,
             clothing=case.clothing,
             identifying_details=case.identifying_details,

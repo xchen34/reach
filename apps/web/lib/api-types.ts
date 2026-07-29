@@ -169,6 +169,7 @@ export interface StaffCaseListItem {
   location_summary: string;
   needs_summary: string;
   latest_public_update: string | null;
+  reporter_phone?: string | null;
   subject_type?: SubjectType;
   person_label?: string | null;
   approximate_age?: string | null;

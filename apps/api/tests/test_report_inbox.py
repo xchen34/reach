@@ -124,7 +124,7 @@ def test_create_case_from_report_links_report_and_uses_compatibility_statuses() 
         assert case.status is CaseStatus.ACTIVE
 
 
-def test_simplified_task_workflow_preserves_original_report_and_requires_death_source() -> None:
+def test_simplified_task_workflow_updates_public_status_and_preserves_original_report() -> None:
     report_id = _ingest("entry-task-workflow")
     headers = _authenticate_staff("task-volunteer@example.com")
 
@@ -143,6 +143,19 @@ def test_simplified_task_workflow_preserves_original_report_and_requires_death_s
     assign_response = client.post(f"/staff/cases/{case_id}/assign", headers=headers)
     assert assign_response.status_code == 200
     assert assign_response.json()["operational_status"] == "in_progress"
+    board_response = client.get("/board")
+    assert board_response.status_code == 200
+    assert board_response.json()["records"][0]["operational_status"] == "in_progress"
+
+    return_response = client.post(f"/staff/cases/{case_id}/return-unassigned", headers=headers, json={})
+    assert return_response.status_code == 200
+    assert return_response.json()["operational_status"] == "unassigned"
+    board_response = client.get("/board")
+    assert board_response.status_code == 200
+    assert board_response.json()["records"][0]["operational_status"] == "unassigned"
+
+    assign_response = client.post(f"/staff/cases/{case_id}/assign", headers=headers)
+    assert assign_response.status_code == 200
 
     safe_response = client.post(
         f"/staff/cases/{case_id}/mark-safe",
@@ -151,32 +164,34 @@ def test_simplified_task_workflow_preserves_original_report_and_requires_death_s
     )
     assert safe_response.status_code == 200
     assert safe_response.json()["operational_status"] == "found_alive"
-
-    blocked_death_response = client.post(
-        f"/staff/cases/{case_id}/mark-deceased",
-        headers=headers,
-        json={"confirmation_source": "Hospital desk confirmation."},
-    )
-    assert blocked_death_response.status_code == 403
+    board_response = client.get("/board")
+    assert board_response.status_code == 200
+    assert board_response.json()["records"][0]["operational_status"] == "found_alive"
 
     coordinator_email = "task-coordinator@example.com"
     coordinator_headers = _authenticate_staff(coordinator_email)
     _promote_user(coordinator_email, StaffRole.COORDINATOR)
     coordinator_headers = _authenticate_staff(coordinator_email)
-    missing_source_response = client.post(
-        f"/staff/cases/{case_id}/mark-deceased",
-        headers=coordinator_headers,
-        json={},
-    )
-    assert missing_source_response.status_code == 400
-
     death_response = client.post(
         f"/staff/cases/{case_id}/mark-deceased",
-        headers=coordinator_headers,
-        json={"confirmation_source": "Hospital desk confirmation."},
+        headers=headers,
+        json={},
     )
     assert death_response.status_code == 200
     assert death_response.json()["operational_status"] == "confirmed_deceased"
+    board_response = client.get("/board")
+    assert board_response.status_code == 200
+    assert board_response.json()["records"][0]["operational_status"] == "confirmed_deceased"
+
+    audit_response = client.get(f"/staff/cases/{case_id}/audit", headers=coordinator_headers)
+    assert audit_response.status_code == 200
+    action_types = [
+        entry.get("metadata_json", {}).get("action_type")
+        for entry in audit_response.json()
+        if entry.get("metadata_json")
+    ]
+    assert action_types.count("claim") >= 1
+    assert action_types.count("status_change") >= 2
 
     with next(override_get_db()) as db:
         stored_report = db.get(Report, report_id)
@@ -185,7 +200,7 @@ def test_simplified_task_workflow_preserves_original_report_and_requires_death_s
         stored_case = db.get(Case, case_id)
         assert stored_case is not None
         assert stored_case.safety_status is CaseSafetyStatus.CONFIRMED_DECEASED
-        assert stored_case.confirmation_source == "Hospital desk confirmation."
+        assert stored_case.confirmation_source == "Confirmed deceased by volunteer action."
 
 
 def test_report_can_link_to_only_one_case_and_source_is_immutable() -> None:

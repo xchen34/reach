@@ -137,6 +137,7 @@ class StaffQueueService:
             location_summary=case.location_summary,
             needs_summary=case.needs_summary,
             latest_public_update=case.latest_public_update,
+            reporter_phone=case.reporter_phone,
             subject_type=case.subject_type,
             person_label=case.person_label,
             approximate_age=case.approximate_age,

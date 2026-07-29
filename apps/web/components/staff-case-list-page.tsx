@@ -322,9 +322,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
       <div className="staff-dashboard-shell">
         <div className="staff-toolbar">
           <div>
-            <h1 className="headline headline-compact staff-headline">Volunteer task board</h1>
+            <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.taskBoardTitle}</h1>
             <p className="lede emergency-lede">
-              Create lightweight follow-up tasks, assign them externally, and record only meaningful outcomes.
+              {dictionary.staff.cases.taskBoardDescription}
             </p>
           </div>
         </div>
@@ -332,9 +332,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
         <section className="staff-dashboard-source" aria-labelledby="staff-dashboard-source-title">
           <p className="field-hint compact-copy" id="staff-dashboard-source-title">
             {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
-            Not yet assigned: {taskSummary.unassigned} · Being followed up: {taskSummary.inProgress} ·{" "}
-            Safe information received: {taskSummary.foundAlive} · Death confirmed: {taskSummary.confirmedDeceased} ·{" "}
-            Reports: {reportSummary.total} ·{" "}
+            {dictionary.staff.cases.operationalStatuses.unassigned}: {taskSummary.unassigned} ·{" "}
+            {dictionary.staff.cases.operationalStatuses.inProgress}: {taskSummary.inProgress} ·{" "}
+            {dictionary.staff.cases.operationalStatuses.personFoundAlive}: {taskSummary.foundAlive} ·{" "}
+            {dictionary.staff.cases.operationalStatuses.personConfirmedDeceased}: {taskSummary.confirmedDeceased} ·{" "}
+            {dictionary.staff.cases.reportsLabel}: {reportSummary.total} ·{" "}
             {dictionary.staff.cases.lastUpdatedLabel}{" "}
             {dashboard.summary.last_updated_at
               ? dateFormatter.format(new Date(dashboard.summary.last_updated_at))
@@ -346,7 +348,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           <div className="staff-section-header">
             <div>
               <h2 className="section-title" id="staff-report-list-title">
-                Incoming reports
+                {dictionary.staff.cases.incomingReportsTitle}
               </h2>
               <p className="field-hint compact-copy">
                 Need decision: {reportSummary.untriaged} · Follow-up tasks created: {reportSummary.linkedNew} · Added to existing:{" "}
@@ -394,11 +396,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
         <section className="staff-case-list" aria-labelledby="staff-event-list-title">
           <div className="staff-section-header">
-            <h2 className="section-title" id="staff-event-list-title">
-              People and pets requiring follow-up
+              <h2 className="section-title" id="staff-event-list-title">
+              {dictionary.staff.cases.taskListTitle}
             </h2>
             <p className="field-hint compact-copy">
-              Use Reach as the desk record; volunteers should prioritize real-world contact over platform updates.
+              {dictionary.staff.cases.taskListDescription}
             </p>
           </div>
 
@@ -414,6 +416,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                   locale={locale}
                   dictionary={dictionary}
                   onReload={() => void reloadWorkspace()}
+                  currentUserId={state.session.user.id}
                   sessionRole={state.session.user.role}
                   task={task}
                 />
@@ -555,6 +558,7 @@ function TaskCard({
   locale,
   dictionary,
   onReload,
+  currentUserId,
   sessionRole,
   task,
 }: {
@@ -563,10 +567,16 @@ function TaskCard({
   locale: Locale;
   dictionary: Dictionary;
   onReload: () => void;
+  currentUserId: number;
   sessionRole: "volunteer" | "coordinator";
   task: StaffCaseListItem;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isFinal = task.operational_status === "found_alive" || task.operational_status === "confirmed_deceased";
+  const isAssignedToCurrentUser = task.assigned_staff_user?.id === currentUserId;
+  const canClaim = !task.assigned_staff_user && !isFinal;
+  const canCoordinatorReassign = sessionRole === "coordinator" && Boolean(task.assigned_staff_user) && !isFinal;
+  const canResolve = (isAssignedToCurrentUser || sessionRole === "coordinator") && Boolean(task.assigned_staff_user) && !isFinal;
 
   async function runAction(action: () => Promise<unknown>) {
     if (!accessToken || isSubmitting) {
@@ -587,67 +597,75 @@ function TaskCard({
         <StaffAttachmentThumbnail accessToken={accessToken} attachment={task.attachments?.[0]} />
         <div className="staff-compact-content">
           <div className="staff-compact-top-row">
-            <h3 className="staff-compact-title">{task.person_label || task.location_summary}</h3>
+            <span className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
+              {operationalStatusLabel(dictionary, task.operational_status ?? "unassigned", task.subject_type ?? "unknown")}
+            </span>
             <span className="status-pill status-pill-neutral">
               {subjectTypeLabel(dictionary, task.subject_type ?? "unknown")}
             </span>
-            <span className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
-              {operationalStatusLabel(task.operational_status ?? "unassigned", task.subject_type ?? "unknown")}
-            </span>
+            <h3 className="staff-compact-title">{task.person_label || task.location_summary}</h3>
             <span className="field-hint compact-copy">{task.case_code}</span>
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
-            {task.last_known_location || task.location_summary} ·{" "}
-            {task.approximate_age ? `Age: ${task.approximate_age}` : "Age not recorded"} ·{" "}
+            {dictionary.staff.cases.lastSeenLabel}: {task.last_known_location || task.location_summary}
+            {task.approximate_age ? ` · ${dictionary.staff.cases.ageLabel}: ${task.approximate_age}` : ""} ·{" "}
             {dateFormatter.format(new Date(task.platform_last_updated_at ?? task.updated_at))}
           </p>
           <p className="support-copy compact-copy staff-clamped-copy">{task.needs_summary}</p>
-          <p className="field-hint compact-copy staff-compact-meta">
-            Assigned: {task.assigned_staff_user?.email ?? "Not yet assigned"} · Source reports:{" "}
-            {task.source_report_count ?? 0}
-          </p>
+          {task.reporter_phone ? (
+            <p className="field-hint compact-copy staff-compact-meta">
+              {dictionary.staff.cases.phoneLabel}: {task.reporter_phone}
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="button-row staff-compact-actions">
-        <button
-          className="button-primary"
-          disabled={isSubmitting}
-          type="button"
-          onClick={() => void runAction(() => assignStaffCaseToSelf(accessToken ?? "", task.id))}
-        >
-          {task.assigned_staff_user ? "Reassign to me" : "Assign to me"}
-        </button>
-        <button
-          className="button-secondary"
-          disabled={isSubmitting}
-          type="button"
-          onClick={() => void runAction(() => returnStaffCaseToUnassigned(accessToken ?? "", task.id))}
-        >
-          Return to unassigned
-        </button>
-        <button
-          className="button-secondary"
-          disabled={isSubmitting}
-          type="button"
-          onClick={() => void runAction(() => markStaffCaseSafe(accessToken ?? "", task.id, {}))}
-        >
-          Mark safe information received
-        </button>
-        <button
-          className="button-secondary"
-          disabled={isSubmitting || sessionRole !== "coordinator"}
-          type="button"
-          onClick={() => {
-            const source = window.prompt("Confirmation source or explanation is required.");
-            if (source) {
-              void runAction(() => markStaffCaseDeceased(accessToken ?? "", task.id, { confirmation_source: source }));
-            }
-          }}
-        >
-          Mark death confirmed
-        </button>
+        {canClaim || canCoordinatorReassign ? (
+          <button
+            className="button-primary"
+            disabled={isSubmitting}
+            type="button"
+            onClick={() => void runAction(() => assignStaffCaseToSelf(accessToken ?? "", task.id))}
+          >
+            {canCoordinatorReassign
+              ? dictionary.staff.cases.reassignToMeAction
+              : dictionary.staff.cases.claimAction}
+          </button>
+        ) : null}
+        {canResolve ? (
+          <>
+            <button
+              className="button-primary"
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => void runAction(() => markStaffCaseSafe(accessToken ?? "", task.id, {}))}
+            >
+              {dictionary.staff.cases.foundSafeAction}
+            </button>
+            <button
+              className="button-secondary"
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => {
+                if (window.confirm(dictionary.staff.cases.confirmDeathPrompt)) {
+                  void runAction(() => markStaffCaseDeceased(accessToken ?? "", task.id, {}));
+                }
+              }}
+            >
+              {dictionary.staff.cases.confirmDeathAction}
+            </button>
+            <button
+              className="button-secondary"
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => void runAction(() => returnStaffCaseToUnassigned(accessToken ?? "", task.id))}
+            >
+              {dictionary.staff.cases.returnAction}
+            </button>
+          </>
+        ) : null}
         <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${task.id}`}>
-          Open details
+          {dictionary.staff.cases.viewDetailsAction}
         </Link>
       </div>
     </article>
@@ -683,21 +701,25 @@ function getReportStatusPillClassName(status: StaffReportListItem["triage_status
   return "status-pill status-pill-alert";
 }
 
-function operationalStatusLabel(status: StaffCaseListItem["operational_status"], subjectType: SubjectType) {
+function operationalStatusLabel(
+  dictionary: Dictionary,
+  status: StaffCaseListItem["operational_status"],
+  subjectType: SubjectType,
+) {
   if (status === "unassigned") {
-    return "Not yet assigned";
+    return dictionary.staff.cases.operationalStatuses.unassigned;
   }
   if (status === "in_progress") {
-    return "Being followed up";
+    return dictionary.staff.cases.operationalStatuses.inProgress;
   }
   if (status === "found_alive") {
     return subjectType === "pet"
-      ? "Reach has received information that the pet is safe"
-      : "Reach has received information that the person is safe";
+      ? dictionary.staff.cases.operationalStatuses.petFoundAlive
+      : dictionary.staff.cases.operationalStatuses.personFoundAlive;
   }
   return subjectType === "pet"
-    ? "Reach has received confirmed information that the pet has died"
-    : "Reach has received confirmed information that the person has died";
+    ? dictionary.staff.cases.operationalStatuses.petConfirmedDeceased
+    : dictionary.staff.cases.operationalStatuses.personConfirmedDeceased;
 }
 
 function getOperationalStatusClassName(status: StaffCaseListItem["operational_status"]) {
