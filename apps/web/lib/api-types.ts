@@ -78,6 +78,7 @@ export interface ShareLinkCaseView {
 
 export interface PublicBoardRecord {
   public_id: string;
+  case_code: string;
   operational_status: OperationalStatus;
   subject_type: SubjectType;
   person_label: string | null;

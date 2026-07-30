@@ -21,3 +21,7 @@ test("public board hides the internal unknown subject-type badge", () => {
   assert.match(boardSource, /record\.subject_type === "person" \|\| record\.subject_type === "pet"/);
   assert.doesNotMatch(boardSource, /subjectTypeLabel\(dictionary, record\.subject_type\)<\/span>/);
 });
+
+test("public board exposes a public ref on each record card", () => {
+  assert.match(boardSource, /REF \{record\.case_code\}/);
+});

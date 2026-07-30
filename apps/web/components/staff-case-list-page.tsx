@@ -45,6 +45,7 @@ import {
 } from "@/lib/staff-session";
 import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
+import { matchesCardSearch } from "@/lib/card-search";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -74,6 +75,8 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [taskPage, setTaskPage] = useState(1);
   const [reportPage, setReportPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const selectedIncidentIdForEffect = state.status === "ready" ? state.selectedIncidentId : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -181,6 +184,11 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
       isMounted = false;
     };
   }, [dictionary.staff.cases.errors.network, dictionary.staff.cases.errors.server, locale, router]);
+
+  useEffect(() => {
+    setTaskPage(1);
+    setReportPage(1);
+  }, [searchQuery, selectedIncidentIdForEffect]);
 
   const dateFormatter = useMemo(
     () =>
@@ -304,13 +312,28 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   const taskCases = dashboard.events
     .flatMap((group) => group.related_cases)
     .filter((task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId);
+  const filteredTaskCases = taskCases.filter((task) =>
+    matchesCardSearch([task.person_label, task.case_code, task.location_summary], searchQuery),
+  );
+  const filteredReportsNeedingReview = reportsNeedingReview.filter((report) =>
+    matchesCardSearch(
+      [
+        report.person_name,
+        report.report_code,
+        report.linked_case?.case_code,
+        report.location_text,
+        report.original_narrative_preview,
+      ],
+      searchQuery,
+    ),
+  );
   const taskSummary = summarizeTasks(taskCases);
-  const taskPageCount = getPageCount(taskCases.length, staffListPageSize);
-  const reportPageCount = getPageCount(reportsNeedingReview.length, staffListPageSize);
+  const taskPageCount = getPageCount(filteredTaskCases.length, staffListPageSize);
+  const reportPageCount = getPageCount(filteredReportsNeedingReview.length, staffListPageSize);
   const visibleTaskPage = Math.min(taskPage, taskPageCount);
   const visibleReportPage = Math.min(reportPage, reportPageCount);
-  const pagedTaskCases = paginateItems(taskCases, visibleTaskPage, staffListPageSize);
-  const pagedReportsNeedingReview = paginateItems(reportsNeedingReview, visibleReportPage, staffListPageSize);
+  const pagedTaskCases = paginateItems(filteredTaskCases, visibleTaskPage, staffListPageSize);
+  const pagedReportsNeedingReview = paginateItems(filteredReportsNeedingReview, visibleReportPage, staffListPageSize);
 
   return (
     <AppShell
@@ -337,6 +360,16 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               {dictionary.staff.cases.taskBoardDescription}
             </p>
           </div>
+          <label className="field-label compact-copy staff-search">
+            {dictionary.staff.cases.searchLabel}
+            <input
+              className="input-field"
+              type="search"
+              value={searchQuery}
+              placeholder={dictionary.staff.cases.searchPlaceholder}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </label>
         </div>
 
         <section className="staff-dashboard-source" aria-labelledby="staff-dashboard-source-title">
@@ -399,6 +432,8 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
           {taskCases.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.noHelpRequestsYet}</p>
+          ) : filteredTaskCases.length === 0 ? (
+            <p className="support-copy">{dictionary.staff.cases.searchEmpty}</p>
           ) : (
             <>
               <div className="staff-case-stack">
@@ -420,7 +455,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                 currentPage={visibleTaskPage}
                 labels={dictionary.staff.cases.pagination}
                 pageSize={staffListPageSize}
-                totalItems={taskCases.length}
+                totalItems={filteredTaskCases.length}
                 onPageChange={setTaskPage}
               />
             </>
@@ -444,6 +479,8 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
           {reportsNeedingReview.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
+          ) : filteredReportsNeedingReview.length === 0 ? (
+            <p className="support-copy">{dictionary.staff.cases.searchEmpty}</p>
           ) : (
             <>
               <div className="staff-case-stack">
@@ -464,7 +501,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                 currentPage={visibleReportPage}
                 labels={dictionary.staff.cases.pagination}
                 pageSize={staffListPageSize}
-                totalItems={reportsNeedingReview.length}
+                totalItems={filteredReportsNeedingReview.length}
                 onPageChange={setReportPage}
               />
             </>

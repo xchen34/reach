@@ -97,9 +97,9 @@ def test_public_board_lists_case_tasks_without_private_contact() -> None:
     statuses = {record["operational_status"] for record in records}
 
     assert statuses == {"in_progress", "found_alive"}
+    assert all(record["case_code"] for record in records)
 
     for private_field in (
-        "case_code",
         "location_summary",
         "needs_summary",
         "urgency",

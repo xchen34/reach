@@ -12,6 +12,7 @@ import type {
 import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { getCurrentPublicIncidentReportPage, getPublicBoard } from "@/lib/api";
+import { matchesCardSearch } from "@/lib/card-search";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 type CommunityBoardPageProps = {
@@ -30,6 +31,7 @@ export function CommunityBoardPage({
   const [boardData, setBoardData] = useState<PublicBoardResponse | null>(null);
   const [currentIncident, setCurrentIncident] = useState<PublicIncidentReportPageResponse | null>(null);
   const [activeFilter, setActiveFilter] = useState<BoardFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loadError, setLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,8 +44,12 @@ export function CommunityBoardPage({
     if (!boardData) {
       return [];
     }
-    return boardData.records.filter((record) => matchesBoardFilter(record, activeFilter));
-  }, [activeFilter, boardData]);
+    return boardData.records.filter(
+      (record) =>
+        matchesBoardFilter(record, activeFilter) &&
+        matchesCardSearch([record.person_label, record.case_code], searchQuery),
+    );
+  }, [activeFilter, boardData, searchQuery]);
   const filterCounts = useMemo(() => summarizeBoardFilters(boardData?.records ?? []), [boardData]);
   const totalPages = getPageCount(filteredRecords.length, boardPageSize);
   const pagedRecords = useMemo(
@@ -53,7 +59,7 @@ export function CommunityBoardPage({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeFilter]);
+  }, [activeFilter, searchQuery]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));
@@ -151,6 +157,16 @@ export function CommunityBoardPage({
               <p className="info-banner">{dictionary.board.empty}</p>
             ) : (
               <>
+                <label className="field-label compact-copy board-search-row">
+                  {dictionary.board.searchLabel}
+                  <input
+                    className="input-field"
+                    type="search"
+                    value={searchQuery}
+                    placeholder={dictionary.board.searchPlaceholder}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                </label>
                 <div className="board-filter-row" role="group" aria-label={dictionary.board.filterLabel}>
                   {boardFilterOptions.map((filter) => (
                     <button
@@ -162,10 +178,12 @@ export function CommunityBoardPage({
                     >
                       {boardFilterLabel(dictionary, filter)} ({filterCounts[filter]})
                     </button>
-                  ))}
-                </div>
+                ))}
+              </div>
                 {filteredRecords.length === 0 ? (
-                  <p className="info-banner">{dictionary.board.emptyForFilter}</p>
+                  <p className="info-banner">
+                    {searchQuery.trim() ? dictionary.board.searchEmpty : dictionary.board.emptyForFilter}
+                  </p>
                 ) : (
                   <div className="community-board-records">
                     {pagedRecords.map((record) => (
@@ -221,6 +239,7 @@ function BoardRecordCard({
       <div className="community-board-card-body">
         <div className="community-board-card-title-row">
           <h3 className="community-board-title">{subjectName}</h3>
+          <span className="status-pill status-pill-neutral">REF {record.case_code}</span>
           {record.subject_type === "person" || record.subject_type === "pet" ? (
             <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, record.subject_type)}</span>
           ) : null}

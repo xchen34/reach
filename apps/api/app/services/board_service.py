@@ -26,6 +26,7 @@ class BoardService:
             records.append(
                 PublicBoardRecord(
                     public_id=case.case_code,
+                    case_code=case.case_code,
                     operational_status=status,
                     subject_type=case.subject_type,
                     person_label=case.person_label,

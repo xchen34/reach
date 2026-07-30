@@ -13,6 +13,7 @@ PublicOperationalStatus = Literal["unassigned", "in_progress", "found_alive", "c
 
 class PublicBoardRecord(ApiModel):
     public_id: str
+    case_code: str
     operational_status: PublicOperationalStatus
     subject_type: SubjectType = SubjectType.UNKNOWN
     person_label: Optional[str] = None

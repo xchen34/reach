@@ -287,6 +287,7 @@ export const en = {
     filterLabel: "Filter by status",
     searchLabel: "Search records",
     searchPlaceholder: "Search by code, location, or update",
+    searchEmpty: "No records match this search.",
     filters: {
       all: "All statuses",
       missing: "Missing / in progress",
@@ -439,6 +440,9 @@ export const en = {
       description: "Each card is one incoming report or a merged report group. Verify, claim, and update by priority.",
       taskBoardTitle: "Volunteer task board",
       taskBoardDescription: "Claim a task, follow up, and record the outcome.",
+      searchLabel: "Search cards",
+      searchPlaceholder: "Search by name or ref",
+      searchEmpty: "No cards match this search.",
       actionGuideTitle: "What to do after claiming",
       actionGuideSteps: [
         "Claiming means you are responsible for following up on this card; the status changes to in progress.",
