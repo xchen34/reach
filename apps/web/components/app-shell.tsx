@@ -12,13 +12,9 @@ type AppShellProps = {
   children: ReactNode;
   locale: Locale;
   sectionLabel: string;
-  languageLabel: string;
   publicBoardLabel: string;
-  homeLabel: string;
   contentVariant?: "normal" | "wide";
-  showLanguage?: boolean;
   showPublicBoard?: boolean;
-  showHome?: boolean;
   logoutAction?: ReactNode;
   staffDashboardLabel?: string;
   returnToStaffLabel?: string;
@@ -31,25 +27,19 @@ export function AppShell({
   children,
   locale,
   sectionLabel,
-  languageLabel,
   publicBoardLabel,
-  homeLabel,
   contentVariant = "normal",
-  showLanguage = false,
   showPublicBoard = true,
-  showHome = true,
   logoutAction,
-  staffDashboardLabel = "工作后台",
-  returnToStaffLabel = "返回后台",
-  staffLoginLabel = "登录后台",
-  logoutLabel = "退出登录",
-  logoutSubmittingLabel = "正在退出...",
+  staffDashboardLabel = "Staff dashboard",
+  returnToStaffLabel = "Return to staff",
+  staffLoginLabel = "Staff login",
+  logoutLabel = "Log out",
+  logoutSubmittingLabel = "Logging out...",
 }: AppShellProps) {
   return (
     <div className="app-shell">
       <GlobalHeader
-        homeLabel={homeLabel}
-        languageLabel={languageLabel}
         locale={locale}
         logoutAction={logoutAction}
         logoutLabel={logoutLabel}
@@ -57,8 +47,6 @@ export function AppShell({
         publicBoardLabel={publicBoardLabel}
         returnToStaffLabel={returnToStaffLabel}
         sectionLabel={sectionLabel}
-        showHome={showHome}
-        showLanguage={showLanguage}
         showPublicBoard={showPublicBoard}
         staffDashboardLabel={staffDashboardLabel}
         staffLoginLabel={staffLoginLabel}
@@ -78,11 +66,11 @@ function GlobalHeader({
   publicBoardLabel,
   showPublicBoard,
   logoutAction,
-  staffDashboardLabel = "工作后台",
-  returnToStaffLabel = "返回后台",
-  staffLoginLabel = "登录后台",
-  logoutLabel = "退出登录",
-  logoutSubmittingLabel = "正在退出...",
+  staffDashboardLabel = "Staff dashboard",
+  returnToStaffLabel = "Return to staff",
+  staffLoginLabel = "Staff login",
+  logoutLabel = "Log out",
+  logoutSubmittingLabel = "Logging out...",
 }: GlobalHeaderProps) {
   const pathname = usePathname();
   const boardHref = `/${locale}/board`;

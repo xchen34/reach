@@ -15,7 +15,7 @@ export default function StaffLoginAliasPage({
 }: {
   searchParams?: { reason?: string };
 }) {
-  const locale = "zh";
+  const locale = "en";
   const dictionary = getDictionary(locale);
   const reason = searchParams?.reason;
 

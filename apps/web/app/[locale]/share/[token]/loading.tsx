@@ -12,8 +12,6 @@ export default function ShareTokenLoading() {
 
   return (
     <AppShell
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.share.eyebrow}

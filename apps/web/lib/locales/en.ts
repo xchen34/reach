@@ -293,6 +293,12 @@ export const en = {
       safe: "Confirmed safe",
       deceased: "Confirmed deceased",
     },
+    pagination: {
+      previous: "Previous",
+      next: "Next",
+      pageStatus: "Page {current} of {total}",
+      total: "Showing {first}-{last} of {total} records",
+    },
     publicStatuses: {
       unassigned: {
         label: "Not yet assigned on Reach",
@@ -452,6 +458,12 @@ export const en = {
       allEventsOption: "All events",
       noReportsMatchFilter: "No new reports match this filter.",
       noHelpRequestsYet: "No help requests have been added yet.",
+      pagination: {
+        previous: "Previous",
+        next: "Next",
+        pageStatus: "Page {current} of {total}",
+        total: "Showing {first}-{last} of {total} items",
+      },
       sourceTitle: "Dashboard source",
       sourceDescription:
         "This queue currently derives grouped report cards from the existing staff case list so volunteers can work in a coordination-friendly view without changing the backend contract yet.",

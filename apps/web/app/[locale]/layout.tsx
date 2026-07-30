@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getDictionary, isSupportedLocale, type Locale } from "@/lib/i18n";
 
 export function generateStaticParams() {
-  return [{ locale: "en" }, { locale: "fr" }, { locale: "zh" }];
+  return [{ locale: "en" }];
 }
 
 export function generateMetadata({

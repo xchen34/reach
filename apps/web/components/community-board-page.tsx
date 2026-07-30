@@ -10,6 +10,7 @@ import type {
   SubjectType,
 } from "@/lib/api-types";
 import { AppShell } from "@/components/app-shell";
+import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { getCurrentPublicIncidentReportPage, getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
@@ -20,6 +21,8 @@ type CommunityBoardPageProps = {
 
 type BoardFilter = "all" | "missing" | "safe" | "deceased";
 
+const boardPageSize = 24;
+
 export function CommunityBoardPage({
   dictionary,
   locale,
@@ -27,6 +30,7 @@ export function CommunityBoardPage({
   const [boardData, setBoardData] = useState<PublicBoardResponse | null>(null);
   const [currentIncident, setCurrentIncident] = useState<PublicIncidentReportPageResponse | null>(null);
   const [activeFilter, setActiveFilter] = useState<BoardFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [loadError, setLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,6 +45,19 @@ export function CommunityBoardPage({
     return boardData.records.filter((record) => matchesBoardFilter(record, activeFilter));
   }, [activeFilter, boardData]);
   const filterCounts = useMemo(() => summarizeBoardFilters(boardData?.records ?? []), [boardData]);
+  const totalPages = getPageCount(filteredRecords.length, boardPageSize);
+  const pagedRecords = useMemo(
+    () => paginateItems(filteredRecords, currentPage, boardPageSize),
+    [currentPage, filteredRecords],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,8 +95,6 @@ export function CommunityBoardPage({
 
   return (
     <AppShell
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.board.eyebrow}
@@ -153,7 +168,7 @@ export function CommunityBoardPage({
                   <p className="info-banner">{dictionary.board.emptyForFilter}</p>
                 ) : (
                   <div className="community-board-records">
-                    {filteredRecords.map((record) => (
+                    {pagedRecords.map((record) => (
                       <BoardRecordCard
                         dateFormatter={dateFormatter}
                         dictionary={dictionary}
@@ -163,6 +178,13 @@ export function CommunityBoardPage({
                     ))}
                   </div>
                 )}
+                <PaginationControls
+                  currentPage={currentPage}
+                  labels={dictionary.board.pagination}
+                  pageSize={boardPageSize}
+                  totalItems={filteredRecords.length}
+                  onPageChange={setCurrentPage}
+                />
               </>
             )
           ) : loadError ? (

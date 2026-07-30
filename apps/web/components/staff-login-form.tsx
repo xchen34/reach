@@ -39,8 +39,6 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
   if (staffSessionStatus === "authenticated" && reason !== "logged_out") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -88,8 +86,6 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
 
   return (
     <AppShell
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.staff.eyebrow}

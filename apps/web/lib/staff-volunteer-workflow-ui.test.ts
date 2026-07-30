@@ -47,11 +47,18 @@ test("staff page shows tasks first and keeps processed reports out of the main n
 });
 
 test("staff page explains claimed-task follow-up without promising rescue dispatch", () => {
-  const zhSource = readFileSync(new URL("./locales/zh.ts", import.meta.url), "utf8");
+  const enSource = readFileSync(new URL("./locales/en.ts", import.meta.url), "utf8");
   assert.match(listSource, /actionGuideTitle/);
   assert.match(listSource, /actionGuideSteps\.map/);
-  assert.match(zhSource, /领取任务表示你负责跟进这张卡/);
-  assert.match(zhSource, /Reach 不会自动派发官方救援/);
+  assert.match(enSource, /Claiming means you are responsible for following up on this card/);
+  assert.match(enSource, /Reach does not dispatch official rescue/);
+});
+
+test("staff page paginates long task and incoming-report lists", () => {
+  assert.match(listSource, /const staffListPageSize = 12/);
+  assert.match(listSource, /pagedTaskCases\.map/);
+  assert.match(listSource, /pagedReportsNeedingReview\.map/);
+  assert.match(listSource, /dictionary\.staff\.cases\.pagination/);
 });
 
 test("completed task detail exposes confirmed status correction with a final confirmation", () => {

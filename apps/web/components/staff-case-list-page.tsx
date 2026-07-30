@@ -44,6 +44,7 @@ import {
   type StaffAuthReason,
 } from "@/lib/staff-session";
 import { AppShell } from "@/components/app-shell";
+import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -65,11 +66,14 @@ type PageState =
   | { status: "error"; message: string };
 
 const mockDashboardEnabled = process.env.NEXT_PUBLIC_ENABLE_STAFF_DASHBOARD_MOCKS === "true";
+const staffListPageSize = 12;
 
 export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps) {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [taskPage, setTaskPage] = useState(1);
+  const [reportPage, setReportPage] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -263,8 +267,6 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   if (state.status === "loading") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -277,8 +279,6 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   if (state.status === "error") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -305,12 +305,16 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     .flatMap((group) => group.related_cases)
     .filter((task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId);
   const taskSummary = summarizeTasks(taskCases);
+  const taskPageCount = getPageCount(taskCases.length, staffListPageSize);
+  const reportPageCount = getPageCount(reportsNeedingReview.length, staffListPageSize);
+  const visibleTaskPage = Math.min(taskPage, taskPageCount);
+  const visibleReportPage = Math.min(reportPage, reportPageCount);
+  const pagedTaskCases = paginateItems(taskCases, visibleTaskPage, staffListPageSize);
+  const pagedReportsNeedingReview = paginateItems(reportsNeedingReview, visibleReportPage, staffListPageSize);
 
   return (
     <AppShell
       contentVariant="wide"
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={locale}
       logoutAction={
         <button
@@ -396,21 +400,30 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           {taskCases.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.noHelpRequestsYet}</p>
           ) : (
-            <div className="staff-case-stack">
-              {taskCases.map((task) => (
-                <TaskCard
-                  accessToken={state.accessToken}
-                  dateFormatter={dateFormatter}
-                  key={task.id}
-                  locale={locale}
-                  dictionary={dictionary}
-                  onReload={() => void reloadWorkspace()}
-                  currentUserId={state.session.user.id}
-                  sessionRole={state.session.user.role}
-                  task={task}
-                />
-              ))}
-            </div>
+            <>
+              <div className="staff-case-stack">
+                {pagedTaskCases.map((task) => (
+                  <TaskCard
+                    accessToken={state.accessToken}
+                    dateFormatter={dateFormatter}
+                    key={task.id}
+                    locale={locale}
+                    dictionary={dictionary}
+                    onReload={() => void reloadWorkspace()}
+                    currentUserId={state.session.user.id}
+                    sessionRole={state.session.user.role}
+                    task={task}
+                  />
+                ))}
+              </div>
+              <PaginationControls
+                currentPage={visibleTaskPage}
+                labels={dictionary.staff.cases.pagination}
+                pageSize={staffListPageSize}
+                totalItems={taskCases.length}
+                onPageChange={setTaskPage}
+              />
+            </>
           )}
         </section>
 
@@ -432,20 +445,29 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           {reportsNeedingReview.length === 0 ? (
             <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
           ) : (
-            <div className="staff-case-stack">
-              {reportsNeedingReview.map((report) => (
-                <ReportCard
-                  accessToken={state.accessToken}
-                  candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
-                  dateFormatter={dateFormatter}
-                  key={report.id}
-                  locale={locale}
-                  dictionary={dictionary}
-                  onReload={() => void reloadWorkspace()}
-                  report={report}
-                />
-              ))}
-            </div>
+            <>
+              <div className="staff-case-stack">
+                {pagedReportsNeedingReview.map((report) => (
+                  <ReportCard
+                    accessToken={state.accessToken}
+                    candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
+                    dateFormatter={dateFormatter}
+                    key={report.id}
+                    locale={locale}
+                    dictionary={dictionary}
+                    onReload={() => void reloadWorkspace()}
+                    report={report}
+                  />
+                ))}
+              </div>
+              <PaginationControls
+                currentPage={visibleReportPage}
+                labels={dictionary.staff.cases.pagination}
+                pageSize={staffListPageSize}
+                totalItems={reportsNeedingReview.length}
+                onPageChange={setReportPage}
+              />
+            </>
           )}
         </section>
       </div>

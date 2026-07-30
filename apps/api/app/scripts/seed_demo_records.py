@@ -71,6 +71,7 @@ SEED_FORM_NAME = "Reach demo bulk seed"
 CASE_PREFIX = "DCASE"
 REPORT_PREFIX = "DREP"
 ATTACHMENT_PREFIX = "DATT"
+PHOTO_COVERAGE_MODULUS = 5
 REMOTE_PHOTO_TIMEOUT_SECONDS = 10
 REMOTE_PHOTO_MAX_BYTES = 8 * 1024 * 1024
 DICEBEAR_ROBOHASH_PRESET = "dicebear-robohash"
@@ -228,7 +229,7 @@ def main() -> int:
     print(f"created_cases={created['cases']}")
     print(f"created_attachments={created['attachments']}")
     print(f"photo_source={photo_source}")
-    print("Open http://127.0.0.1:3000/zh/staff and http://127.0.0.1:3000/zh/board")
+    print("Open http://127.0.0.1:3000/en/staff and http://127.0.0.1:3000/en/board")
     return 0
 
 
@@ -326,21 +327,21 @@ def create_seed_records(
             source_entry_id=f"bulk-seed-{index + 1:05d}",
             submitted_at=submitted_at,
             received_at=submitted_at + timedelta(minutes=12),
-            language_code="zh",
+            language_code="en",
             raw_answers_json={
                 "submission_type": submission_type(index=index, is_pet=is_pet),
                 "person_name": person_name,
                 "approximate_age": age,
                 "gender": gender,
-                "current_status": "暂时联系不上，正在等待核实。",
+                "current_status": "Temporarily unreachable; waiting for verification.",
                 "identifying_description": detail,
             },
             original_narrative=build_narrative(is_pet=is_pet, name=person_name, location=location, detail=detail),
             location_text=location,
-            reporter_name=None if index % 6 == 0 else f"上报人 {index + 1}",
+            reporter_name=None if index % 6 == 0 else f"Reporter {index + 1}",
             reporter_email=None,
             reporter_phone=f"6{1000000 + index:07d}" if has_phone else None,
-            reporter_relationship=None if index % 4 == 0 else "邻居或家属",
+            reporter_relationship=None if index % 4 == 0 else "Neighbor or family",
             permission_to_contact=has_phone,
             subject_type=subject_type,
             triage_status=ReportTriageStatus.AWAITING_REVIEW,
@@ -381,17 +382,17 @@ def create_seed_records(
                     to_status=case.status,
                 )
             )
-            if index % 2 == 0 or is_pet:
+            if should_add_demo_photo(index):
                 attachment_count += add_demo_attachment(
                     db,
                     incident_id,
                     report.id,
                     case.id,
                     index,
-                    public=index % 3 != 0,
+                    public=True,
                     photo_assets=photo_assets,
                 )
-        elif index % 3 == 0:
+        elif should_add_demo_photo(index):
             attachment_count += add_demo_attachment(
                 db,
                 incident_id,
@@ -442,25 +443,25 @@ def build_case(
     safety = CaseSafetyStatus.UNKNOWN
     handling = CaseHandlingStatus.AWAITING_ACTION
     assigned_staff_user_id = None
-    latest_public_update = "正在等待志愿者领取。"
+    latest_public_update = "Waiting for a volunteer to claim this task."
     confirmed_at = None
 
     if status_bucket in {4, 5, 6}:
         status = CaseStatus.ACTIVE
         handling = CaseHandlingStatus.BEING_INVESTIGATED
         assigned_staff_user_id = user_id
-        latest_public_update = "志愿者正在跟进。"
+        latest_public_update = "Volunteer follow-up is in progress."
     elif status_bucket in {7, 8, 9}:
         status = CaseStatus.SAFE_RESOLVED
         safety = CaseSafetyStatus.CONFIRMED_SAFE
         handling = CaseHandlingStatus.ARCHIVED
-        latest_public_update = "已收到安全确认。"
+        latest_public_update = "Safe confirmation received."
         confirmed_at = datetime.now(timezone.utc) - timedelta(hours=index)
     elif status_bucket == 10:
         status = CaseStatus.CLOSED
         safety = CaseSafetyStatus.CONFIRMED_DECEASED
         handling = CaseHandlingStatus.ARCHIVED
-        latest_public_update = "已收到死亡确认。"
+        latest_public_update = "Confirmed death information received."
         confirmed_at = datetime.now(timezone.utc) - timedelta(hours=index)
 
     return Case(
@@ -474,7 +475,7 @@ def build_case(
             IncidentType.SHELTER,
             IncidentType.MEDICAL,
         ][index % 4],
-        language_code="zh",
+        language_code="en",
         location_summary=location,
         needs_summary=report.original_narrative,
         latest_public_update=latest_public_update,
@@ -527,20 +528,24 @@ def add_demo_attachment(
 
 
 def build_narrative(*, is_pet: bool, name: str | None, location: str, detail: str) -> str:
-    subject = name or ("未命名宠物" if is_pet else "姓名不详人员")
+    subject = name or ("Unnamed pet" if is_pet else "Unnamed person")
     if is_pet:
-        return f"{subject} 最后在 {location} 附近被看到。特征：{detail}。请协助留意。"
-    return f"{subject} 最后在 {location} 附近被看到。识别信息：{detail}。目前需要志愿者核实。"
+        return f"{subject} was last seen near {location}. Details: {detail}. Please watch for updates."
+    return f"{subject} was last seen near {location}. Identifying details: {detail}. Volunteer verification is needed."
 
 
 def submission_type(*, index: int, is_pet: bool) -> str:
     if is_pet:
-        return "宠物失联"
-    return "人员补充资料" if index % 7 == 0 else "人员失联"
+        return "Missing pet"
+    return "Person update" if index % 7 == 0 else "Missing person"
 
 
 def pet_age(index: int) -> str:
-    return f"{1 + index % 12}岁"
+    return f"{1 + index % 12} years"
+
+
+def should_add_demo_photo(index: int) -> bool:
+    return index % PHOTO_COVERAGE_MODULUS != 0
 
 
 def empty_photo_asset_pool() -> PhotoAssetPool:

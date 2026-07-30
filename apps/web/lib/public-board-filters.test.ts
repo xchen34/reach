@@ -3,16 +3,18 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const boardSource = readFileSync(new URL("../components/community-board-page.tsx", import.meta.url), "utf8");
-const zhLocaleSource = readFileSync(new URL("./locales/zh.ts", import.meta.url), "utf8");
+const enLocaleSource = readFileSync(new URL("./locales/en.ts", import.meta.url), "utf8");
 
 test("public board exposes simple volunteer-facing status filters", () => {
   assert.match(boardSource, /type BoardFilter = "all" \| "missing" \| "safe" \| "deceased"/);
   assert.match(boardSource, /record\.operational_status === "unassigned" \|\| record\.operational_status === "in_progress"/);
   assert.match(boardSource, /record\.operational_status === "found_alive"/);
   assert.match(boardSource, /record\.operational_status === "confirmed_deceased"/);
-  assert.match(zhLocaleSource, /missing: "失踪中"/);
-  assert.match(zhLocaleSource, /safe: "证实安全"/);
-  assert.match(zhLocaleSource, /deceased: "证实离世"/);
+  assert.match(enLocaleSource, /missing: "Missing \/ in progress"/);
+  assert.match(enLocaleSource, /safe: "Confirmed safe"/);
+  assert.match(enLocaleSource, /deceased: "Confirmed deceased"/);
+  assert.match(boardSource, /const boardPageSize = 24/);
+  assert.match(boardSource, /PaginationControls/);
 });
 
 test("public board hides the internal unknown subject-type badge", () => {

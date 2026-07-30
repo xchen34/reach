@@ -350,8 +350,6 @@ export function StaffCaseDetailPage({
   if (state.status === "loading") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -364,8 +362,6 @@ export function StaffCaseDetailPage({
   if (state.status === "not-found") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -384,8 +380,6 @@ export function StaffCaseDetailPage({
   if (state.status === "error") {
     return (
       <AppShell
-        homeLabel={dictionary.staff.login.backHome}
-        languageLabel={dictionary.home.languagePicker}
         locale={locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
@@ -441,8 +435,6 @@ export function StaffCaseDetailPage({
   return (
     <AppShell
       contentVariant="wide"
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={locale}
       logoutAction={
         <button

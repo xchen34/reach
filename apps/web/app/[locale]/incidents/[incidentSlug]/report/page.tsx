@@ -27,8 +27,6 @@ export default async function IncidentReportPage({
 
   return (
     <AppShell
-      homeLabel={dictionary.staff.login.backHome}
-      languageLabel={dictionary.home.languagePicker}
       locale={params.locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel="事件上报"
