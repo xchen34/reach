@@ -446,9 +446,12 @@ def demo_png_bytes(index: int, *, is_pet: bool) -> bytes:
             row.extend(color)
         rows.append(b"\x00" + bytes(row))
     raw = b"".join(rows)
-    return png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) + png_chunk(
-        b"IDAT", zlib.compress(raw, 9)
-    ) + png_chunk(b"IEND", b"")
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + png_chunk(b"IDAT", zlib.compress(raw, 9))
+        + png_chunk(b"IEND", b"")
+    )
 
 
 def palette(index: int) -> tuple[int, int, int]:
