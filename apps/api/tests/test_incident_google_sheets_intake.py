@@ -249,6 +249,50 @@ def test_attachment_upload_linking_and_public_filtering(monkeypatch: pytest.Monk
     assert db_case_subject(case_id) == SubjectType.PET
 
 
+def test_attachment_code_can_be_backfilled_on_rerun(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: [SHEET_HEADERS, _sheet_row(subject_type="pet")],
+    )
+
+    first_import = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+    assert first_import.status_code == 200
+    assert first_import.json()["imported"] == 1
+
+    upload_response = client.post(
+        "/public/incidents/high-rise-fire/attachments",
+        files={"images": ("pet.png", b"\x89PNG\r\n\x1a\nimage", "image/png")},
+    )
+    assert upload_response.status_code == 201
+    attachment_code = upload_response.json()["attachment_code"]
+
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: [SHEET_HEADERS, _sheet_row(subject_type="pet", attachment_code=attachment_code)],
+    )
+
+    second_import = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+
+    assert second_import.status_code == 200
+    assert second_import.json()["imported"] == 0
+    assert second_import.json()["skipped"] == 1
+
+    with next(override_get_db()) as db:
+        report = db.query(Report).one()
+        assert len(report.attachments) == 1
+        assert report.attachments[0].attachment_code == attachment_code
+        assert report.attachments[0].report_id == report.id
+
+
 def test_attachment_upload_rejects_invalid_type_and_oversize(monkeypatch: pytest.MonkeyPatch) -> None:
     _create_incident_with_source()
     monkeypatch.setenv("Reach_REPORT_ATTACHMENT_MAX_UPLOAD_BYTES", "8")

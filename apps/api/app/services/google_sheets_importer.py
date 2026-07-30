@@ -123,9 +123,13 @@ class GoogleSheetsImportService:
         highest_successful_row = source.last_imported_row
 
         for row_number, row_values in enumerate(rows[1:], start=2):
-            if row_number <= source.last_imported_row:
-                continue
-            result = self._import_row(source=source, headers=headers, row_number=row_number, row_values=row_values)
+            result = self._import_row(
+                source=source,
+                headers=headers,
+                row_number=row_number,
+                row_values=row_values,
+                allow_create=row_number > source.last_imported_row,
+            )
             imported += int(result.imported)
             skipped += int(result.skipped)
             failed += int(result.failed)
@@ -161,6 +165,7 @@ class GoogleSheetsImportService:
         headers: list[str],
         row_number: int,
         row_values: list[str],
+        allow_create: bool,
     ) -> ImportRowResult:
         row = {header: row_values[index] if index < len(row_values) else "" for index, header in enumerate(headers)}
         if not any(str(value).strip() for value in row.values()):
@@ -176,6 +181,13 @@ class GoogleSheetsImportService:
             )
         )
         if existing is not None:
+            ReportAttachmentService(self.db).link_code_to_report(
+                incident_id=source.incident_id,
+                report_id=existing,
+                attachment_code=mapped.get("attachment_code"),
+            )
+            return ImportRowResult(imported=False, skipped=True, failed=False)
+        if not allow_create:
             return ImportRowResult(imported=False, skipped=True, failed=False)
 
         reporter_email, reporter_phone = extract_reporter_contact(mapped)
