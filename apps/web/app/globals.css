@@ -1161,6 +1161,21 @@ textarea {
   margin-top: -0.5rem;
 }
 
+.staff-guide-panel {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.staff-guide-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding-left: 1.35rem;
+  color: var(--muted-text);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .staff-case-stack,
 .staff-audit-list,
 .staff-related-case-list {

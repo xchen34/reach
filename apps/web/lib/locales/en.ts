@@ -433,6 +433,13 @@ export const en = {
       description: "Each card is one incoming report or a merged report group. Verify, claim, and update by priority.",
       taskBoardTitle: "Volunteer task board",
       taskBoardDescription: "Claim a task, follow up, and record the outcome.",
+      actionGuideTitle: "What to do after claiming",
+      actionGuideSteps: [
+        "Claiming means you are responsible for following up on this card; the status changes to in progress.",
+        "Check the location, description, and phone number. When possible, contact the reporter, affected person, family, neighbours, shelter, or on-site staff to verify the situation.",
+        "Reach does not dispatch official rescue. If someone is in immediate danger, follow the on-site process to contact official responders or a coordinator.",
+        "After checking, choose Found / safe, Confirm death, or Return to queue. If unsure, open the full details first.",
+      ],
       incomingReportsTitle: "Incoming reports",
       taskListTitle: "People and pets requiring follow-up",
       taskListDescription: "Choose a task and prioritize real-world contact.",

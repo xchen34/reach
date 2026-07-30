@@ -434,6 +434,13 @@ export const fr = {
       description: "Chaque carte correspond a un signalement ou a un groupe fusionne. Verifiez, prenez en charge et mettez a jour selon la priorite.",
       taskBoardTitle: "Tableau des taches benevoles",
       taskBoardDescription: "Prenez une tache, faites le suivi et notez le resultat.",
+      actionGuideTitle: "Que faire apres avoir pris une tache",
+      actionGuideSteps: [
+        "Prendre une tache signifie que vous la suivez ; son statut passe en cours.",
+        "Verifiez le lieu, la description et le telephone. Si possible, contactez la personne qui a signale, la personne concernee, la famille, les voisins, l'abri ou l'equipe sur place.",
+        "Reach ne deploie pas les secours officiels. Si quelqu'un est en danger immediat, suivez le processus local pour contacter les secours officiels ou un coordinateur.",
+        "Apres verification, choisissez Retrouve / en securite, Confirmer le deces ou Remettre en attente. En cas de doute, ouvrez d'abord les details complets.",
+      ],
       incomingReportsTitle: "Signalements entrants",
       taskListTitle: "Personnes et animaux a suivre",
       taskListDescription: "Choisissez une tache et priorisez le contact reel.",

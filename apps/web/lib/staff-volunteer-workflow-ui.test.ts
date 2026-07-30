@@ -27,6 +27,14 @@ test("staff page shows tasks first and keeps processed reports out of the main n
   assert.doesNotMatch(listSource, /<option value="all">/);
 });
 
+test("staff page explains claimed-task follow-up without promising rescue dispatch", () => {
+  const zhSource = readFileSync(new URL("./locales/zh.ts", import.meta.url), "utf8");
+  assert.match(listSource, /actionGuideTitle/);
+  assert.match(listSource, /actionGuideSteps\.map/);
+  assert.match(zhSource, /领取任务表示你负责跟进这张卡/);
+  assert.match(zhSource, /Reach 不会自动派发官方救援/);
+});
+
 test("completed task detail exposes confirmed status correction with a final confirmation", () => {
   assert.match(detailSource, /correctStatusAction/);
   assert.match(detailSource, /correctStaffCaseOperationalStatus/);

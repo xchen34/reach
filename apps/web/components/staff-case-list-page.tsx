@@ -349,6 +349,17 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </p>
         </section>
 
+        <section className="detail-card staff-guide-panel" aria-labelledby="staff-action-guide-title">
+          <h2 className="section-title" id="staff-action-guide-title">
+            {dictionary.staff.cases.actionGuideTitle}
+          </h2>
+          <ol className="staff-guide-list">
+            {dictionary.staff.cases.actionGuideSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </section>
+
         <section className="staff-case-list" aria-labelledby="staff-task-list-title">
           <div className="staff-section-header">
             <div>

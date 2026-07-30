@@ -409,6 +409,13 @@ export const zh = {
       description: "每张卡是一份新报告或一项帮助请求。请按优先级处理。",
       taskBoardTitle: "志愿者任务板",
       taskBoardDescription: "先处理上方任务；下方新来报只用于整理成任务或合并。",
+      actionGuideTitle: "领取后怎么处理",
+      actionGuideSteps: [
+        "领取任务表示你负责跟进这张卡，状态会变成“处理中”。",
+        "先查看地点、描述和电话；能联系时，优先联系报告人、当事人、家属、邻居、避难所或现场工作人员核实情况。",
+        "Reach 不会自动派发官方救援。如果确认有人正处于立即危险中，请按现场流程联系官方救援或协调员。",
+        "核实后选择“已找到／安全”“确认死亡”或“退回待处理”。不确定时先查看完整资料。",
+      ],
       incomingReportsTitle: "待整理的新来报",
       taskListTitle: "任务列表",
       taskListDescription: "选择一项任务，优先进行现实联系。",
