@@ -1,4 +1,4 @@
-"""Seed local demo data with synthetic people/pet records and generated PNG photos.
+"""Seed local demo data with synthetic people/pet records and generated cartoon photos.
 
 Run inside the API container:
 
@@ -8,8 +8,10 @@ Run inside the API container:
     python -m app.scripts.seed_demo_records --count 60 --photo-manifest-url https://example.com/photos.json
 
 When --photo-dir or --photo-manifest-url is provided, the script uses
-AI-generated JPEG, PNG, or WebP images from that source. Otherwise it falls back
-to synthetic placeholder PNGs generated in code.
+AI-generated JPEG, PNG, or WebP images from that source. Otherwise it uses a
+small fixed cartoon avatar set and reuses those images across records. If the
+remote avatar preset is unavailable, it falls back to synthetic PNGs generated
+in code.
 
 Preferred remote manifest format:
 
@@ -174,6 +176,7 @@ def main() -> int:
     parser.add_argument(
         "--photo-preset",
         choices=[DICEBEAR_ROBOHASH_PRESET],
+        default=DICEBEAR_ROBOHASH_PRESET,
         help="Optional built-in online avatar preset: DiceBear Open Peeps people and Robohash cats.",
     )
     args = parser.parse_args()
