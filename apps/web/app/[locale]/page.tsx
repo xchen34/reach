@@ -2,6 +2,7 @@ import { CommunityCoordinationHome } from "@/components/community-coordination-h
 import { ApiError, getCurrentPublicIncidentReportPage } from "@/lib/api";
 import type { PublicIncidentReportPageResponse } from "@/lib/api-types";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { redirect } from "next/navigation";
 
 export default async function LocaleHomePage({
   params,
@@ -17,6 +18,10 @@ export default async function LocaleHomePage({
     if (!(error instanceof ApiError && error.status === 404)) {
       activeIncident = null;
     }
+  }
+
+  if (activeIncident) {
+    redirect(`/${params.locale}/incidents/${activeIncident.slug}/report`);
   }
 
   return (

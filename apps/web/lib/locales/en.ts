@@ -218,15 +218,19 @@ export const en = {
     eyebrow: "Optional photos",
     title: "Add report photos",
     description:
-      "You can upload photos here without signing in to Google. Reach will give you a code to enter in the Google Form field named Reach photo attachment code.",
+      "If you want to attach photos, upload them here first. Reach will generate a code, then you can fill out the Google Form below.",
     inputLabel: "Choose photos",
     limits: "JPEG, PNG, or WebP only. Up to 4 images, 8 MB each.",
+    missingFieldNotice:
+      "The Google Form must include an optional field named Reach photo attachment code. If you do not see that field, ask a coordinator to add it first; otherwise the photos cannot be matched automatically.",
     emptySelection: "No photos selected.",
     uploadButton: "Upload photos",
     uploading: "Uploading photos...",
     codeLabel: "Photo attachment code",
+    copyCode: "Copy code",
+    copiedCode: "Copied",
     codeInstructions:
-      "Enter this code in the Google Form so staff can match these photos to your report. Photos are not shown publicly unless staff explicitly approve them.",
+      "Enter this code in the Reach photo attachment code field in the Google Form below so staff can match these photos to your report. Photos are not shown publicly unless staff explicitly approve them.",
     error: "The photos could not be uploaded. Check the file type and size, then try again.",
   },
   board: {
@@ -248,6 +252,10 @@ export const en = {
     liveTitle: "Public status records",
     liveDescription:
       "Reach shows selected person, pet, or follow-up task records. Original reports, private contacts, volunteer details, and exact locations are not shown.",
+    reportTitle: "Submit a new report",
+    reportDescription:
+      "If you have safe information, a missing-person or pet report, or an update, open the report page directly.",
+    reportCta: "Submit report",
     statusDisclaimerTitle: "About these statuses",
     statusDisclaimerParagraphs: [
       "This page shows information currently recorded by the Reach volunteer network. It is not an official or real-time register. Volunteers usually prioritize directly contacting families, shelters, hospitals, responders, and other relevant organizations, and may not return to update the platform promptly.",
@@ -257,6 +265,7 @@ export const en = {
     loading: "Loading current board records...",
     loadError: "The live board feed could not be loaded right now. You can still use the intake links and external mirror while volunteers recover the feed.",
     empty: "There are no new public updates right now.",
+    emptyForFilter: "There are no records for this filter right now.",
     recordCodeLabel: "Record code",
     statusLabel: "Status",
     locationLabel: "Location",
@@ -280,6 +289,9 @@ export const en = {
     searchPlaceholder: "Search by code, location, or update",
     filters: {
       all: "All statuses",
+      missing: "Missing / in progress",
+      safe: "Confirmed safe",
+      deceased: "Confirmed deceased",
     },
     publicStatuses: {
       unassigned: {

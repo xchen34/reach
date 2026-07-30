@@ -20,7 +20,6 @@
   --app-header-language-slot-width: 7rem;
   --app-header-board-slot-width: 9.75rem;
   --app-header-home-slot-width: 7rem;
-  --app-header-staff-slot-width: 8.75rem;
   --app-header-logout-slot-width: 8.75rem;
   --app-header-language-group-width: calc(
     (var(--app-header-language-slot-width) * 3) + (var(--app-header-language-gap) * 2)
@@ -112,8 +111,7 @@ textarea {
 .header-navigation-authenticated {
   grid-template-columns:
     var(--app-header-board-slot-width)
-    var(--app-header-home-slot-width)
-    var(--app-header-staff-slot-width);
+    var(--app-header-home-slot-width);
 }
 
 .header-account {
@@ -138,7 +136,6 @@ textarea {
 
 .header-nav-board,
 .header-nav-home,
-.header-nav-staff,
 .header-nav-logout {
   min-height: var(--app-header-control-height);
 }
@@ -1482,8 +1479,7 @@ textarea {
   .header-navigation-authenticated {
     grid-template-columns:
       var(--app-header-board-slot-width)
-      var(--app-header-home-slot-width)
-      var(--app-header-staff-slot-width);
+      var(--app-header-home-slot-width);
   }
 
   .header-nav-language {

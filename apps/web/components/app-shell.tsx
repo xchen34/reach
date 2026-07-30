@@ -76,9 +76,7 @@ function GlobalHeader({
   locale,
   sectionLabel,
   publicBoardLabel,
-  homeLabel,
   showPublicBoard,
-  showHome,
   logoutAction,
   staffDashboardLabel = "工作后台",
   returnToStaffLabel = "返回后台",
@@ -88,11 +86,9 @@ function GlobalHeader({
 }: GlobalHeaderProps) {
   const pathname = usePathname();
   const boardHref = `/${locale}/board`;
-  const homeHref = `/${locale}`;
   const staffHref = `/${locale}/staff`;
   const staffLoginHref = `/${locale}/staff/login`;
   const isBoardActive = pathname === boardHref;
-  const isHomeActive = pathname === homeHref;
   const isStaffActive = pathname === staffHref || pathname.startsWith(`${staffHref}/cases/`);
   const isStaffLoginRoute = pathname === staffLoginHref || pathname === `/${locale}/staff/magic-link`;
   const staffAuthState = useStaffSessionStatus(pathname);
@@ -126,13 +122,13 @@ function GlobalHeader({
       >
         {isLoggingOut ? logoutSubmittingLabel : logoutLabel}
       </button>
-    ) : staffAuthState === "unauthenticated" && !isStaffLoginRoute ? (
-      <Link className="button-secondary header-nav-button" data-active="false" href={staffLoginHref}>
-        {staffLoginLabel}
-      </Link>
     ) : null);
 
   const staffNavigationLabel = isStaffActive ? staffDashboardLabel : returnToStaffLabel;
+  const showStaffEntry = staffAuthState === "authenticated" || staffAuthState === "unauthenticated";
+  const staffEntryHref = staffAuthState === "authenticated" ? staffHref : staffLoginHref;
+  const staffEntryLabel = staffAuthState === "authenticated" ? staffNavigationLabel : staffLoginLabel;
+  const isStaffEntryActive = staffAuthState === "authenticated" ? isStaffActive : isStaffLoginRoute;
 
   return (
     <header className="global-header">
@@ -157,26 +153,14 @@ function GlobalHeader({
             ) : null}
           </div>
           <div className="header-nav-slot header-nav-home">
-            {showHome ? (
+            {showStaffEntry ? (
               <Link
-                aria-current={isHomeActive ? "page" : undefined}
+                aria-current={isStaffEntryActive ? "page" : undefined}
                 className="button-secondary header-nav-button"
-                data-active={isHomeActive}
-                href={homeHref}
+                data-active={isStaffEntryActive}
+                href={staffEntryHref}
               >
-                {homeLabel}
-              </Link>
-            ) : null}
-          </div>
-          <div className="header-nav-slot header-nav-staff">
-            {staffAuthState === "authenticated" ? (
-              <Link
-                aria-current={isStaffActive ? "page" : undefined}
-                className="button-secondary header-nav-button"
-                data-active={isStaffActive}
-                href={staffHref}
-              >
-                {staffNavigationLabel}
+                {staffEntryLabel}
               </Link>
             ) : null}
           </div>

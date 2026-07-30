@@ -21,6 +21,7 @@ const maxFiles = 4;
 export function ReportPhotoUpload({ dictionary, incidentSlug }: ReportPhotoUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [state, setState] = useState<UploadState>({ status: "idle" });
+  const [didCopyCode, setDidCopyCode] = useState(false);
   const labels = dictionary.reportAttachments;
 
   const selectedSummary = useMemo(() => {
@@ -42,8 +43,18 @@ export function ReportPhotoUpload({ dictionary, incidentSlug }: ReportPhotoUploa
         attachmentCode: response.attachment_code,
         fileCount: response.attachments.length,
       });
+      setDidCopyCode(false);
     } catch {
       setState({ status: "error", message: labels.error });
+    }
+  }
+
+  async function handleCopyCode(attachmentCode: string) {
+    try {
+      await navigator.clipboard.writeText(attachmentCode);
+      setDidCopyCode(true);
+    } catch {
+      setDidCopyCode(false);
     }
   }
 
@@ -75,6 +86,7 @@ export function ReportPhotoUpload({ dictionary, incidentSlug }: ReportPhotoUploa
           }}
         />
         <p className="field-hint">{labels.limits}</p>
+        <p className="field-hint compact-copy">{labels.missingFieldNotice}</p>
         <p className="field-hint compact-copy">{selectedSummary}</p>
       </div>
 
@@ -93,6 +105,13 @@ export function ReportPhotoUpload({ dictionary, incidentSlug }: ReportPhotoUploa
         <div className="info-banner" role="status">
           <strong>{labels.codeLabel}</strong>
           <span className="attachment-code">{state.attachmentCode}</span>
+          <button
+            className="button-secondary"
+            type="button"
+            onClick={() => void handleCopyCode(state.attachmentCode)}
+          >
+            {didCopyCode ? labels.copiedCode : labels.copyCode}
+          </button>
           <p className="compact-copy">{labels.codeInstructions}</p>
         </div>
       ) : null}

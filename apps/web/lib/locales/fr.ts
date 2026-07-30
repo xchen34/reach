@@ -218,15 +218,19 @@ export const fr = {
     eyebrow: "Photos optionnelles",
     title: "Ajouter des photos au signalement",
     description:
-      "Vous pouvez televerser des photos ici sans connexion Google. Reach vous donnera un code a saisir dans le champ Google Form nomme Reach photo attachment code.",
+      "Si vous voulez joindre des photos, televersez-les d'abord ici. Reach generera un code, puis vous pourrez remplir le Google Form ci-dessous.",
     inputLabel: "Choisir des photos",
     limits: "JPEG, PNG ou WebP uniquement. Jusqu'a 4 images, 8 Mo chacune.",
+    missingFieldNotice:
+      "Le Google Form doit inclure un champ facultatif nomme Reach photo attachment code. Si vous ne voyez pas ce champ, demandez d'abord a un coordinateur de l'ajouter ; sinon les photos ne pourront pas etre associees automatiquement.",
     emptySelection: "Aucune photo selectionnee.",
     uploadButton: "Televerser les photos",
     uploading: "Televersement...",
     codeLabel: "Code de pieces jointes photo",
+    copyCode: "Copier le code",
+    copiedCode: "Copie",
     codeInstructions:
-      "Saisissez ce code dans le Google Form afin que l'equipe puisse associer ces photos au signalement. Elles ne seront pas publiques sans approbation explicite.",
+      "Saisissez ce code dans le champ Reach photo attachment code du Google Form ci-dessous afin que l'equipe puisse associer ces photos au signalement. Elles ne seront pas publiques sans approbation explicite.",
     error: "Les photos n'ont pas pu etre televersees. Verifiez le type et la taille, puis reessayez.",
   },
   board: {
@@ -248,6 +252,10 @@ export const fr = {
     liveTitle: "Fiches publiques de statut",
     liveDescription:
       "Reach affiche des fiches selectionnees concernant des personnes, des animaux ou des suivis. Les signalements bruts, contacts prives, details des benevoles et lieux precis ne sont pas affiches.",
+    reportTitle: "Envoyer un nouveau signalement",
+    reportDescription:
+      "Si vous avez une information de securite, un signalement de personne ou animal disparu, ou une mise a jour, ouvrez directement la page de signalement.",
+    reportCta: "Envoyer un signalement",
     statusDisclaimerTitle: "A propos de ces statuts",
     statusDisclaimerParagraphs: [
       "Cette page presente les informations actuellement enregistrees par le reseau de benevoles Reach. Il ne s'agit ni d'une liste officielle ni d'un suivi en temps reel. Les benevoles donnent generalement la priorite aux contacts directs avec les familles, les centres d'hebergement, les hopitaux, les secours et les organismes concernes, et peuvent ne pas mettre la plateforme a jour immediatement.",
@@ -258,6 +266,7 @@ export const fr = {
     loadError:
       "Le flux public du tableau ne peut pas etre charge pour le moment. Vous pouvez toujours utiliser les liens d'intake et le miroir externe pendant le retablissement.",
     empty: "Il n'y a pas de nouvelle mise a jour publique pour le moment.",
+    emptyForFilter: "Aucune fiche ne correspond a ce filtre pour le moment.",
     recordCodeLabel: "Code de fiche",
     statusLabel: "Statut",
     locationLabel: "Lieu",
@@ -281,6 +290,9 @@ export const fr = {
     searchPlaceholder: "Rechercher par code, lieu ou mise a jour",
     filters: {
       all: "Tous les statuts",
+      missing: "Disparu / en cours",
+      safe: "Securite confirmee",
+      deceased: "Deces confirme",
     },
     publicStatuses: {
       unassigned: {

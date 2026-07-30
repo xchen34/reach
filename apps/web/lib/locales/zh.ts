@@ -204,15 +204,19 @@ export const zh = {
     eyebrow: "可选照片",
     title: "添加报告照片",
     description:
-      "你可以在这里上传照片，不需要登录 Google。Reach 会给你一个代码，请填入 Google Form 中名为 Reach photo attachment code 的字段。",
+      "如果要附加照片，请先在这里上传。Reach 会生成一个代码，然后你再在下方 Google Form 中填写这份报告。",
     inputLabel: "选择照片",
     limits: "仅支持 JPEG、PNG 或 WebP。最多 4 张，每张不超过 8 MB。",
+    missingFieldNotice:
+      "Google Form 必须有一个可选字段，字段名为 Reach photo attachment code。如果你在表单里看不到这个字段，请先联系协调员添加；否则照片代码无法自动匹配到报告。",
     emptySelection: "尚未选择照片。",
     uploadButton: "上传照片",
     uploading: "正在上传照片...",
     codeLabel: "照片附件代码",
+    copyCode: "复制代码",
+    copiedCode: "已复制",
     codeInstructions:
-      "请把此代码填入 Google Form，方便志愿者把照片与报告匹配。照片只有在负责人明确批准后才会公开显示。",
+      "请把此代码填入下方 Google Form 的 Reach photo attachment code 字段，方便志愿者把照片与报告匹配。照片只有在负责人明确批准后才会公开显示。",
     error: "照片无法上传。请检查文件类型和大小后重试。",
   },
   board: {
@@ -232,6 +236,9 @@ export const zh = {
     embedDescription: "如果你发布了 Google Sheet 或类似公开表格，可以在这里嵌入，方便高密度浏览。",
     liveTitle: "公开状态记录",
     liveDescription: "Reach 显示经过选择的人员、宠物或跟进任务记录。不会显示原始上报、私人联系方式、志愿者详情或精确地点。",
+    reportTitle: "提交新的上报",
+    reportDescription: "如果你有报平安、失联、宠物或补充线索，请直接打开上报页面填写表单。",
+    reportCta: "提交上报",
     statusDisclaimerTitle: "关于页面状态",
     statusDisclaimerParagraphs: [
       "本页面显示的是 Reach 志愿协作网络目前记录的信息，并非官方名单，也不保证实时更新。志愿者通常会优先直接联系家属、避难场所、医院、救援人员及其他有关机构，因此未必能及时返回平台更新状态。",
@@ -241,6 +248,7 @@ export const zh = {
     loading: "正在加载公开板记录...",
     loadError: "当前无法加载实时公开板。你仍可先使用首页入口和外部镜像板。",
     empty: "目前没有新的公开更新。",
+    emptyForFilter: "这个筛选条件下目前没有记录。",
     recordCodeLabel: "编号",
     statusLabel: "状态",
     locationLabel: "地点",
@@ -264,6 +272,9 @@ export const zh = {
     searchPlaceholder: "按编号、地点或更新内容搜索",
     filters: {
       all: "全部状态",
+      missing: "失踪中",
+      safe: "证实安全",
+      deceased: "证实离世",
     },
     publicStatuses: {
       unassigned: {

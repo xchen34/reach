@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { OperationalStatus, PublicBoardRecord, PublicBoardResponse, SubjectType } from "@/lib/api-types";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  OperationalStatus,
+  PublicBoardRecord,
+  PublicBoardResponse,
+  PublicIncidentReportPageResponse,
+  SubjectType,
+} from "@/lib/api-types";
 import { AppShell } from "@/components/app-shell";
-import { getPublicBoard } from "@/lib/api";
+import { getCurrentPublicIncidentReportPage, getPublicBoard } from "@/lib/api";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 type CommunityBoardPageProps = {
@@ -11,11 +18,15 @@ type CommunityBoardPageProps = {
   locale: Locale;
 };
 
+type BoardFilter = "all" | "missing" | "safe" | "deceased";
+
 export function CommunityBoardPage({
   dictionary,
   locale,
 }: CommunityBoardPageProps) {
   const [boardData, setBoardData] = useState<PublicBoardResponse | null>(null);
+  const [currentIncident, setCurrentIncident] = useState<PublicIncidentReportPageResponse | null>(null);
+  const [activeFilter, setActiveFilter] = useState<BoardFilter>("all");
   const [loadError, setLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,17 +34,28 @@ export function CommunityBoardPage({
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const filteredRecords = useMemo(() => {
+    if (!boardData) {
+      return [];
+    }
+    return boardData.records.filter((record) => matchesBoardFilter(record, activeFilter));
+  }, [activeFilter, boardData]);
+  const filterCounts = useMemo(() => summarizeBoardFilters(boardData?.records ?? []), [boardData]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadBoard() {
       try {
-        const nextBoardData = await getPublicBoard();
+        const [nextBoardData, incident] = await Promise.all([
+          getPublicBoard(),
+          getCurrentPublicIncidentReportPage().catch(() => null),
+        ]);
         if (!isMounted) {
           return;
         }
         setBoardData(nextBoardData);
+        setCurrentIncident(incident);
         setLoadError(false);
       } catch {
         if (!isMounted) {
@@ -72,6 +94,22 @@ export function CommunityBoardPage({
           {dictionary.board.emergencyNotice}
         </p>
 
+        <section className="community-entry-section board-report-entry" aria-labelledby="board-report-title">
+          <div>
+            <h2 className="section-title" id="board-report-title">
+              {dictionary.board.reportTitle}
+            </h2>
+            <p className="support-copy compact-copy">{dictionary.board.reportDescription}</p>
+          </div>
+          {currentIncident ? (
+            <Link className="button-primary" href={`/${locale}/incidents/${currentIncident.slug}/report`}>
+              {dictionary.board.reportCta}
+            </Link>
+          ) : (
+            <p className="info-banner">{dictionary.home.formUnavailable}</p>
+          )}
+        </section>
+
         <section className="community-entry-section" aria-labelledby="board-disclaimer-title">
           <h2 className="section-title" id="board-disclaimer-title">
             {dictionary.board.statusDisclaimerTitle}
@@ -97,16 +135,35 @@ export function CommunityBoardPage({
             boardData.records.length === 0 ? (
               <p className="info-banner">{dictionary.board.empty}</p>
             ) : (
-              <div className="community-board-records">
-                {boardData.records.map((record) => (
-                  <BoardRecordCard
-                    dateFormatter={dateFormatter}
-                    dictionary={dictionary}
-                    key={record.public_id}
-                    record={record}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="board-filter-row" role="group" aria-label={dictionary.board.filterLabel}>
+                  {boardFilterOptions.map((filter) => (
+                    <button
+                      className="button-secondary header-nav-button"
+                      data-active={activeFilter === filter}
+                      key={filter}
+                      type="button"
+                      onClick={() => setActiveFilter(filter)}
+                    >
+                      {boardFilterLabel(dictionary, filter)} ({filterCounts[filter]})
+                    </button>
+                  ))}
+                </div>
+                {filteredRecords.length === 0 ? (
+                  <p className="info-banner">{dictionary.board.emptyForFilter}</p>
+                ) : (
+                  <div className="community-board-records">
+                    {filteredRecords.map((record) => (
+                      <BoardRecordCard
+                        dateFormatter={dateFormatter}
+                        dictionary={dictionary}
+                        key={record.public_id}
+                        record={record}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )
           ) : loadError ? (
             <p className="error-banner">{dictionary.board.loadError}</p>
@@ -142,7 +199,9 @@ function BoardRecordCard({
       <div className="community-board-card-body">
         <div className="community-board-card-title-row">
           <h3 className="community-board-title">{subjectName}</h3>
-          <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, record.subject_type)}</span>
+          {record.subject_type === "person" || record.subject_type === "pet" ? (
+            <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, record.subject_type)}</span>
+          ) : null}
           <span className={statusClassName(record.operational_status)}>
             {publicStatusLabel(dictionary, record.operational_status)}
           </span>
@@ -172,6 +231,51 @@ function BoardRecordCard({
       </div>
     </article>
   );
+}
+
+const boardFilterOptions: BoardFilter[] = ["all", "missing", "safe", "deceased"];
+
+function matchesBoardFilter(record: PublicBoardRecord, filter: BoardFilter) {
+  if (filter === "all") {
+    return true;
+  }
+  if (filter === "missing") {
+    return record.operational_status === "unassigned" || record.operational_status === "in_progress";
+  }
+  if (filter === "safe") {
+    return record.operational_status === "found_alive";
+  }
+  return record.operational_status === "confirmed_deceased";
+}
+
+function summarizeBoardFilters(records: PublicBoardRecord[]): Record<BoardFilter, number> {
+  return records.reduce(
+    (summary, record) => {
+      summary.all += 1;
+      if (record.operational_status === "found_alive") {
+        summary.safe += 1;
+      } else if (record.operational_status === "confirmed_deceased") {
+        summary.deceased += 1;
+      } else {
+        summary.missing += 1;
+      }
+      return summary;
+    },
+    { all: 0, missing: 0, safe: 0, deceased: 0 },
+  );
+}
+
+function boardFilterLabel(dictionary: Dictionary, filter: BoardFilter) {
+  if (filter === "all") {
+    return dictionary.board.filters.all;
+  }
+  if (filter === "missing") {
+    return dictionary.board.filters.missing;
+  }
+  if (filter === "safe") {
+    return dictionary.board.filters.safe;
+  }
+  return dictionary.board.filters.deceased;
 }
 
 function statusClassName(status: OperationalStatus) {

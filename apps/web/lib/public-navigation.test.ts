@@ -16,7 +16,7 @@ test("public board keeps the shared Public Info navigation link visible and acti
   assert.match(appShellSource, /aria-current=\{isBoardActive \? "page" : undefined\}/);
   assert.match(appShellSource, /data-active=\{isBoardActive\}/);
   assert.match(appShellSource, /href=\{boardHref\}/);
-  assert.match(appShellSource, /href=\{homeHref\}/);
+  assert.doesNotMatch(appShellSource, /href=\{homeHref\}/);
 });
 
 test("shared header derives staff navigation from the validated durable staff session", () => {
@@ -32,9 +32,11 @@ test("shared header derives staff navigation from the validated durable staff se
   assert.match(staffSessionHookSource, /readStoredStaffAccessToken/);
   assert.match(staffSessionHookSource, /getCurrentStaffSession\(accessToken\)/);
   assert.match(appShellSource, /staffAuthState === "authenticated"/);
-  assert.match(appShellSource, /href=\{staffHref\}/);
-  assert.match(appShellSource, /aria-current=\{isStaffActive \? "page" : undefined\}/);
-  assert.match(appShellSource, /data-active=\{isStaffActive\}/);
+  assert.match(appShellSource, /staffEntryHref = staffAuthState === "authenticated" \? staffHref : staffLoginHref/);
+  assert.match(appShellSource, /href=\{staffEntryHref\}/);
+  assert.match(appShellSource, /aria-current=\{isStaffEntryActive \? "page" : undefined\}/);
+  assert.match(appShellSource, /data-active=\{isStaffEntryActive\}/);
+  assert.doesNotMatch(appShellSource, /header-nav-staff/);
 });
 
 test("authenticated public pages expose return-to-staff navigation without a logged-out CTA", () => {
@@ -89,6 +91,6 @@ test("authenticated header layout keeps the centered navigation independent from
 
   assert.match(cssSource, /\.global-header-inner\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
   assert.match(cssSource, /@media \(min-width: 720px\)\s*\{[\s\S]*\.global-header-inner\s*\{[\s\S]*grid-template-columns: 1fr auto 1fr;/);
-  assert.match(cssSource, /\.header-navigation-authenticated\s*\{[\s\S]*--app-header-staff-slot-width/);
+  assert.doesNotMatch(cssSource, /\.header-navigation-authenticated\s*\{[\s\S]*--app-header-staff-slot-width/);
   assert.match(cssSource, /\.header-account\s*\{[\s\S]*justify-self: end;/);
 });

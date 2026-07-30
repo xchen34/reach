@@ -51,6 +51,8 @@ export default async function IncidentReportPage({
           </p>
         </div>
 
+        <ReportPhotoUpload dictionary={dictionary} incidentSlug={params.incidentSlug} />
+
         <div className="google-form-frame-shell">
           <iframe
             className="google-form-frame"
@@ -58,8 +60,6 @@ export default async function IncidentReportPage({
             title={`${incident.public_name} 上报表单`}
           />
         </div>
-
-        <ReportPhotoUpload dictionary={dictionary} incidentSlug={params.incidentSlug} />
 
         <p className="fallback-copy">
           如果表单没有载入，请{" "}
