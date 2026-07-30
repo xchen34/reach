@@ -3,19 +3,23 @@
 Run inside the API container:
 
     python -m app.scripts.seed_demo_records --count 60
-    python -m app.scripts.seed_demo_records --count 60 --photo-dir /tmp/reach-ai-photos
+    python -m app.scripts.seed_demo_records --count 60 --photo-dir /app/data/seed_ai_photos
+    python -m app.scripts.seed_demo_records --count 60 --photo-manifest-url https://example.com/photos.json
 
-When --photo-dir is provided, the script uses local AI-generated JPEG, PNG, or
-WebP images from that directory. Otherwise it falls back to synthetic placeholder
-PNGs generated in code.
+When --photo-dir or --photo-manifest-url is provided, the script uses
+AI-generated JPEG, PNG, or WebP images from that source. Otherwise it falls back
+to synthetic placeholder PNGs generated in code.
 """
 
 from __future__ import annotations
 
 import argparse
 import binascii
+import json
 import struct
 import sys
+import urllib.error
+import urllib.request
 import zlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -57,6 +61,8 @@ SEED_FORM_NAME = "Reach demo bulk seed"
 CASE_PREFIX = "DCASE"
 REPORT_PREFIX = "DREP"
 ATTACHMENT_PREFIX = "DATT"
+REMOTE_PHOTO_TIMEOUT_SECONDS = 10
+REMOTE_PHOTO_MAX_BYTES = 8 * 1024 * 1024
 PHOTO_EXTENSIONS_BY_CONTENT_TYPE = {
     "image/jpeg": "jpg",
     "image/png": "png",
@@ -130,6 +136,13 @@ def main() -> int:
             "to use for demo attachments. Files are copied into Reach storage."
         ),
     )
+    parser.add_argument(
+        "--photo-manifest-url",
+        help=(
+            "Optional URL for a JSON or text manifest of AI-generated image URLs. "
+            "JSON can be a list of URLs or an object with a photos/images/urls list."
+        ),
+    )
     args = parser.parse_args()
 
     settings = get_settings()
@@ -139,10 +152,22 @@ def main() -> int:
     if args.count < 20:
         print("--count must be at least 20 so the demo has enough status variety.", file=sys.stderr)
         return 2
-    photo_assets = load_photo_assets(args.photo_dir)
+    local_photo_assets = load_photo_assets(args.photo_dir)
+    remote_photo_assets = [] if local_photo_assets else load_remote_photo_assets(args.photo_manifest_url)
+    photo_assets = local_photo_assets or remote_photo_assets
+    photo_source = photo_source_label(
+        has_local_assets=bool(local_photo_assets),
+        has_remote_assets=bool(remote_photo_assets),
+    )
     if args.photo_dir and not photo_assets:
         print(
             f"No usable JPEG, PNG, or WebP images found in {args.photo_dir}; "
+            "checking remote manifest or falling back to generated placeholder PNGs.",
+            file=sys.stderr,
+        )
+    if args.photo_manifest_url and not photo_assets:
+        print(
+            f"No usable JPEG, PNG, or WebP images found from {args.photo_manifest_url}; "
             "falling back to generated placeholder PNGs.",
             file=sys.stderr,
         )
@@ -162,7 +187,7 @@ def main() -> int:
     print(f"created_reports={created['reports']}")
     print(f"created_cases={created['cases']}")
     print(f"created_attachments={created['attachments']}")
-    print(f"photo_source={'local_ai_directory' if photo_assets else 'generated_placeholders'}")
+    print(f"photo_source={photo_source}")
     print("Open http://127.0.0.1:3000/zh/staff and http://127.0.0.1:3000/zh/board")
     return 0
 
@@ -496,6 +521,87 @@ def load_photo_assets(photo_dir: Path | None) -> list[PhotoAsset]:
         if content_type:
             assets.append(PhotoAsset(content=content, content_type=content_type))
     return assets
+
+
+def load_remote_photo_assets(manifest_url: str | None) -> list[PhotoAsset]:
+    if not manifest_url:
+        return []
+    try:
+        manifest_content = fetch_remote_bytes(manifest_url, max_bytes=1024 * 1024)
+    except RuntimeError as exc:
+        print(f"Could not load photo manifest: {exc}", file=sys.stderr)
+        return []
+
+    urls = parse_photo_manifest(manifest_content)
+    assets: list[PhotoAsset] = []
+    for url in urls:
+        try:
+            content = fetch_remote_bytes(url, max_bytes=REMOTE_PHOTO_MAX_BYTES)
+        except RuntimeError as exc:
+            print(f"Skipping remote photo {url}: {exc}", file=sys.stderr)
+            continue
+        content_type = detect_image_content_type(content)
+        if content_type:
+            assets.append(PhotoAsset(content=content, content_type=content_type))
+        else:
+            print(f"Skipping remote photo {url}: unsupported image content.", file=sys.stderr)
+    return assets
+
+
+def parse_photo_manifest(content: bytes) -> list[str]:
+    text = content.decode("utf-8", errors="replace")
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return parse_plain_text_photo_manifest(text)
+
+    if isinstance(parsed, list):
+        return [item for item in parsed if isinstance(item, str) and is_http_url(item)]
+    if isinstance(parsed, dict):
+        for key in ("photos", "images", "urls"):
+            value = parsed.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, str) and is_http_url(item)]
+    return []
+
+
+def parse_plain_text_photo_manifest(text: str) -> list[str]:
+    urls: list[str] = []
+    for line in text.splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        if is_http_url(value):
+            urls.append(value)
+    return urls
+
+
+def fetch_remote_bytes(url: str, *, max_bytes: int) -> bytes:
+    if not is_http_url(url):
+        raise RuntimeError("URL must start with http:// or https://.")
+
+    request = urllib.request.Request(url, headers={"User-Agent": "Reach-demo-seed/1.0"})
+    try:
+        with urllib.request.urlopen(request, timeout=REMOTE_PHOTO_TIMEOUT_SECONDS) as response:
+            content = response.read(max_bytes + 1)
+    except (OSError, urllib.error.URLError) as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    if len(content) > max_bytes:
+        raise RuntimeError(f"response exceeds {max_bytes} bytes.")
+    return content
+
+
+def is_http_url(value: str) -> bool:
+    return value.startswith("https://") or value.startswith("http://")
+
+
+def photo_source_label(*, has_local_assets: bool, has_remote_assets: bool) -> str:
+    if has_local_assets:
+        return "local_ai_directory"
+    if has_remote_assets:
+        return "remote_ai_manifest"
+    return "generated_placeholders"
 
 
 def detect_image_content_type(content: bytes) -> str | None:
