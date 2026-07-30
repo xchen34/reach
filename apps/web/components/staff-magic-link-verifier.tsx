@@ -19,7 +19,7 @@ type StaffMagicLinkVerifierProps = {
 
 export function StaffMagicLinkVerifier({
   dictionary,
-  locale,
+  locale: _locale,
 }: StaffMagicLinkVerifierProps) {
   const hasConsumedMagicLink = useRef(false);
   const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
@@ -50,7 +50,7 @@ export function StaffMagicLinkVerifier({
     void (async () => {
       try {
         const session = await verifyStaffMagicLink(token);
-        const nextPath = `/${locale}/staff`;
+        const nextPath = "/staff";
 
         storeStaffAccessToken(session.access_token);
         window.dispatchEvent(new Event("Reach.staff-session-changed"));
@@ -84,11 +84,11 @@ export function StaffMagicLinkVerifier({
     return () => {
       isMounted = false;
     };
-  }, [locale]);
+  }, []);
 
   return (
     <AppShell
-      locale={locale}
+      locale={_locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.staff.eyebrow}
     >
@@ -116,7 +116,7 @@ export function StaffMagicLinkVerifier({
           <h2 className="section-title">{dictionary.staff.magicLink.errorTitle}</h2>
           <p className="lede compact-lede">{dictionary.staff.magicLink.errors[reason]}</p>
           <div className="button-row">
-            <a className="button-primary" href={buildStaffLoginHref(locale)}>
+            <a className="button-primary" href={buildStaffLoginHref()}>
               {dictionary.staff.magicLink.backToLogin}
             </a>
           </div>

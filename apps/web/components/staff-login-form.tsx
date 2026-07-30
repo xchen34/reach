@@ -19,7 +19,7 @@ type StaffLoginFormProps = {
   reason?: StaffAuthReason;
 };
 
-export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormProps) {
+export function StaffLoginForm({ dictionary, locale: _locale, reason }: StaffLoginFormProps) {
   const router = useRouter();
   const staffSessionStatus = useStaffSessionStatus("staff-login");
   const [email, setEmail] = useState("");
@@ -32,14 +32,14 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
 
   useEffect(() => {
     if (staffSessionStatus === "authenticated" && reason !== "logged_out") {
-      router.replace(`/${locale}/staff`);
+      router.replace("/staff");
     }
-  }, [locale, reason, router, staffSessionStatus]);
+  }, [reason, router, staffSessionStatus]);
 
   if (staffSessionStatus === "authenticated" && reason !== "logged_out") {
     return (
       <AppShell
-        locale={locale}
+        locale={_locale}
         publicBoardLabel={dictionary.home.boardCta}
         sectionLabel={dictionary.staff.eyebrow}
       >
@@ -68,7 +68,7 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
       const magicLinkToken = getMagicLinkToken(response.login_url);
 
       if (magicLinkToken) {
-        window.location.assign(buildStaffMagicLinkHref(locale, magicLinkToken));
+        window.location.assign(buildStaffMagicLinkHref(magicLinkToken));
         return;
       }
 
@@ -86,7 +86,7 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
 
   return (
     <AppShell
-      locale={locale}
+      locale={_locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.staff.eyebrow}
     >
@@ -106,7 +106,7 @@ export function StaffLoginForm({ dictionary, locale, reason }: StaffLoginFormPro
           <p className="lede compact-lede">{dictionary.staff.login.successBody}</p>
           <p className="support-copy">{dictionary.staff.login.developmentNote}</p>
           <div className="button-row">
-            <a className="button-secondary" href={buildStaffLoginHref(locale)}>
+            <a className="button-secondary" href={buildStaffLoginHref()}>
               {dictionary.staff.login.requestAnotherLink}
             </a>
           </div>

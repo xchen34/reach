@@ -214,7 +214,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     } finally {
       clearStaffAccessToken();
       window.dispatchEvent(new Event("Reach.staff-session-changed"));
-      router.replace(buildStaffLoginHref(locale, "logged_out"));
+      router.replace(buildStaffLoginHref("logged_out"));
     }
   }
 
@@ -608,7 +608,7 @@ function ReportCard({
         </div>
       ) : report.linked_case ? (
         <div className="button-row staff-compact-actions">
-          <Link className="button-primary staff-link-button" href={`/${locale}/staff/cases/${report.linked_case.id}`}>
+          <Link className="button-primary staff-link-button" href={`/staff/cases/${report.linked_case.id}`}>
             {dictionary.staff.cases.openTaskAction}
           </Link>
         </div>
@@ -749,7 +749,7 @@ function TaskCard({
             </button>
           </>
         ) : null}
-        <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${task.id}`}>
+        <Link className="button-secondary staff-link-button" href={`/staff/cases/${task.id}`}>
           {dictionary.staff.cases.viewDetailsAction}
         </Link>
         <InlineNoteEditor
@@ -859,7 +859,7 @@ function redirectToLogin(
   locale: Locale,
   reason: StaffAuthReason,
 ) {
-  router.replace(buildStaffLoginHref(locale, reason));
+  router.replace(buildStaffLoginHref(reason));
 }
 
 function operationalStatusLabel(

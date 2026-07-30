@@ -12,7 +12,7 @@ type StaffDashboardEntryLinkProps = {
 
 export function StaffDashboardEntryLink({
   authenticatedLabel,
-  locale,
+  locale: _locale,
   loginLabel,
 }: StaffDashboardEntryLinkProps) {
   const staffSessionStatus = useStaffSessionStatus("home-entry");
@@ -26,7 +26,7 @@ export function StaffDashboardEntryLink({
   return (
     <Link
       className="community-home-staff-link"
-      href={isAuthenticated ? `/${locale}/staff` : `/${locale}/staff/login`}
+      href={isAuthenticated ? "/staff" : "/staff/login"}
     >
       {isAuthenticated ? authenticatedLabel : loginLabel}
     </Link>

@@ -18,7 +18,7 @@ export function CommunityCoordinationHome({
   dictionary,
   locale,
 }: CommunityCoordinationHomeProps) {
-  const incidentReportHref = activeIncident ? `/${locale}/incidents/${activeIncident.slug}/report` : null;
+  const incidentReportHref = activeIncident ? `/incidents/${activeIncident.slug}/report` : null;
   const actions = [
     {
       key: "safe" as const,

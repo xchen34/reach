@@ -117,7 +117,7 @@ export function CommunityBoardPage({
             <p className="support-copy compact-copy">{dictionary.board.reportDescription}</p>
           </div>
           {currentIncident ? (
-            <Link className="button-primary" href={`/${locale}/incidents/${currentIncident.slug}/report`}>
+            <Link className="button-primary" href={`/incidents/${currentIncident.slug}/report`}>
               {dictionary.board.reportCta}
             </Link>
           ) : (

@@ -10,7 +10,7 @@ const allowedReasons = new Set<StaffAuthReason>([
   "revoked",
 ]);
 
-export default function StaffLoginAliasPage({
+export default function StaffLoginPage({
   searchParams,
 }: {
   searchParams?: { reason?: string };

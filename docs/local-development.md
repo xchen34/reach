@@ -92,7 +92,7 @@ curl -s http://127.0.0.1:8000/incidents/reach-demo/report
 Open the frontend page:
 
 ```text
-http://127.0.0.1:3000/en/incidents/reach-demo/report
+http://127.0.0.1:3000/incidents/reach-demo/report
 ```
 
 ## Why web runs on the host by default

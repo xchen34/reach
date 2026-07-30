@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { StaffCaseDetailPage } from "@/components/staff-case-detail-page";
 import { getDictionary } from "@/lib/i18n";
 
-export default function StaffCaseDetailAliasPage({
+export default function StaffCaseDetailPageRoute({
   params,
 }: {
   params: { caseId: string };

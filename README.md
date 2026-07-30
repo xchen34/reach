@@ -1,28 +1,28 @@
-# Beacon
+# Reach
 
-Beacon is a community coordination app for crisis scenarios.
+Reach is a community coordination app for crisis scenarios.
 
-Beacon began as a personal attempt to learn from a moment when technology felt genuinely meaningful.
+Reach began as a personal attempt to learn from a moment when technology felt genuinely meaningful.
 
 The project is inspired by the IT volunteers who helped coordinate information during the Hong Kong Wang Fuk Court fire. Watching people use simple digital tools to collect updates, reduce confusion, and help a distressed community stay connected was deeply moving to me. It showed that technology does not need to be complicated to matter. In the right moment, even a lightweight information workflow can provide real clarity, reassurance, and practical support.
 
-Beacon is my attempt to study that model, recreate its core coordination logic, and explore how it could be extended to support a wider range of crisis-response and community-help scenarios.
+Reach is my attempt to study that model, recreate its core coordination logic, and explore how it could be extended to support a wider range of crisis-response and community-help scenarios.
 
 It is no longer centered on a generic anonymous case form. The current product shape is:
 
 1. public intake happens through Google Forms
-2. Beacon imports those reports into its internal workflow
+2. Reach imports those reports into its internal workflow
 3. staff verify, merge, and publish privacy-safe updates
 4. the public board shows approved updates
 
-Beacon is not an emergency dispatch system. It does not contact emergency services and must not be presented as a substitute for calling official emergency responders.
+Reach is not an emergency dispatch system. It does not contact emergency services and must not be presented as a substitute for calling official emergency responders.
 
 ## What The System Does
 
-Beacon currently supports four layers:
+Reach currently supports four layers:
 
 - public landing page with links to safe-report, missing-person, and update forms
-- backend ingest bridge that maps Google Form submissions into Beacon records
+- backend ingest bridge that maps Google Form submissions into Reach records
 - staff review workspace for verification, notes, assignment, publish decisions, and related-record marking
 - public board that shows verified status updates derived from internal records
 
@@ -146,20 +146,20 @@ Important implication:
 
 ### 1. Public Intake Flow
 
-The public homepage does not submit directly into the Beacon database.
+The public homepage does not submit directly into the Reach database.
 
 Current path:
 
-1. user opens `/en`, `/fr`, or `/zh`
+1. user opens `/`
 2. user clicks one of the public actions:
    - safe report
    - missing report
    - update / lead
 3. the button opens an external Google Form URL from environment variables
 4. Google Form writes into a Google Sheet
-5. Apps Script or another bridge process transforms that row into Beacon JSON
-6. the bridge sends `POST /ingest/google-form` with `x-beacon-ingest-token`
-7. Beacon creates a `case`, share link, action note, and audit entries
+5. Apps Script or another bridge process transforms that row into Reach JSON
+6. the bridge sends `POST /ingest/google-form` with `x-Reach-ingest-token`
+7. Reach creates a `case`, share link, action note, and audit entries
 
 The current homepage component is [apps/web/components/community-coordination-home.tsx](/Users/leochen/emergency_companiion/apps/web/components/community-coordination-home.tsx).
 
@@ -170,7 +170,7 @@ The current hidden ingest route is implemented in:
 
 ### 2. Staff Verification Flow
 
-Once a report has been imported, staff work entirely inside Beacon.
+Once a report has been imported, staff work entirely inside Reach.
 
 Current path:
 
@@ -270,15 +270,15 @@ The compose file already provides defaults for most local development values.
 
 Important ones:
 
-- `BEACON_DATABASE_URL`
-- `BEACON_AUTH_TOKEN_SECRET`
-- `BEACON_MAGIC_LINK_BASE_URL`
-- `BEACON_DEV_MAGIC_LINK_MODE`
-- `BEACON_DEV_DEFAULT_ROLE`
-- `BEACON_DEV_AUTO_CREATE_USERS`
-- `BEACON_GOOGLE_FORM_INGEST_TOKEN`
-- `BEACON_SPEECH_TO_TEXT_PROVIDER`
-- `BEACON_VOICE_STORAGE_DIR`
+- `Reach_DATABASE_URL`
+- `Reach_AUTH_TOKEN_SECRET`
+- `Reach_MAGIC_LINK_BASE_URL`
+- `Reach_DEV_MAGIC_LINK_MODE`
+- `Reach_DEV_DEFAULT_ROLE`
+- `Reach_DEV_AUTO_CREATE_USERS`
+- `Reach_GOOGLE_FORM_INGEST_TOKEN`
+- `Reach_SPEECH_TO_TEXT_PROVIDER`
+- `Reach_VOICE_STORAGE_DIR`
 
 Frontend-facing variables:
 
@@ -295,24 +295,28 @@ For examples, see [infra/.env.example](/Users/leochen/emergency_companiion/infra
 ### Start The Stack
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d db api
-docker compose -f infra/docker-compose.yml exec -T api alembic upgrade head
-docker compose -f infra/docker-compose.yml ps
+make up
+make migrate
+make ps
 ```
 
 Then start the frontend on the host:
 
 ```bash
-cd apps/web
-rm -rf .next
-npm run dev
+make web
 ```
+
+`make migrate` is not required every single time. Use it when:
+
+- the database is new or was reset
+- you pulled a branch with new Alembic migrations
+- the API reports missing tables or columns
 
 Open:
 
-- web: `http://127.0.0.1:3000/en`
-- board: `http://127.0.0.1:3000/en/board`
-- staff login: `http://127.0.0.1:3000/en/staff/login`
+- web: `http://127.0.0.1:3000/`
+- board: `http://127.0.0.1:3000/board`
+- staff login: `http://127.0.0.1:3000/staff/login`
 - API docs: `http://127.0.0.1:8000/docs`
 
 Default local development mode is:
@@ -333,13 +337,13 @@ Do not run that at the same time as host `cd apps/web && npm run dev`.
 ### Stop The Stack
 
 ```bash
-docker compose -f infra/docker-compose.yml down
+make down
 ```
 
 If you also want to remove database and uploaded-audio volumes:
 
 ```bash
-docker compose -f infra/docker-compose.yml down -v
+make reset-all
 ```
 
 ## Manual Test Flow
@@ -354,16 +358,17 @@ There are two good ways to test:
 ### Before You Start
 
 1. make sure Docker Desktop or OrbStack is actually running
-2. start only `db` and `api` with compose
-3. start `apps/web` on the host with `npm run dev`
-4. use `http://127.0.0.1:3000`, not `localhost` if your browser cached a broken session or asset path
+2. run `make up`
+3. run `make migrate` if needed
+4. run `make web`
+5. use `http://127.0.0.1:3000`, not `localhost` if your browser cached a broken session or asset path
 
 Quick health checks:
 
 ```bash
-curl -I http://127.0.0.1:3000/en
+curl -I http://127.0.0.1:3000/
 curl -s http://127.0.0.1:8000/health
-docker compose -f infra/docker-compose.yml ps
+make ps
 ```
 
 ### Track A: Public User Flow With Real Google Forms
@@ -372,7 +377,7 @@ Use this if your `.env` or compose environment already points to real forms.
 
 #### A1. Homepage
 
-1. open `http://127.0.0.1:3000/en`
+1. open `http://127.0.0.1:3000/`
 2. confirm you see:
    - emergency notice
    - three action cards
@@ -390,7 +395,7 @@ Expected result:
 1. submit one safe report
 2. submit one missing-person report
 3. submit one update / lead report
-4. wait for the Google Sheet trigger / Apps Script to POST into Beacon
+4. wait for the Google Sheet trigger / Apps Script to POST into Reach
 
 Expected result:
 
@@ -398,12 +403,12 @@ Expected result:
 
 ### Track B: Local Intake Simulation Without Google Forms
 
-Use this when you want to test the full Beacon workflow locally without depending on Google.
+Use this when you want to test the full Reach workflow locally without depending on Google.
 
 Set an ingest token if you have not already:
 
 ```bash
-export BEACON_GOOGLE_FORM_INGEST_TOKEN=local-ingest-token
+export Reach_GOOGLE_FORM_INGEST_TOKEN=local-ingest-token
 docker compose -f infra/docker-compose.yml up -d
 ```
 
@@ -412,7 +417,7 @@ Then create three records manually:
 ```bash
 curl -s -X POST http://127.0.0.1:8000/ingest/google-form \
   -H "content-type: application/json" \
-  -H "x-beacon-ingest-token: local-ingest-token" \
+  -H "x-Reach-ingest-token: local-ingest-token" \
   --data '{
     "report_kind":"safe",
     "location_summary":"Shelter registration desk",
@@ -426,7 +431,7 @@ curl -s -X POST http://127.0.0.1:8000/ingest/google-form \
 
 curl -s -X POST http://127.0.0.1:8000/ingest/google-form \
   -H "content-type: application/json" \
-  -H "x-beacon-ingest-token: local-ingest-token" \
+  -H "x-Reach-ingest-token: local-ingest-token" \
   --data '{
     "report_kind":"missing",
     "location_summary":"Tower 2 lobby",
@@ -440,7 +445,7 @@ curl -s -X POST http://127.0.0.1:8000/ingest/google-form \
 
 curl -s -X POST http://127.0.0.1:8000/ingest/google-form \
   -H "content-type: application/json" \
-  -H "x-beacon-ingest-token: local-ingest-token" \
+  -H "x-Reach-ingest-token: local-ingest-token" \
   --data '{
     "report_kind":"update",
     "location_summary":"Shelter desk",
@@ -460,11 +465,11 @@ Expected result:
 
 ### Track C: Staff Login And Queue
 
-1. open `http://127.0.0.1:3000/en/staff/login`
+1. open `http://127.0.0.1:3000/staff/login`
 2. enter any email such as `volunteer@example.com`
 3. submit
 4. continue through the development magic-link verifier
-5. land on `/en/staff`
+5. land on `/staff`
 
 Expected result:
 
@@ -529,7 +534,7 @@ Expected result:
 
 ### Track F: Public Board Verification
 
-1. open `http://127.0.0.1:3000/en/board`
+1. open `http://127.0.0.1:3000/board`
 2. verify summary counts render
 3. find the record you just published
 4. verify the card shows:
@@ -646,7 +651,7 @@ Backend:
 
 ```bash
 PYTHONPATH="$(pwd)/apps/api" python3 -m pytest
-PYTHONPYCACHEPREFIX=/tmp/beacon-pycache python3 -m compileall apps/api/app apps/api/tests
+PYTHONPYCACHEPREFIX=/tmp/Reach-pycache python3 -m compileall apps/api/app apps/api/tests
 ```
 
 Frontend:

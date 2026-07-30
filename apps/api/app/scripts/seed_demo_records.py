@@ -229,7 +229,7 @@ def main() -> int:
     print(f"created_cases={created['cases']}")
     print(f"created_attachments={created['attachments']}")
     print(f"photo_source={photo_source}")
-    print("Open http://127.0.0.1:3000/en/staff and http://127.0.0.1:3000/en/board")
+    print("Open http://127.0.0.1:3000/staff and http://127.0.0.1:3000/board")
     return 0
 
 

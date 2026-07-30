@@ -61,7 +61,7 @@ export function AppShell({
 type GlobalHeaderProps = Omit<AppShellProps, "children" | "contentVariant">;
 
 function GlobalHeader({
-  locale,
+  locale: _locale,
   sectionLabel,
   publicBoardLabel,
   showPublicBoard,
@@ -73,12 +73,12 @@ function GlobalHeader({
   logoutSubmittingLabel = "Logging out...",
 }: GlobalHeaderProps) {
   const pathname = usePathname();
-  const boardHref = `/${locale}/board`;
-  const staffHref = `/${locale}/staff`;
-  const staffLoginHref = `/${locale}/staff/login`;
+  const boardHref = "/board";
+  const staffHref = "/staff";
+  const staffLoginHref = "/staff/login";
   const isBoardActive = pathname === boardHref;
   const isStaffActive = pathname === staffHref || pathname.startsWith(`${staffHref}/cases/`);
-  const isStaffLoginRoute = pathname === staffLoginHref || pathname === `/${locale}/staff/magic-link`;
+  const isStaffLoginRoute = pathname === staffLoginHref || pathname === "/staff/magic-link";
   const staffAuthState = useStaffSessionStatus(pathname);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

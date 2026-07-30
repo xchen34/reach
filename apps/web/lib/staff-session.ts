@@ -1,7 +1,6 @@
 import { ApiError } from "@/lib/api";
-import type { Locale } from "@/lib/i18n";
 
-const staffSessionStorageKey = "beacon.staff.access-token";
+const staffSessionStorageKey = "Reach.staff.access-token";
 
 export type StaffAuthReason =
   | "expired"
@@ -34,8 +33,8 @@ export class UnauthorizedStaffSessionError extends Error {
   }
 }
 
-export function buildStaffLoginHref(locale: Locale, reason?: StaffAuthReason) {
-  const path = `/${locale}/staff/login`;
+export function buildStaffLoginHref(reason?: StaffAuthReason) {
+  const path = "/staff/login";
   if (!reason) {
     return path;
   }
@@ -43,8 +42,8 @@ export function buildStaffLoginHref(locale: Locale, reason?: StaffAuthReason) {
   return `${path}?reason=${reason}`;
 }
 
-export function buildStaffMagicLinkHref(locale: Locale, token: string) {
-  return `/${locale}/staff/magic-link?token=${encodeURIComponent(token)}`;
+export function buildStaffMagicLinkHref(token: string) {
+  return `/staff/magic-link?token=${encodeURIComponent(token)}`;
 }
 
 export function readStoredStaffAccessToken() {

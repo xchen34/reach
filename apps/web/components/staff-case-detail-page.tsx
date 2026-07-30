@@ -158,7 +158,7 @@ export function StaffCaseDetailPage({
     } finally {
       clearStaffAccessToken();
       window.dispatchEvent(new Event("Reach.staff-session-changed"));
-      router.replace(buildStaffLoginHref(locale, "logged_out"));
+      router.replace(buildStaffLoginHref("logged_out"));
     }
   }
 
@@ -369,7 +369,7 @@ export function StaffCaseDetailPage({
         <h1 className="headline">{dictionary.staff.detail.notFoundTitle}</h1>
         <p className="lede">{dictionary.staff.detail.notFoundBody}</p>
         <div className="button-row">
-          <Link className="button-primary" href={`/${locale}/staff`}>
+          <Link className="button-primary" href="/staff">
             {dictionary.staff.detail.backToList}
           </Link>
         </div>
@@ -463,7 +463,7 @@ export function StaffCaseDetailPage({
         </div>
 
         <div className="button-row">
-          <Link className="button-secondary" href={`/${locale}/staff`}>
+          <Link className="button-secondary" href="/staff">
             {dictionary.staff.detail.backToList}
           </Link>
         </div>
@@ -681,7 +681,7 @@ export function StaffCaseDetailPage({
                         </p>
                       </div>
                       <div className="button-row">
-                        <Link className="button-secondary" href={`/${locale}/staff/cases/${match.case.id}`}>
+                        <Link className="button-secondary" href={`/staff/cases/${match.case.id}`}>
                           {dictionary.staff.detail.openSuggestedCase}
                         </Link>
                         <button
@@ -766,7 +766,7 @@ function redirectToLogin(
   locale: Locale,
   reason: StaffAuthReason,
 ) {
-  router.replace(buildStaffLoginHref(locale, reason));
+  router.replace(buildStaffLoginHref(reason));
 }
 
 function getRelationTypeLabel(dictionary: Dictionary, relationType: StaffCaseRelationType) {

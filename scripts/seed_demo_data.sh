@@ -129,6 +129,6 @@ post_report '{
 
 echo "Seed complete."
 echo "Next:"
-echo "  1. Open http://127.0.0.1:3000/en/board"
-echo "  2. Open http://127.0.0.1:3000/en/staff/login"
+echo "  1. Open http://127.0.0.1:3000/board"
+echo "  2. Open http://127.0.0.1:3000/staff/login"
 echo "  3. Sign in with any email, for example volunteer@example.com"

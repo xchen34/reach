@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "REACH",
-  description: "每一次上报，都可能帮助挽救生命。",
+  description: "Every report can help save a life.",
 };
 
 export default function RootLayout({
