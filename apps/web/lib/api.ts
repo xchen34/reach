@@ -188,6 +188,14 @@ export function dismissIncomingReport(accessToken: string, reportId: number, not
   });
 }
 
+export function addStaffReportNote(accessToken: string, reportId: number, note: string) {
+  return apiFetch(`/staff/reports/${reportId}/notes`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({ note }),
+  });
+}
+
 export function getStaffCaseDetail(accessToken: string, caseId: number) {
   return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}`, {
     headers: buildBearerHeaders(accessToken),

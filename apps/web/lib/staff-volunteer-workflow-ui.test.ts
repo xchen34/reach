@@ -15,10 +15,18 @@ test("associated report cards use one task entry point and no old help-request l
 
 test("report cards use specific ambiguity labels and hide unknown subject type from volunteer cards", () => {
   assert.doesNotMatch(listSource, /badges\.push\(dictionary\.staff\.cases\.unknownSubjectTypeLabel\)/);
-  assert.match(listSource, /possibleDuplicateLabel/);
-  assert.match(listSource, /possibleUpdateLabel/);
-  assert.match(listSource, /incompleteDetailsLabel/);
+  assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.possibleDuplicateLabel/);
+  assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.possibleUpdateLabel/);
+  assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.incompleteDetailsLabel/);
   assert.doesNotMatch(listSource, /需要更多信息/);
+});
+
+test("staff cards allow notes without removing reports from the queue", () => {
+  assert.match(listSource, /addStaffReportNote/);
+  assert.match(listSource, /createStaffCaseAction/);
+  assert.match(listSource, /InlineNoteEditor/);
+  assert.doesNotMatch(listSource, /dismissIncomingReport/);
+  assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.noActionNeededAction/);
 });
 
 test("staff page shows tasks first and keeps processed reports out of the main new-report list", () => {

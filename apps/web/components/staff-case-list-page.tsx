@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  addStaffReportNote,
   assignStaffCaseToSelf,
   ApiError,
+  createStaffCaseAction,
   createFollowUpTaskFromReport,
-  dismissIncomingReport,
   getCurrentStaffSession,
   getStaffIncidents,
   getStaffPublishQueue,
@@ -32,7 +33,7 @@ import type {
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
 import { mockStaffDashboardCases, mockStaffDashboardSession } from "@/lib/staff-dashboard-mocks";
-import { getReportPrimaryText, getReportTriageBucket, selectDefaultIncidentId, summarizeReports } from "@/lib/staff-reports";
+import { getReportPrimaryText, selectDefaultIncidentId, summarizeReports } from "@/lib/staff-reports";
 import {
   buildStaffLoginHref,
   clearStaffAccessToken,
@@ -476,7 +477,6 @@ function ReportCard({
   const submittedAt = report.submitted_at ?? report.received_at;
   const isOpen = report.triage_status === "awaiting_review";
   const linkedTaskStatus = report.linked_case?.operational_status;
-  const reportBadges = getReportBadges(dictionary, report, candidateCases.length);
 
   async function runAction(action: () => Promise<unknown>) {
     if (!accessToken || isSubmitting) {
@@ -489,6 +489,10 @@ function ReportCard({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSaveReportNote(note: string) {
+    await runAction(() => addStaffReportNote(accessToken ?? "", report.id, note));
   }
 
   return (
@@ -505,16 +509,7 @@ function ReportCard({
               <span className={getOperationalStatusClassName(linkedTaskStatus)}>
                 {operationalStatusLabel(dictionary, linkedTaskStatus, report.linked_case?.subject_type ?? report.subject_type)}
               </span>
-            ) : isOpen ? (
-              <span className={getReportStatusPillClassName(report.triage_status)}>
-                {formatReportTriageStatus(dictionary, report.triage_status)}
-              </span>
             ) : null}
-            {reportBadges.map((badge) => (
-              <span className="status-pill status-pill-neutral" key={badge}>
-                {badge}
-              </span>
-            ))}
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
             {report.location_text}
@@ -528,9 +523,6 @@ function ReportCard({
                 {dictionary.staff.cases.reportTimeLabel}: {dateFormatter.format(new Date(submittedAt))}
               </p>
             </div>
-          ) : null}
-          {!isOpen && !report.linked_case ? (
-            <p className="status-pill status-pill-neutral">{formatReportTriageStatus(dictionary, report.triage_status)}</p>
           ) : null}
         </div>
       </div>
@@ -574,22 +566,11 @@ function ReportCard({
               </button>
             </>
           ) : null}
-          <button
-            className="button-secondary"
-            disabled={isSubmitting}
-            type="button"
-            onClick={() =>
-              void runAction(() =>
-                dismissIncomingReport(
-                  accessToken ?? "",
-                  report.id,
-                  "Dismissed as duplicate, test, spam, unrelated, or unusable.",
-                ),
-              )
-            }
-          >
-            {dictionary.staff.cases.noActionNeededAction}
-          </button>
+          <InlineNoteEditor
+            dictionary={dictionary}
+            disabled={isSubmitting || !accessToken}
+            onSave={handleSaveReportNote}
+          />
         </div>
       ) : report.linked_case ? (
         <div className="button-row staff-compact-actions">
@@ -639,6 +620,15 @@ function TaskCard({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSaveTaskNote(note: string) {
+    await runAction(() =>
+      createStaffCaseAction(accessToken ?? "", task.id, {
+        action_type: "note",
+        note,
+      }),
+    );
   }
 
   return (
@@ -719,8 +709,77 @@ function TaskCard({
         <Link className="button-secondary staff-link-button" href={`/${locale}/staff/cases/${task.id}`}>
           {dictionary.staff.cases.viewDetailsAction}
         </Link>
+        <InlineNoteEditor
+          dictionary={dictionary}
+          disabled={isSubmitting || !accessToken}
+          onSave={handleSaveTaskNote}
+        />
       </div>
     </article>
+  );
+}
+
+function InlineNoteEditor({
+  dictionary,
+  disabled,
+  onSave,
+}: {
+  dictionary: Dictionary;
+  disabled: boolean;
+  onSave: (note: string) => Promise<void>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleSubmit() {
+    const trimmedNote = note.trim();
+    if (!trimmedNote) {
+      setError(dictionary.staff.cases.noteRequired);
+      return;
+    }
+    setError(null);
+    setIsSaving(true);
+    try {
+      await onSave(trimmedNote);
+      setNote("");
+      setIsOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (!isOpen) {
+    return (
+      <button className="button-secondary" disabled={disabled} type="button" onClick={() => setIsOpen(true)}>
+        {dictionary.staff.cases.noteAction}
+      </button>
+    );
+  }
+
+  return (
+    <div className="staff-inline-note">
+      <label className="field-label">
+        {dictionary.staff.cases.noteLabel}
+        <textarea
+          className="input-field"
+          disabled={disabled || isSaving}
+          rows={2}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+      </label>
+      {error ? <p className="error-text">{error}</p> : null}
+      <div className="button-row staff-inline-note-actions">
+        <button className="button-secondary" disabled={isSaving} type="button" onClick={() => setIsOpen(false)}>
+          {dictionary.staff.cases.noteCancelAction}
+        </button>
+        <button className="button-primary" disabled={disabled || isSaving} type="button" onClick={() => void handleSubmit()}>
+          {isSaving ? dictionary.staff.cases.noteSaving : dictionary.staff.cases.noteSaveAction}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -730,24 +789,6 @@ function redirectToLogin(
   reason: StaffAuthReason,
 ) {
   router.replace(buildStaffLoginHref(locale, reason));
-}
-
-function formatReportTriageStatus(dictionary: Dictionary, status: StaffReportListItem["triage_status"]) {
-  return dictionary.staff.cases.reportStatuses[status];
-}
-
-function getReportStatusPillClassName(status: StaffReportListItem["triage_status"]) {
-  const bucket = getReportTriageBucket(status);
-  if (bucket === "untriaged") {
-    return "status-pill status-pill-warning";
-  }
-  if (bucket === "linkedNew" || bucket === "linkedExisting") {
-    return "status-pill";
-  }
-  if (bucket === "rejected") {
-    return "status-pill status-pill-neutral";
-  }
-  return "status-pill status-pill-alert";
 }
 
 function operationalStatusLabel(
@@ -779,41 +820,6 @@ function getOperationalStatusClassName(status: OperationalStatus) {
     return "status-pill status-pill-alert";
   }
   return "status-pill";
-}
-
-function getReportBadges(
-  dictionary: Dictionary,
-  report: StaffReportListItem,
-  candidateCaseCount: number,
-) {
-  const badges: string[] = [];
-
-  if (report.linked_case) {
-    if (report.triage_status === "linked_to_existing_case") {
-      badges.push(dictionary.staff.cases.mergedIntoExistingTaskLabel);
-    }
-    if (isLikelyUpdateReport(report)) {
-      badges.push(dictionary.staff.cases.possibleUpdateLabel);
-    }
-    return badges;
-  }
-
-  if (report.triage_status === "invalid_or_insufficient") {
-    badges.push(dictionary.staff.cases.incompleteDetailsLabel);
-  }
-
-  if (candidateCaseCount > 0 && report.triage_status === "awaiting_review") {
-    badges.push(isLikelyUpdateReport(report)
-      ? dictionary.staff.cases.possibleUpdateLabel
-      : dictionary.staff.cases.possibleDuplicateLabel);
-  }
-
-  return badges;
-}
-
-function isLikelyUpdateReport(report: StaffReportListItem) {
-  const text = `${report.submission_type ?? ""} ${report.original_narrative_preview ?? ""}`.toLowerCase();
-  return report.triage_status === "linked_to_existing_case" || text.includes("update") || text.includes("补充");
 }
 
 function summarizeTasks(tasks: StaffCaseListItem[]) {
