@@ -9,6 +9,15 @@ Run inside the API container:
 When --photo-dir or --photo-manifest-url is provided, the script uses
 AI-generated JPEG, PNG, or WebP images from that source. Otherwise it falls back
 to synthetic placeholder PNGs generated in code.
+
+Preferred remote manifest format:
+
+    {"person": ["https://..."], "pet": ["https://..."]}
+
+Legacy manifest formats still work and are reused for all subject types:
+
+    ["https://..."]
+    {"photos": ["https://..."]}
 """
 
 from __future__ import annotations
@@ -73,6 +82,22 @@ PHOTO_EXTENSIONS_BY_CONTENT_TYPE = {
 class PhotoAsset(NamedTuple):
     content: bytes
     content_type: str
+
+
+class PhotoAssetPool(NamedTuple):
+    person: list[PhotoAsset]
+    pet: list[PhotoAsset]
+    fallback: list[PhotoAsset]
+
+    def has_assets(self) -> bool:
+        return bool(self.person or self.pet or self.fallback)
+
+
+class PhotoManifest(NamedTuple):
+    person: list[str]
+    pet: list[str]
+    fallback: list[str]
+
 
 PERSON_NAMES = [
     "Sara Kim",
@@ -153,19 +178,21 @@ def main() -> int:
         print("--count must be at least 20 so the demo has enough status variety.", file=sys.stderr)
         return 2
     local_photo_assets = load_photo_assets(args.photo_dir)
-    remote_photo_assets = [] if local_photo_assets else load_remote_photo_assets(args.photo_manifest_url)
-    photo_assets = local_photo_assets or remote_photo_assets
+    remote_photo_assets = empty_photo_asset_pool()
+    if not local_photo_assets.has_assets():
+        remote_photo_assets = load_remote_photo_assets(args.photo_manifest_url)
+    photo_assets = local_photo_assets if local_photo_assets.has_assets() else remote_photo_assets
     photo_source = photo_source_label(
-        has_local_assets=bool(local_photo_assets),
-        has_remote_assets=bool(remote_photo_assets),
+        has_local_assets=local_photo_assets.has_assets(),
+        has_remote_assets=remote_photo_assets.has_assets(),
     )
-    if args.photo_dir and not photo_assets:
+    if args.photo_dir and not photo_assets.has_assets():
         print(
             f"No usable JPEG, PNG, or WebP images found in {args.photo_dir}; "
             "checking remote manifest or falling back to generated placeholder PNGs.",
             file=sys.stderr,
         )
-    if args.photo_manifest_url and not photo_assets:
+    if args.photo_manifest_url and not photo_assets.has_assets():
         print(
             f"No usable JPEG, PNG, or WebP images found from {args.photo_manifest_url}; "
             "falling back to generated placeholder PNGs.",
@@ -254,7 +281,7 @@ def create_seed_records(
     user_id: int,
     count: int,
     *,
-    photo_assets: list[PhotoAsset],
+    photo_assets: PhotoAssetPool,
 ) -> dict[str, int]:
     case_count = max(1, int(count * 0.75))
     report_count = count
@@ -461,7 +488,7 @@ def add_demo_attachment(
     index: int,
     *,
     public: bool,
-    photo_assets: list[PhotoAsset],
+    photo_assets: PhotoAssetPool,
 ) -> int:
     storage = LocalReportAttachmentStorage()
     content, content_type = demo_photo_content(index, is_pet=index % 5 in {1, 4}, photo_assets=photo_assets)
@@ -503,11 +530,15 @@ def pet_age(index: int) -> str:
     return f"{1 + index % 12}岁"
 
 
-def load_photo_assets(photo_dir: Path | None) -> list[PhotoAsset]:
+def empty_photo_asset_pool() -> PhotoAssetPool:
+    return PhotoAssetPool(person=[], pet=[], fallback=[])
+
+
+def load_photo_assets(photo_dir: Path | None) -> PhotoAssetPool:
     if photo_dir is None:
-        return []
+        return empty_photo_asset_pool()
     if not photo_dir.exists() or not photo_dir.is_dir():
-        return []
+        return empty_photo_asset_pool()
 
     assets: list[PhotoAsset] = []
     for path in sorted(photo_dir.iterdir()):
@@ -520,20 +551,28 @@ def load_photo_assets(photo_dir: Path | None) -> list[PhotoAsset]:
         content_type = detect_image_content_type(content)
         if content_type:
             assets.append(PhotoAsset(content=content, content_type=content_type))
-    return assets
+    return PhotoAssetPool(person=[], pet=[], fallback=assets)
 
 
-def load_remote_photo_assets(manifest_url: str | None) -> list[PhotoAsset]:
+def load_remote_photo_assets(manifest_url: str | None) -> PhotoAssetPool:
     if not manifest_url:
-        return []
+        return empty_photo_asset_pool()
     try:
         manifest_content = fetch_remote_bytes(manifest_url, max_bytes=1024 * 1024)
     except RuntimeError as exc:
         print(f"Could not load photo manifest: {exc}", file=sys.stderr)
-        return []
+        return empty_photo_asset_pool()
 
-    urls = parse_photo_manifest(manifest_content)
-    assets: list[PhotoAsset] = []
+    manifest = parse_photo_manifest(manifest_content)
+    return PhotoAssetPool(
+        person=download_photo_assets(manifest.person),
+        pet=download_photo_assets(manifest.pet),
+        fallback=download_photo_assets(manifest.fallback),
+    )
+
+
+def download_photo_assets(urls: list[str]) -> list[PhotoAsset]:
+    downloaded: list[PhotoAsset] = []
     for url in urls:
         try:
             content = fetch_remote_bytes(url, max_bytes=REMOTE_PHOTO_MAX_BYTES)
@@ -542,27 +581,37 @@ def load_remote_photo_assets(manifest_url: str | None) -> list[PhotoAsset]:
             continue
         content_type = detect_image_content_type(content)
         if content_type:
-            assets.append(PhotoAsset(content=content, content_type=content_type))
+            downloaded.append(PhotoAsset(content=content, content_type=content_type))
         else:
             print(f"Skipping remote photo {url}: unsupported image content.", file=sys.stderr)
-    return assets
+    return downloaded
 
 
-def parse_photo_manifest(content: bytes) -> list[str]:
+def parse_photo_manifest(content: bytes) -> PhotoManifest:
     text = content.decode("utf-8", errors="replace")
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
-        return parse_plain_text_photo_manifest(text)
+        return PhotoManifest(person=[], pet=[], fallback=parse_plain_text_photo_manifest(text))
 
     if isinstance(parsed, list):
-        return [item for item in parsed if isinstance(item, str) and is_http_url(item)]
+        return PhotoManifest(person=[], pet=[], fallback=filter_http_urls(parsed))
     if isinstance(parsed, dict):
+        person_urls = filter_http_urls(parsed.get("person", []))
+        pet_urls = filter_http_urls(parsed.get("pet", []))
+        if person_urls or pet_urls:
+            return PhotoManifest(person=person_urls, pet=pet_urls, fallback=[])
         for key in ("photos", "images", "urls"):
             value = parsed.get(key)
             if isinstance(value, list):
-                return [item for item in value if isinstance(item, str) and is_http_url(item)]
-    return []
+                return PhotoManifest(person=[], pet=[], fallback=filter_http_urls(value))
+    return PhotoManifest(person=[], pet=[], fallback=[])
+
+
+def filter_http_urls(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    return [item for item in values if isinstance(item, str) and is_http_url(item)]
 
 
 def parse_plain_text_photo_manifest(text: str) -> list[str]:
@@ -614,9 +663,11 @@ def detect_image_content_type(content: bytes) -> str | None:
     return None
 
 
-def demo_photo_content(index: int, *, is_pet: bool, photo_assets: list[PhotoAsset]) -> tuple[bytes, str]:
-    if photo_assets:
-        asset = photo_assets[index % len(photo_assets)]
+def demo_photo_content(index: int, *, is_pet: bool, photo_assets: PhotoAssetPool) -> tuple[bytes, str]:
+    preferred_assets = photo_assets.pet if is_pet else photo_assets.person
+    assets = preferred_assets or photo_assets.fallback or photo_assets.pet or photo_assets.person
+    if assets:
+        asset = assets[index % len(assets)]
         return asset.content, asset.content_type
     return demo_png_bytes(index, is_pet=is_pet), "image/png"
 
