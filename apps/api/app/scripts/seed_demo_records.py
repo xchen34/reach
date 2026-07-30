@@ -3,9 +3,11 @@
 Run inside the API container:
 
     python -m app.scripts.seed_demo_records --count 60
+    python -m app.scripts.seed_demo_records --count 60 --photo-dir /tmp/reach-ai-photos
 
-The generated photos are deliberately synthetic placeholders. They avoid real
-faces, real pets, copyright questions, and consent issues in disaster demos.
+When --photo-dir is provided, the script uses local AI-generated JPEG, PNG, or
+WebP images from that directory. Otherwise it falls back to synthetic placeholder
+PNGs generated in code.
 """
 
 from __future__ import annotations
@@ -16,6 +18,8 @@ import struct
 import sys
 import zlib
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import NamedTuple
 
 from sqlalchemy import delete, or_, select
 
@@ -53,6 +57,16 @@ SEED_FORM_NAME = "Reach demo bulk seed"
 CASE_PREFIX = "DCASE"
 REPORT_PREFIX = "DREP"
 ATTACHMENT_PREFIX = "DATT"
+PHOTO_EXTENSIONS_BY_CONTENT_TYPE = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+
+
+class PhotoAsset(NamedTuple):
+    content: bytes
+    content_type: str
 
 PERSON_NAMES = [
     "Sara Kim",
@@ -108,6 +122,14 @@ def main() -> int:
         action="store_true",
         help="Do not remove previous demo bulk seed records first.",
     )
+    parser.add_argument(
+        "--photo-dir",
+        type=Path,
+        help=(
+            "Optional directory of local AI-generated JPEG, PNG, or WebP images "
+            "to use for demo attachments. Files are copied into Reach storage."
+        ),
+    )
     args = parser.parse_args()
 
     settings = get_settings()
@@ -117,6 +139,13 @@ def main() -> int:
     if args.count < 20:
         print("--count must be at least 20 so the demo has enough status variety.", file=sys.stderr)
         return 2
+    photo_assets = load_photo_assets(args.photo_dir)
+    if args.photo_dir and not photo_assets:
+        print(
+            f"No usable JPEG, PNG, or WebP images found in {args.photo_dir}; "
+            "falling back to generated placeholder PNGs.",
+            file=sys.stderr,
+        )
 
     with SessionLocal() as db:
         incident_result = bootstrap_demo_incident(db, google_sheet_name="Form Responses 1")
@@ -125,7 +154,7 @@ def main() -> int:
         else:
             removed = 0
         user = get_or_create_seed_user(db)
-        created = create_seed_records(db, incident_result.incident_id, user.id, args.count)
+        created = create_seed_records(db, incident_result.incident_id, user.id, args.count, photo_assets=photo_assets)
         db.commit()
 
     print("Reach demo bulk seed complete.")
@@ -133,6 +162,7 @@ def main() -> int:
     print(f"created_reports={created['reports']}")
     print(f"created_cases={created['cases']}")
     print(f"created_attachments={created['attachments']}")
+    print(f"photo_source={'local_ai_directory' if photo_assets else 'generated_placeholders'}")
     print("Open http://127.0.0.1:3000/zh/staff and http://127.0.0.1:3000/zh/board")
     return 0
 
@@ -193,7 +223,14 @@ def get_or_create_seed_user(db) -> User:
     return user
 
 
-def create_seed_records(db, incident_id: int, user_id: int, count: int) -> dict[str, int]:
+def create_seed_records(
+    db,
+    incident_id: int,
+    user_id: int,
+    count: int,
+    *,
+    photo_assets: list[PhotoAsset],
+) -> dict[str, int]:
     case_count = max(1, int(count * 0.75))
     report_count = count
     attachment_count = 0
@@ -287,9 +324,18 @@ def create_seed_records(db, incident_id: int, user_id: int, count: int) -> dict[
                     case.id,
                     index,
                     public=index % 3 != 0,
+                    photo_assets=photo_assets,
                 )
         elif index % 3 == 0:
-            attachment_count += add_demo_attachment(db, incident_id, report.id, None, index, public=False)
+            attachment_count += add_demo_attachment(
+                db,
+                incident_id,
+                report.id,
+                None,
+                index,
+                public=False,
+                photo_assets=photo_assets,
+            )
 
         if index < case_count:
             db.add(
@@ -382,10 +428,20 @@ def build_case(
     )
 
 
-def add_demo_attachment(db, incident_id: int, report_id: int, case_id: int | None, index: int, *, public: bool) -> int:
+def add_demo_attachment(
+    db,
+    incident_id: int,
+    report_id: int,
+    case_id: int | None,
+    index: int,
+    *,
+    public: bool,
+    photo_assets: list[PhotoAsset],
+) -> int:
     storage = LocalReportAttachmentStorage()
-    content = demo_png_bytes(index, is_pet=index % 5 in {1, 4})
-    storage_key = f"{ATTACHMENT_PREFIX.lower()}-{index + 1:05d}.png"
+    content, content_type = demo_photo_content(index, is_pet=index % 5 in {1, 4}, photo_assets=photo_assets)
+    extension = PHOTO_EXTENSIONS_BY_CONTENT_TYPE[content_type]
+    storage_key = f"{ATTACHMENT_PREFIX.lower()}-{index + 1:05d}.{extension}"
     storage.write_bytes(storage_key, content)
     db.add(
         ReportAttachment(
@@ -394,8 +450,8 @@ def add_demo_attachment(db, incident_id: int, report_id: int, case_id: int | Non
             case_id=case_id,
             attachment_code=f"{ATTACHMENT_PREFIX}{index + 1:05d}",
             storage_key=storage_key,
-            original_filename=f"demo-photo-{index + 1:05d}.png",
-            content_type="image/png",
+            original_filename=f"demo-photo-{index + 1:05d}.{extension}",
+            content_type=content_type,
             byte_size=len(content),
             public_visibility=public,
             moderation_status=AttachmentModerationStatus.APPROVED if public else AttachmentModerationStatus.PENDING,
@@ -420,6 +476,43 @@ def submission_type(*, index: int, is_pet: bool) -> str:
 
 def pet_age(index: int) -> str:
     return f"{1 + index % 12}岁"
+
+
+def load_photo_assets(photo_dir: Path | None) -> list[PhotoAsset]:
+    if photo_dir is None:
+        return []
+    if not photo_dir.exists() or not photo_dir.is_dir():
+        return []
+
+    assets: list[PhotoAsset] = []
+    for path in sorted(photo_dir.iterdir()):
+        if not path.is_file():
+            continue
+        try:
+            content = path.read_bytes()
+        except OSError:
+            continue
+        content_type = detect_image_content_type(content)
+        if content_type:
+            assets.append(PhotoAsset(content=content, content_type=content_type))
+    return assets
+
+
+def detect_image_content_type(content: bytes) -> str | None:
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def demo_photo_content(index: int, *, is_pet: bool, photo_assets: list[PhotoAsset]) -> tuple[bytes, str]:
+    if photo_assets:
+        asset = photo_assets[index % len(photo_assets)]
+        return asset.content, asset.content_type
+    return demo_png_bytes(index, is_pet=is_pet), "image/png"
 
 
 def demo_png_bytes(index: int, *, is_pet: bool) -> bytes:
