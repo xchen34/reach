@@ -13,12 +13,18 @@ test("associated report cards use one task entry point and no old help-request l
   assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.addedToHelpListStatus/);
 });
 
-test("report cards use specific ambiguity labels instead of the generic needs-more-info badge", () => {
-  assert.match(listSource, /unknownSubjectTypeLabel/);
+test("report cards use specific ambiguity labels and hide unknown subject type from volunteer cards", () => {
+  assert.doesNotMatch(listSource, /badges\.push\(dictionary\.staff\.cases\.unknownSubjectTypeLabel\)/);
   assert.match(listSource, /possibleDuplicateLabel/);
   assert.match(listSource, /possibleUpdateLabel/);
   assert.match(listSource, /incompleteDetailsLabel/);
   assert.doesNotMatch(listSource, /需要更多信息/);
+});
+
+test("staff page shows tasks first and keeps processed reports out of the main new-report list", () => {
+  assert.match(listSource, /const reportsNeedingReview = state\.reports\.reports\.filter\(\(report\) => report\.triage_status === "awaiting_review"\)/);
+  assert.match(listSource, /activeIncidents = state\.incidents\.filter\(\(incident\) => incident\.status === "active"\)/);
+  assert.doesNotMatch(listSource, /<option value="all">/);
 });
 
 test("completed task detail exposes confirmed status correction with a final confirmation", () => {

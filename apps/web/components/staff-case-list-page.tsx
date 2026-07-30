@@ -297,6 +297,9 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
   const dashboard = state.dashboard;
   const reportSummary = summarizeReports(state.reports.reports);
+  const activeIncidents = state.incidents.filter((incident) => incident.status === "active");
+  const selectedIncident = state.incidents.find((incident) => incident.id === state.selectedIncidentId) ?? null;
+  const reportsNeedingReview = state.reports.reports.filter((report) => report.triage_status === "awaiting_review");
   const taskCases = dashboard.events
     .flatMap((group) => group.related_cases)
     .filter((task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId);
@@ -346,66 +349,36 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
           </p>
         </section>
 
-        <section className="staff-case-list" aria-labelledby="staff-report-list-title">
+        <section className="staff-case-list" aria-labelledby="staff-task-list-title">
           <div className="staff-section-header">
             <div>
-              <h2 className="section-title" id="staff-report-list-title">
-                {dictionary.staff.cases.incomingReportsTitle}
+              <h2 className="section-title" id="staff-task-list-title">
+                {dictionary.staff.cases.taskListTitle}
               </h2>
               <p className="field-hint compact-copy">
-                {dictionary.staff.cases.needsReviewLabel}: {reportSummary.untriaged} ·{" "}
-                {dictionary.staff.cases.addedToHelpListLabel}: {reportSummary.linkedNew} ·{" "}
-                {dictionary.staff.cases.combinedLabel}: {reportSummary.linkedExisting} ·{" "}
-                {dictionary.staff.cases.noActionNeededLabel}: {reportSummary.rejected}
+                {dictionary.staff.cases.taskListDescription}
               </p>
             </div>
-            {state.mode === "live" && state.incidents.length > 0 ? (
-              <label className="field-label compact-copy">
+            {state.mode === "live" && activeIncidents.length > 1 ? (
+              <label className="field-label compact-copy staff-event-filter">
                 {dictionary.staff.cases.currentEventLabel}
                 <select
                   className="input-field"
-                  value={state.selectedIncidentId ?? "all"}
+                  value={state.selectedIncidentId ?? ""}
                   onChange={(event) => void handleIncidentChange(event.target.value)}
                 >
-                  <option value="all">{dictionary.staff.cases.allEventsOption}</option>
-                  {state.incidents.map((incident) => (
+                  {activeIncidents.map((incident) => (
                     <option key={incident.id} value={incident.id}>
-                      {incident.public_name} ({incident.slug})
+                      {incident.public_name}
                     </option>
                   ))}
                 </select>
               </label>
+            ) : selectedIncident ? (
+              <p className="field-hint compact-copy staff-current-event-label">
+                {dictionary.staff.cases.currentEventLabel}: {selectedIncident.public_name}
+              </p>
             ) : null}
-          </div>
-
-          {state.reports.reports.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
-          ) : (
-            <div className="staff-case-stack">
-              {state.reports.reports.map((report) => (
-                <ReportCard
-                  accessToken={state.accessToken}
-                  candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
-                  dateFormatter={dateFormatter}
-                  key={report.id}
-                  locale={locale}
-                  dictionary={dictionary}
-                  onReload={() => void reloadWorkspace()}
-                  report={report}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="staff-case-list" aria-labelledby="staff-event-list-title">
-          <div className="staff-section-header">
-              <h2 className="section-title" id="staff-event-list-title">
-              {dictionary.staff.cases.taskListTitle}
-            </h2>
-            <p className="field-hint compact-copy">
-              {dictionary.staff.cases.taskListDescription}
-            </p>
           </div>
 
           {taskCases.length === 0 ? (
@@ -423,6 +396,41 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
                   currentUserId={state.session.user.id}
                   sessionRole={state.session.user.role}
                   task={task}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="staff-case-list staff-secondary-section" aria-labelledby="staff-report-list-title">
+          <div className="staff-section-header">
+            <div>
+              <h2 className="section-title" id="staff-report-list-title">
+                {dictionary.staff.cases.incomingReportsTitle}
+              </h2>
+              <p className="field-hint compact-copy">
+                {dictionary.staff.cases.needsReviewLabel}: {reportSummary.untriaged} ·{" "}
+                {dictionary.staff.cases.addedToHelpListLabel}: {reportSummary.linkedNew} ·{" "}
+                {dictionary.staff.cases.combinedLabel}: {reportSummary.linkedExisting} ·{" "}
+                {dictionary.staff.cases.noActionNeededLabel}: {reportSummary.rejected}
+              </p>
+            </div>
+          </div>
+
+          {reportsNeedingReview.length === 0 ? (
+            <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
+          ) : (
+            <div className="staff-case-stack">
+              {reportsNeedingReview.map((report) => (
+                <ReportCard
+                  accessToken={state.accessToken}
+                  candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
+                  dateFormatter={dateFormatter}
+                  key={report.id}
+                  locale={locale}
+                  dictionary={dictionary}
+                  onReload={() => void reloadWorkspace()}
+                  report={report}
                 />
               ))}
             </div>
@@ -631,9 +639,11 @@ function TaskCard({
             <span className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
               {operationalStatusLabel(dictionary, task.operational_status ?? "unassigned", task.subject_type ?? "unknown")}
             </span>
-            <span className="status-pill status-pill-neutral">
-              {subjectTypeLabel(dictionary, task.subject_type ?? "unknown")}
-            </span>
+            {task.subject_type === "person" || task.subject_type === "pet" ? (
+              <span className="status-pill status-pill-neutral">
+                {subjectTypeLabel(dictionary, task.subject_type)}
+              </span>
+            ) : null}
             <h3 className="staff-compact-title">{task.person_label || task.location_summary}</h3>
             <span className="field-hint compact-copy">{task.case_code}</span>
           </div>
@@ -779,10 +789,6 @@ function getReportBadges(
 
   if (report.triage_status === "invalid_or_insufficient") {
     badges.push(dictionary.staff.cases.incompleteDetailsLabel);
-  }
-
-  if (report.subject_type === "unknown") {
-    badges.push(dictionary.staff.cases.unknownSubjectTypeLabel);
   }
 
   if (candidateCaseCount > 0 && report.triage_status === "awaiting_review") {
