@@ -473,6 +473,7 @@ function ReportCard({
   const [selectedCaseId, setSelectedCaseId] = useState(candidateCases[0]?.id ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [noteBadge, setNoteBadge] = useState<string | null>(null);
   const primaryText = getReportPrimaryText(report);
   const submittedAt = report.submitted_at ?? report.received_at;
   const isOpen = report.triage_status === "awaiting_review";
@@ -492,7 +493,16 @@ function ReportCard({
   }
 
   async function handleSaveReportNote(note: string) {
-    await runAction(() => addStaffReportNote(accessToken ?? "", report.id, note));
+    if (!accessToken || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await addStaffReportNote(accessToken, report.id, note);
+      setNoteBadge(note);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -510,6 +520,7 @@ function ReportCard({
                 {operationalStatusLabel(dictionary, linkedTaskStatus, report.linked_case?.subject_type ?? report.subject_type)}
               </span>
             ) : null}
+            {noteBadge ? <NoteBadge dictionary={dictionary} note={noteBadge} /> : null}
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
             {report.location_text}
@@ -567,6 +578,7 @@ function ReportCard({
             </>
           ) : null}
           <InlineNoteEditor
+            currentNote={noteBadge}
             dictionary={dictionary}
             disabled={isSubmitting || !accessToken}
             onSave={handleSaveReportNote}
@@ -603,6 +615,7 @@ function TaskCard({
   task: StaffCaseListItem;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [noteBadge, setNoteBadge] = useState<string | null>(null);
   const isFinal = task.operational_status === "found_alive" || task.operational_status === "confirmed_deceased";
   const isAssignedToCurrentUser = task.assigned_staff_user?.id === currentUserId;
   const canClaim = !task.assigned_staff_user && !isFinal;
@@ -623,12 +636,19 @@ function TaskCard({
   }
 
   async function handleSaveTaskNote(note: string) {
-    await runAction(() =>
-      createStaffCaseAction(accessToken ?? "", task.id, {
+    if (!accessToken || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await createStaffCaseAction(accessToken, task.id, {
         action_type: "note",
         note,
-      }),
-    );
+      });
+      setNoteBadge(note);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -647,6 +667,7 @@ function TaskCard({
             ) : null}
             <h3 className="staff-compact-title">{task.person_label || task.location_summary}</h3>
             <span className="field-hint compact-copy">{task.case_code}</span>
+            {noteBadge ? <NoteBadge dictionary={dictionary} note={noteBadge} /> : null}
           </div>
           <p className="field-hint compact-copy staff-compact-meta">
             {dictionary.staff.cases.lastSeenLabel}: {task.last_known_location || task.location_summary}
@@ -710,6 +731,7 @@ function TaskCard({
           {dictionary.staff.cases.viewDetailsAction}
         </Link>
         <InlineNoteEditor
+          currentNote={noteBadge}
           dictionary={dictionary}
           disabled={isSubmitting || !accessToken}
           onSave={handleSaveTaskNote}
@@ -720,10 +742,12 @@ function TaskCard({
 }
 
 function InlineNoteEditor({
+  currentNote,
   dictionary,
   disabled,
   onSave,
 }: {
+  currentNote: string | null;
   dictionary: Dictionary;
   disabled: boolean;
   onSave: (note: string) => Promise<void>;
@@ -739,12 +763,18 @@ function InlineNoteEditor({
       setError(dictionary.staff.cases.noteRequired);
       return;
     }
+    if (trimmedNote.length > 100) {
+      setError(dictionary.staff.cases.noteTooLong);
+      return;
+    }
     setError(null);
     setIsSaving(true);
     try {
       await onSave(trimmedNote);
       setNote("");
       setIsOpen(false);
+    } catch {
+      setError(dictionary.staff.cases.noteSaveError);
     } finally {
       setIsSaving(false);
     }
@@ -752,7 +782,16 @@ function InlineNoteEditor({
 
   if (!isOpen) {
     return (
-      <button className="button-secondary" disabled={disabled} type="button" onClick={() => setIsOpen(true)}>
+      <button
+        className="button-secondary"
+        disabled={disabled}
+        type="button"
+        onClick={() => {
+          setNote(currentNote ?? "");
+          setError(null);
+          setIsOpen(true);
+        }}
+      >
         {dictionary.staff.cases.noteAction}
       </button>
     );
@@ -765,11 +804,13 @@ function InlineNoteEditor({
         <textarea
           className="input-field"
           disabled={disabled || isSaving}
+          maxLength={100}
           rows={2}
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
       </label>
+      <p className="field-hint compact-copy">{note.length}/100</p>
       {error ? <p className="error-text">{error}</p> : null}
       <div className="button-row staff-inline-note-actions">
         <button className="button-secondary" disabled={isSaving} type="button" onClick={() => setIsOpen(false)}>
@@ -780,6 +821,14 @@ function InlineNoteEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+function NoteBadge({ dictionary, note }: { dictionary: Dictionary; note: string }) {
+  return (
+    <span className="status-pill status-pill-neutral staff-note-pill" title={note}>
+      {dictionary.staff.cases.noteBadgeLabel}: {note}
+    </span>
   );
 }
 

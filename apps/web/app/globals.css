@@ -1211,10 +1211,15 @@ textarea {
 .staff-inline-note {
   display: grid;
   gap: 0.45rem;
-  min-width: min(100%, 22rem);
+  flex: 1 0 100%;
+  width: 100%;
+  min-width: 100%;
+  padding-top: 0.15rem;
 }
 
 .staff-inline-note .field-label {
+  display: grid;
+  gap: 0.35rem;
   width: 100%;
 }
 
@@ -1225,6 +1230,13 @@ textarea {
 
 .staff-inline-note-actions {
   gap: 0.45rem;
+}
+
+.staff-note-pill {
+  max-width: min(100%, 34rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .staff-compact-main {

@@ -25,8 +25,19 @@ test("staff cards allow notes without removing reports from the queue", () => {
   assert.match(listSource, /addStaffReportNote/);
   assert.match(listSource, /createStaffCaseAction/);
   assert.match(listSource, /InlineNoteEditor/);
+  assert.match(listSource, /NoteBadge/);
+  assert.match(listSource, /maxLength=\{100\}/);
+  assert.match(listSource, /trimmedNote\.length > 100/);
+  assert.match(listSource, /setNoteBadge\(note\)/);
   assert.doesNotMatch(listSource, /dismissIncomingReport/);
   assert.doesNotMatch(listSource, /dictionary\.staff\.cases\.noActionNeededAction/);
+});
+
+test("inline note editor is full-width so it does not stretch action buttons", () => {
+  const cssSource = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(cssSource, /\.staff-inline-note \{/);
+  assert.match(cssSource, /flex: 1 0 100%/);
+  assert.match(cssSource, /\.staff-note-pill/);
 });
 
 test("staff page shows tasks first and keeps processed reports out of the main new-report list", () => {
