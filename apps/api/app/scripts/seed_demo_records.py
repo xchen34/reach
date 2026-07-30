@@ -3,6 +3,7 @@
 Run inside the API container:
 
     python -m app.scripts.seed_demo_records --count 60
+    python -m app.scripts.seed_demo_records --count 60 --photo-preset dicebear-robohash
     python -m app.scripts.seed_demo_records --count 60 --photo-dir /app/data/seed_ai_photos
     python -m app.scripts.seed_demo_records --count 60 --photo-manifest-url https://example.com/photos.json
 
@@ -72,6 +73,7 @@ REPORT_PREFIX = "DREP"
 ATTACHMENT_PREFIX = "DATT"
 REMOTE_PHOTO_TIMEOUT_SECONDS = 10
 REMOTE_PHOTO_MAX_BYTES = 8 * 1024 * 1024
+DICEBEAR_ROBOHASH_PRESET = "dicebear-robohash"
 PHOTO_EXTENSIONS_BY_CONTENT_TYPE = {
     "image/jpeg": "jpg",
     "image/png": "png",
@@ -168,6 +170,11 @@ def main() -> int:
             "JSON can be a list of URLs or an object with a photos/images/urls list."
         ),
     )
+    parser.add_argument(
+        "--photo-preset",
+        choices=[DICEBEAR_ROBOHASH_PRESET],
+        help="Optional built-in online avatar preset: DiceBear Open Peeps people and Robohash cats.",
+    )
     args = parser.parse_args()
 
     settings = get_settings()
@@ -178,13 +185,19 @@ def main() -> int:
         print("--count must be at least 20 so the demo has enough status variety.", file=sys.stderr)
         return 2
     local_photo_assets = load_photo_assets(args.photo_dir)
-    remote_photo_assets = empty_photo_asset_pool()
+    manifest_photo_assets = empty_photo_asset_pool()
+    preset_photo_assets = empty_photo_asset_pool()
     if not local_photo_assets.has_assets():
-        remote_photo_assets = load_remote_photo_assets(args.photo_manifest_url)
-    photo_assets = local_photo_assets if local_photo_assets.has_assets() else remote_photo_assets
+        manifest_photo_assets = load_remote_photo_assets(args.photo_manifest_url)
+    if not local_photo_assets.has_assets() and not manifest_photo_assets.has_assets():
+        preset_photo_assets = load_preset_photo_assets(args.photo_preset)
+    photo_assets = local_photo_assets
+    if not photo_assets.has_assets():
+        photo_assets = manifest_photo_assets if manifest_photo_assets.has_assets() else preset_photo_assets
     photo_source = photo_source_label(
         has_local_assets=local_photo_assets.has_assets(),
-        has_remote_assets=remote_photo_assets.has_assets(),
+        has_manifest_assets=manifest_photo_assets.has_assets(),
+        has_preset_assets=preset_photo_assets.has_assets(),
     )
     if args.photo_dir and not photo_assets.has_assets():
         print(
@@ -192,9 +205,9 @@ def main() -> int:
             "checking remote manifest or falling back to generated placeholder PNGs.",
             file=sys.stderr,
         )
-    if args.photo_manifest_url and not photo_assets.has_assets():
+    if (args.photo_manifest_url or args.photo_preset) and not photo_assets.has_assets():
         print(
-            f"No usable JPEG, PNG, or WebP images found from {args.photo_manifest_url}; "
+            "No usable JPEG, PNG, or WebP images found from remote photo source; "
             "falling back to generated placeholder PNGs.",
             file=sys.stderr,
         )
@@ -571,6 +584,30 @@ def load_remote_photo_assets(manifest_url: str | None) -> PhotoAssetPool:
     )
 
 
+def load_preset_photo_assets(photo_preset: str | None) -> PhotoAssetPool:
+    if photo_preset != DICEBEAR_ROBOHASH_PRESET:
+        return empty_photo_asset_pool()
+    return PhotoAssetPool(
+        person=download_photo_assets(dicebear_open_peeps_urls()),
+        pet=download_photo_assets(robohash_cat_urls()),
+        fallback=[],
+    )
+
+
+def dicebear_open_peeps_urls() -> list[str]:
+    return [
+        f"https://api.dicebear.com/10.x/open-peeps/png?seed=person-{index:03d}&size=256"
+        for index in range(1, 11)
+    ]
+
+
+def robohash_cat_urls() -> list[str]:
+    return [
+        f"https://robohash.org/pet-{index:03d}.png?set=set4&size=256x256"
+        for index in range(1, 11)
+    ]
+
+
 def download_photo_assets(urls: list[str]) -> list[PhotoAsset]:
     downloaded: list[PhotoAsset] = []
     for url in urls:
@@ -645,11 +682,13 @@ def is_http_url(value: str) -> bool:
     return value.startswith("https://") or value.startswith("http://")
 
 
-def photo_source_label(*, has_local_assets: bool, has_remote_assets: bool) -> str:
+def photo_source_label(*, has_local_assets: bool, has_manifest_assets: bool, has_preset_assets: bool) -> str:
     if has_local_assets:
         return "local_ai_directory"
-    if has_remote_assets:
+    if has_manifest_assets:
         return "remote_ai_manifest"
+    if has_preset_assets:
+        return "remote_photo_preset"
     return "generated_placeholders"
 
 
