@@ -37,6 +37,10 @@ You do not need to run `make migrate` every single time. Use it when:
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
 
+Magic-link URLs should resolve to the web app origin (`http://127.0.0.1:3000`).
+The backend uses `Reach_MAGIC_LINK_BASE_URL` to build the link that the browser
+opens after staff request a sign-in email.
+
 ## Interface Language
 
 The active MVP UI is Chinese-only while the volunteer workflow is being finalized. English and French locale files remain in the codebase for later reuse, but the visible app does not expose language switching.
