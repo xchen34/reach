@@ -260,8 +260,12 @@ class CaseService:
             raise LookupError("Case not found.")
         previous_status = case.status
         case.assigned_staff_user_id = None
+        # Keep the case ACTIVE (staff has already reviewed it); only clear the assignee.
+        # PENDING_REVIEW is reserved for cases not yet seen by any staff member.
+        # Use AWAITING_ACTION handling so the public board shows "unassigned", not "in_progress".
         if case.safety_status not in {CaseSafetyStatus.CONFIRMED_SAFE, CaseSafetyStatus.CONFIRMED_DECEASED}:
-            self.apply_legacy_status(case, CaseStatus.PENDING_REVIEW)
+            case.status = CaseStatus.ACTIVE
+            case.handling_status = CaseHandlingStatus.AWAITING_ACTION
         self._record_case_action(
             case=case,
             actor=actor,
@@ -352,7 +356,11 @@ class CaseService:
             case.confirmed_at = None
             case.confirmation_source = None
             case.confirmation_source_type = None
-            self.apply_legacy_status(case, CaseStatus.PENDING_REVIEW)
+            # Use ACTIVE + AWAITING_ACTION so the case stays publicly visible.
+            # PENDING_REVIEW is reserved for cases not yet seen by staff.
+            case.status = CaseStatus.ACTIVE
+            case.handling_status = CaseHandlingStatus.AWAITING_ACTION
+            case.safety_status = CaseSafetyStatus.UNKNOWN
             case.latest_public_update = self._pending_public_update(case.subject_type)
         elif target_status == "in_progress":
             case.assigned_staff_user_id = actor.id

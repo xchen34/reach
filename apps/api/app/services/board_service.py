@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.case import Case
-from app.models.enums import CaseHandlingStatus, CaseSafetyStatus
+from app.models.enums import CaseHandlingStatus, CaseSafetyStatus, CaseStatus
 from app.schemas.board import PublicBoardRecord, PublicBoardResponse, PublicBoardSummary
 from app.services.report_attachment_service import ReportAttachmentService
 
@@ -16,7 +16,11 @@ class BoardService:
         self.db = db
 
     def get_public_board(self, *, include_archived: bool = False) -> PublicBoardResponse:
-        statement = select(Case).order_by(Case.updated_at.desc(), Case.created_at.desc())
+        statement = (
+            select(Case)
+            .where(Case.status != CaseStatus.PENDING_REVIEW)
+            .order_by(Case.updated_at.desc(), Case.created_at.desc())
+        )
         cases = self.db.scalars(statement).all()
         records: list[PublicBoardRecord] = []
         for case in cases:
