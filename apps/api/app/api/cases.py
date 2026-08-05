@@ -9,6 +9,8 @@ from app.schemas.case import (
     CaseSubmissionResponse,
     StaffCaseActionRequest,
     StaffCaseActionResponse,
+    StaffCaseMergeDuplicatesRequest,
+    StaffCaseMergeDuplicatesResponse,
     StaffCaseOperationalStatusRequest,
     StaffCaseOutcomeRequest,
     StaffCasePublishRequest,
@@ -206,6 +208,25 @@ def create_case_relation(
 ) -> StaffCaseRelationResponse:
     try:
         return CaseService(db).relate_case(case_id, session_context.user, payload)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post(
+    "/{case_id}/merge-duplicates",
+    response_model=StaffCaseMergeDuplicatesResponse,
+    include_in_schema=False,
+)
+def merge_duplicate_cases(
+    case_id: int,
+    payload: StaffCaseMergeDuplicatesRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> StaffCaseMergeDuplicatesResponse:
+    try:
+        return CaseService(db).merge_duplicate_cases(case_id, session_context.user, payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:

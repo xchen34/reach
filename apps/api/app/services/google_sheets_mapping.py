@@ -12,6 +12,7 @@ GOOGLE_FORM_FIELD_MAP: dict[str, str] = {
     "Qui est concerné par ce signalement ?": "subject_type",
     "本报告涉及的是谁？": "subject_type",
     "Reach photo attachment code": "attachment_code",
+    "Photo attachment code": "attachment_code",
     "If update , what has changed?": "update_details",
     "Previous Report or Case Reference (Optional)": "previous_reference",
     "Full Name of the Person Being Reported": "person_name",

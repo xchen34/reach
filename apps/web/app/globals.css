@@ -1,15 +1,19 @@
 :root {
   color-scheme: dark;
-  --bg: #0f172a;
-  --surface: #111827;
-  --surface-alt: #1f2937;
-  --text: #f8fafc;
+  /* Graphite chrome so the status hues (red deceased / amber in progress /
+     green safe / purple waiting) are the only saturated colour on screen. */
+  --bg: #0d1420;
+  --surface: #151d2c;
+  --surface-alt: #1d2636;
+  --text: #f1f5f9;
   --muted: #94a3b8;
-  --accent: #1e3a8a;
-  --accent-hover: #2563eb;
-  --accent-strong: #3b82f6;
-  --border: #334155;
-  --focus: #3b82f6;
+  /* Single interactive accent: Tiffany. 9.02:1 on --bg. */
+  --accent: #0a8f8b;
+  --accent-hover: #0d9e9a;
+  --accent-strong: #2ec9c4;
+  --accent-ink: #04211f;
+  --border: #263449;
+  --focus: #2ec9c4;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   --app-shell-max-width: 78rem;
   --app-content-normal-width: 46rem;
@@ -71,13 +75,13 @@ textarea {
 
 .global-header {
   width: 100%;
-  background: #1e3a8a;
-  border-bottom: 1px solid #3b82f6;
+  background: #131c2e;
+  border-bottom: 1px solid #263449;
 }
 
 .global-header-inner {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 0.85rem;
@@ -87,16 +91,24 @@ textarea {
   padding: 1rem;
 }
 
+.header-brand {
+  min-width: 0;
+}
+
 .header-navigation {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--app-header-control-gap);
+  min-width: 0;
 }
 
 .header-navigation-authenticated {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--app-header-control-gap);
+  min-width: 0;
 }
 
 .header-account {
@@ -160,9 +172,9 @@ textarea {
 }
 
 .header-nav-button[data-active="true"] {
-  background: #1e3a8a;
-  border-color: #3b82f6;
-  color: #f8fafc;
+  background: rgba(46, 201, 196, 0.14);
+  border-color: #2ec9c4;
+  color: #7fe3df;
 }
 
 .app-main {
@@ -202,12 +214,15 @@ textarea {
   margin: 0 0 0.15rem;
   font-size: clamp(1.5rem, 4vw, 2.25rem);
   line-height: 1.2;
-  white-space: nowrap;
   letter-spacing: -0.02em;
-  color: #dc2626;
-  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* Page titles carry the Tiffany accent: it breaks up an otherwise all-white
+     page, and keeps red reserved for the deceased status and danger notices. */
+  color: var(--accent-strong);
+}
+
+/* Opt in where a heading really is an alarm. */
+.headline-alarm {
+  color: #f87171;
 }
 
 .headline-compact {
@@ -315,22 +330,28 @@ textarea {
 .alert-panel {
   display: grid;
   gap: 0.45rem;
-  padding: 1rem;
-  border: 1px solid #c48b32;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 0.9rem;
-  background: #fff8e7;
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.alert-panel strong {
+  color: #fbbf24;
 }
 
 .alert-panel p {
   margin: 0;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
 }
 
 .google-form-frame-shell {
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.9rem;
-  background: var(--surface);
+  background: rgba(15, 23, 42, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 .google-form-frame {
@@ -353,20 +374,22 @@ textarea {
 .report-photo-panel {
   display: grid;
   gap: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.9rem;
-  background: #f7fbf8;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.35) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 .attachment-code {
   display: block;
   width: fit-content;
   margin: 0.45rem 0;
-  padding: 0.35rem 0.55rem;
+  padding: 0.35rem 0.65rem;
   border-radius: 0.45rem;
-  background: #ffffff;
-  color: var(--accent-strong);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #4fd8d3;
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -594,8 +617,147 @@ textarea {
   margin-bottom: 0.6rem;
 }
 
+/* Was four full-width stacked buttons because the filters borrowed
+   .header-nav-button (width: 100%). They are a filter legend, so they read as a
+   compact chip row that also carries each status colour. */
 .board-filter-row {
-  margin-bottom: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+/* A distinct control bar: it used to sit flush under the explanatory prose with
+   no separation, and everything was crammed against the left edge. */
+.board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin: 1.25rem 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.board-search-field {
+  flex: 1 1 20rem;
+  max-width: 30rem;
+}
+
+/* Generic search field: icon overlaid inside the input. */
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.search-field .search-icon {
+  position: absolute;
+  left: 0.7rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.search-field .input-field {
+  width: 100%;
+  padding-left: 2.3rem !important;
+}
+
+.search-field:focus-within .search-icon {
+  color: var(--accent-strong);
+}
+
+/* Each chip always carries its own status colour, so the row doubles as a
+   legend for the card pills below even when nothing is selected. Selection is
+   shown by filling the chip, not by introducing the colour. */
+.board-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .board-filter-row {
+    justify-content: flex-start;
+  }
+}
+
+.board-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--chip-tone-border);
+  background: var(--chip-tone-wash);
+  color: var(--chip-tone);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.board-filter-chip-success {
+  --chip-tone: #4ade80;
+  --chip-tone-border: rgba(74, 222, 128, 0.35);
+  --chip-tone-wash: rgba(20, 83, 45, 0.22);
+  --chip-tone-fill: rgba(20, 83, 45, 0.75);
+}
+
+.board-filter-chip-alert {
+  --chip-tone: #f87171;
+  --chip-tone-border: rgba(239, 68, 68, 0.35);
+  --chip-tone-wash: rgba(69, 10, 10, 0.28);
+  --chip-tone-fill: rgba(69, 10, 10, 0.8);
+}
+
+.board-filter-chip-warning {
+  --chip-tone: #fbbf24;
+  --chip-tone-border: rgba(245, 158, 11, 0.35);
+  --chip-tone-wash: rgba(69, 26, 3, 0.28);
+  --chip-tone-fill: rgba(69, 26, 3, 0.8);
+}
+
+.board-filter-chip-neutral {
+  --chip-tone: #cbd5e1;
+  --chip-tone-border: rgba(203, 213, 225, 0.28);
+  --chip-tone-wash: rgba(255, 255, 255, 0.04);
+  --chip-tone-fill: rgba(51, 65, 85, 0.85);
+}
+
+.board-filter-chip:hover {
+  border-color: var(--chip-tone);
+  filter: brightness(1.12);
+}
+
+.board-filter-chip-active {
+  background: var(--chip-tone-fill);
+  border-color: var(--chip-tone);
+  box-shadow: inset 0 0 0 1px var(--chip-tone-border);
+}
+
+.board-filter-count {
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status is the thing people scan for, so keep it on one line and let it lead. */
+.community-board-card-title-row .status-pill {
+  white-space: nowrap;
 }
 
 .pagination-controls {
@@ -698,12 +860,27 @@ textarea {
 
 .community-board-card {
   display: grid;
+  /* Without explicit rows, a card that stretches to its row height feeds the
+     surplus into the image frame, overriding its aspect-ratio and pushing the
+     text down — so titles sat at different heights across a row. Pinning the
+     frame to `auto` and letting the body take `1fr` keeps every card aligned. */
+  grid-template-rows: auto 1fr;
   gap: 0;
   overflow: hidden;
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 0.65rem;
   background: var(--surface);
+}
+
+/* Push the timestamp to the bottom so cards of unequal text still line up. */
+.community-board-card-body {
+  grid-template-rows: auto auto auto 1fr auto;
+  align-content: start;
+}
+
+.community-board-card time {
+  align-self: end;
 }
 
 .community-board-card p {
@@ -1030,12 +1207,20 @@ textarea {
   color: #f87171;
 }
 
+.success-banner {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(74, 222, 128, 0.38);
+  border-radius: 0.65rem;
+  background: rgba(20, 83, 45, 0.32);
+  color: #bbf7d0;
+}
+
 .info-banner {
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.5);
+  border: 1px solid rgba(46, 201, 196, 0.5);
   border-radius: 1rem;
   background: rgba(30, 58, 138, 0.5);
-  color: #93c5fd;
+  color: #7fe3df;
 }
 
 .button-row {
@@ -1061,15 +1246,15 @@ textarea {
 }
 
 .button-primary {
-  background: #1e3a8a;
+  background: #0a8f8b;
   color: #f8fafc;
-  border: 1px solid #3b82f6;
+  border: 1px solid #2ec9c4;
 }
 
 .button-primary:hover,
 .button-primary:focus-visible {
-  background: #2563eb;
-  border-color: #60a5fa;
+  background: #0d9e9a;
+  border-color: #4fd8d3;
 }
 
 .button-primary:disabled {
@@ -1161,6 +1346,15 @@ textarea {
   color: #cbd5e1;
 }
 
+/* "Need to be viewed" stays blue. Tiffany is the action colour (primary
+   buttons), so a teal status pill next to a teal button read as one thing —
+   blue keeps the state visually separate from the thing you click. */
+.status-pill-info {
+  background: rgba(30, 64, 175, 0.72);
+  border: 1px solid rgba(147, 197, 253, 0.65);
+  color: #dbeafe;
+}
+
 .support-copy {
   color: var(--muted);
   line-height: 1.55;
@@ -1199,8 +1393,10 @@ textarea {
 .staff-review-hero {
   display: grid;
   gap: 1.25rem;
-  background:
-    linear-gradient(180deg, rgba(221, 238, 232, 0.72) 0%, rgba(255, 253, 247, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.45) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  border-radius: 0.85rem !important;
 }
 
 .staff-review-hero-header,
@@ -1347,6 +1543,14 @@ textarea {
   justify-content: space-between;
 }
 
+.staff-toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
 .staff-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
@@ -1382,7 +1586,7 @@ textarea {
 }
 
 .staff-metric-card[data-tone="info"] .staff-metric-value {
-  color: #60a5fa;
+  color: #4fd8d3;
 }
 
 .staff-metric-card[data-tone="success"] .staff-metric-value {
@@ -1404,9 +1608,359 @@ textarea {
   max-width: 28rem;
 }
 
+.staff-list-search {
+  min-width: min(100%, 20rem);
+}
+
+.staff-merge-search {
+  min-width: 0;
+  width: 100%;
+}
+
+.staff-overview-panel {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.staff-overview-header {
+  align-items: flex-start;
+}
+
+/* Was capped at 20rem, so "email · role · Last update <date>" wrapped onto a
+   second line. It is one identity line; keep it on one line and let the
+   heading beside it give up width instead. */
+.staff-overview-meta {
+  max-width: none;
+  flex: 0 0 auto;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.staff-overview-header > div:first-child {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .staff-overview-meta {
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+.staff-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.staff-stat-card,
+.status-filter-tile {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.55rem 0.6rem;
+  /* The whole tile carries its status tone — a coloured number alone was too
+     small a cue to scan the row by. */
+  border: 1px solid var(--tone-border, #263449);
+  border-left: 3px solid var(--tone, #475569);
+  border-radius: 0.55rem;
+  background: var(--tone-wash, linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(17, 24, 39, 0.95)));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.staff-stat-card span,
+.status-filter-tile span {
+  color: var(--tone-label, var(--muted));
+  overflow: hidden;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-stat-card strong,
+.status-filter-tile strong {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.staff-stat-card:hover,
+.staff-stat-card:focus-visible,
+.status-filter-tile:hover,
+.status-filter-tile:focus-visible {
+  border-color: var(--tone, #4fd8d3);
+  filter: brightness(1.2);
+}
+
+.staff-stat-card strong,
+.status-filter-tile strong {
+  color: var(--tone, var(--text));
+}
+
+/* "Need to be viewed" is blue, matching its status pill; Tiffany stays the
+   action colour so a state tile never looks like a button. */
+.staff-stat-card[data-tone="needs_to_be_viewed"],
+.status-filter-tile[data-tone="needs_to_be_viewed"] {
+  --tone: #93c5fd;
+  --tone-border: rgba(147, 197, 253, 0.28);
+  --tone-wash: rgba(30, 64, 175, 0.16);
+  --tone-label: rgba(219, 234, 254, 0.72);
+}
+
+.staff-stat-card[data-tone="waiting_for_volunteer"],
+.status-filter-tile[data-tone="waiting_for_volunteer"] {
+  --tone: #c4b5fd;
+  --tone-border: rgba(196, 181, 253, 0.28);
+  --tone-wash: rgba(76, 29, 149, 0.18);
+  --tone-label: rgba(221, 214, 254, 0.72);
+}
+
+.staff-stat-card[data-tone="being_followed_up"],
+.status-filter-tile[data-tone="being_followed_up"] {
+  --tone: #fbbf24;
+  --tone-border: rgba(251, 191, 36, 0.28);
+  --tone-wash: rgba(69, 26, 3, 0.28);
+  --tone-label: rgba(253, 230, 138, 0.72);
+}
+
+.staff-stat-card[data-tone="found_safe"],
+.status-filter-tile[data-tone="found_safe"] {
+  --tone: #4ade80;
+  --tone-border: rgba(74, 222, 128, 0.28);
+  --tone-wash: rgba(20, 83, 45, 0.22);
+  --tone-label: rgba(187, 247, 208, 0.72);
+}
+
+.staff-stat-card[data-tone="found_dead"],
+.status-filter-tile[data-tone="found_dead"] {
+  --tone: #f87171;
+  --tone-border: rgba(248, 113, 113, 0.28);
+  --tone-wash: rgba(69, 10, 10, 0.3);
+  --tone-label: rgba(254, 202, 202, 0.72);
+}
+
+/* "All" and "My follow up" have no status of their own. */
+.staff-stat-card[data-active="true"],
+.status-filter-tile[data-active="true"] {
+  border-color: var(--tone, #7fe3df);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--tone, #7fe3df) inset;
+  filter: brightness(1.15);
+}
+
+.staff-stat-card[data-tone="needs_to_be_viewed"][data-active="true"] {
+  border-color: #7fe3df;
+  box-shadow: 0 0 0 2px rgba(79, 216, 211, 0.26);
+}
+
 .staff-guide-panel {
   margin-top: 1rem;
   padding: 0.9rem 1rem;
+}
+
+.staff-report-detail-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.staff-report-facts {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+}
+
+.staff-report-facts div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.staff-report-facts dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.staff-report-facts dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.staff-report-full-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.staff-avatar-shell {
+  flex: 0 0 auto;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  max-inline-size: 4.5rem;
+  max-block-size: 4.5rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(17, 24, 39, 0.95));
+}
+
+.staff-avatar-button {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+}
+
+.staff-avatar-image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  object-fit: cover;
+}
+
+.staff-avatar-placeholder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(79, 216, 211, 0.2), transparent 34%),
+    linear-gradient(135deg, #172033 0%, #0b1220 100%);
+}
+
+.staff-avatar-mark {
+  display: grid;
+  place-items: center;
+  inline-size: 2.1rem;
+  block-size: 2.1rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.55rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.staff-merge-panel {
+  display: grid;
+  gap: 0.5rem;
+  flex: 1 0 100%;
+  min-width: 100%;
+}
+
+.staff-merge-candidates {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.staff-merge-candidate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.staff-merge-candidate strong,
+.staff-merge-candidate span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-merge-candidate span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.staff-duplicate-review {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  padding: 0.75rem;
+  border-color: #334155;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.staff-duplicate-review-header {
+  gap: 0.7rem;
+}
+
+.staff-duplicate-group-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.staff-duplicate-group {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(14rem, 1.2fr) minmax(10rem, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 0.65rem;
+  background: rgba(2, 6, 23, 0.42);
+}
+
+.staff-primary-case-picker {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.staff-duplicate-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.staff-duplicate-preview .status-pill {
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.45rem;
+  font-size: 0.75rem;
+}
+
+.staff-report-page-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.staff-report-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.staff-report-narrative {
+  max-width: 74rem;
+  color: #d5f5f4;
+  white-space: pre-wrap;
+}
+
+.staff-report-raw-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .staff-guide-list {
@@ -1436,7 +1990,8 @@ textarea {
 }
 
 .staff-event-card {
-  background: rgba(255, 251, 243, 0.92);
+  background: #111827;
+  border: 1px solid #334155;
   gap: 0.8rem;
 }
 
@@ -1498,8 +2053,8 @@ textarea {
 }
 
 .staff-compact-title {
-  min-width: min(100%, 10rem);
-  flex: 1 1 10rem;
+  min-width: 0;
+  flex: 0 1 auto;
   margin: 0;
   font-size: 1rem;
   line-height: 1.25;
@@ -1706,15 +2261,7 @@ textarea {
 }
 
 @media (min-width: 720px) {
-  .global-header-inner {
-    grid-template-columns: 1fr auto 1fr;
-  }
-
-  .header-navigation {
-    grid-column: auto;
-    width: auto;
-  }
-
+  /* .global-header-inner is flex, so grid-template-columns here was inert. */
   .header-nav-language {
     grid-column: 1 / -1;
   }
@@ -1773,19 +2320,9 @@ textarea {
 }
 
 @media (min-width: 1080px) {
-  .header-navigation {
-    grid-template-columns:
-      var(--app-header-board-slot-width)
-      var(--app-header-home-slot-width);
-    width: auto;
-  }
-
-  .header-navigation-authenticated {
-    grid-template-columns:
-      var(--app-header-board-slot-width)
-      var(--app-header-home-slot-width);
-  }
-
+  /* The per-slot width vars are gone: all header controls share --nav-slot.
+     These rules used to declare two explicit columns for a three-item nav,
+     which left the third track a different width (156 / 160 / 156). */
   .header-nav-language {
     grid-column: auto;
   }
@@ -1830,6 +2367,15 @@ textarea {
   }
 
   .staff-merged-case-row {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-duplicate-group {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .staff-report-raw-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2246,8 +2792,1670 @@ body:has(.staff-detail-v2-container) .app-content {
   color: #FCA5A5 !important;
 }
 
+/* === Operational UI & Duplicate Merging Improvements === */
+/* Merging is the amber action in this app, so the panel wears amber rather than
+   being another slab of grey with white text on it.
+   Doubled class: the element is also a .detail-card, whose `!important`
+   background rule sits later in this file and would otherwise win. */
+.staff-duplicate-review.detail-card,
+.staff-duplicate-review {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--staff-merge-border) !important;
+  border-left: 3px solid var(--staff-merge) !important;
+  border-radius: 0.85rem !important;
+  background:
+    linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.04) 55%),
+    rgba(34, 28, 12, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
 
+/* Title and copy pick up the amber so the block reads as one unit. */
+.staff-duplicate-review > .staff-section-header .section-title {
+  color: var(--staff-merge);
+}
 
+.staff-duplicate-review > .staff-section-header .field-hint {
+  color: rgba(253, 230, 138, 0.75);
+}
 
+.staff-duplicate-group {
+  display: grid !important;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+  gap: 1.5rem !important;
+  align-items: start !important;
+  padding: 1.25rem !important;
+  margin-bottom: 1rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 0.75rem !important;
+  background: rgba(15, 23, 42, 0.45) !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
 
+@media (max-width: 900px) {
+  .staff-duplicate-group {
+    grid-template-columns: 1fr !important;
+  }
+}
 
+.staff-duplicate-group:hover {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+}
+
+.staff-duplicate-compare-pane {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.staff-duplicate-compare-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.staff-duplicate-compare-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Card layering and styling */
+.staff-duplicate-compare-card {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 0.65rem !important;
+  background: rgba(30, 41, 59, 0.3) !important;
+  padding: 0.85rem !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.staff-duplicate-compare-card:hover {
+  border-color: rgba(245, 158, 11, 0.2) !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.staff-duplicate-compare-card[data-type="case"] {
+  border-left: 3px solid rgba(147, 51, 234, 0.6) !important;
+}
+
+.staff-duplicate-compare-card[data-type="report"] {
+  border-left: 3px solid rgba(46, 201, 196, 0.6) !important;
+}
+
+.staff-duplicate-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.staff-duplicate-card-code {
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+/* Premium Badges: round indicator dot + light background text */
+.staff-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Found Safe status dot */
+.staff-status-badge[data-status="found_safe"],
+.staff-status-badge[data-status="found_alive"],
+.staff-status-badge[data-status="found_safe"] {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+}
+.staff-status-badge[data-status="found_safe"] .status-dot,
+.staff-status-badge[data-status="found_alive"] .status-dot {
+  background: #10b981;
+}
+
+/* Needs to be viewed / needs triage status dot */
+.staff-status-badge[data-status="needs_to_be_viewed"] {
+  background: rgba(59, 130, 246, 0.14) !important;
+  color: #93c5fd !important;
+}
+.staff-status-badge[data-status="needs_to_be_viewed"] .status-dot {
+  background: #60a5fa;
+}
+
+/* Being followed up status dot */
+.staff-status-badge[data-status="being_followed_up"],
+.staff-status-badge[data-status="in_progress"] {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #f59e0b !important;
+}
+.staff-status-badge[data-status="being_followed_up"] .status-dot,
+.staff-status-badge[data-status="in_progress"] .status-dot {
+  background: #f59e0b;
+}
+
+/* Waiting for volunteer status dot */
+.staff-status-badge[data-status="waiting_for_volunteer"],
+.staff-status-badge[data-status="unassigned"] {
+  background: rgba(139, 92, 246, 0.12) !important;
+  color: #8b5cf6 !important;
+}
+.staff-status-badge[data-status="waiting_for_volunteer"] .status-dot,
+.staff-status-badge[data-status="unassigned"] .status-dot {
+  background: #8b5cf6;
+}
+
+/* Found dead status dot */
+.staff-status-badge[data-status="found_dead"],
+.staff-status-badge[data-status="confirmed_deceased"] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #ef4444 !important;
+}
+.staff-status-badge[data-status="found_dead"] .status-dot,
+.staff-status-badge[data-status="confirmed_deceased"] .status-dot {
+  background: #ef4444;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Multi-line attributes list styling */
+.staff-duplicate-card-body {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.staff-attribute-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.staff-attribute-row .attribute-label {
+  color: var(--muted);
+  font-weight: 500;
+  width: 4.5rem;
+  flex-shrink: 0;
+}
+
+.staff-attribute-row .attribute-value {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.staff-clamped-val {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right Side Decision Pane styling */
+.staff-duplicate-decision-pane {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 1.25rem;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .staff-duplicate-decision-pane {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1.25rem;
+  }
+}
+
+.staff-decision-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staff-merge-btn {
+  width: 100%;
+}
+
+/* Dashed box for case-less groups */
+.staff-duplicate-dashed-box {
+  border: 2px dashed rgba(46, 201, 196, 0.25);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(46, 201, 196, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.staff-duplicate-dashed-box:hover {
+  border-color: rgba(46, 201, 196, 0.4);
+  background: rgba(46, 201, 196, 0.04);
+}
+
+.staff-create-case-btn {
+  border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-size: 0.8rem !important;
+  padding: 0.5rem 0.75rem !important;
+  width: 100%;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.staff-create-case-btn:hover {
+  border-color: var(--accent-strong) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Scroll container and custom scrollbar */
+.staff-duplicate-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.staff-duplicate-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.staff-duplicate-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.staff-match-reasons {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+.animate-pulse {
+  animation: pulse-soft 2.5s infinite ease-in-out;
+}
+
+.staff-merge-candidates-list {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.staff-merge-candidates-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.staff-merge-candidates-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Staff Case Detail layout optimization */
+.staff-detail-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 1.5rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .staff-detail-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staff-detail-col-left,
+.staff-detail-col-right {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Optimize color scheme: sleek slate styling, rich highlights */
+.staff-action-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.45) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  border-radius: 0.85rem !important;
+}
+
+/* Focus and Action UI */
+.staff-primary-actions button {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   PREMIUM GLASSMORPHIC DESIGN SYSTEM UPGRADE (Sleek Dark Theme)
+   ========================================================================== */
+
+/* Global Glass/Slick Details */
+.detail-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.35) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0.85rem !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Sub-card layered styling */
+.detail-card-plain {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 0.65rem !important;
+}
+
+/* Premium Buttons Styling.
+   Dark ink, not white: white on this teal is only 2.5:1, while #04211f is
+   6.5:1 — the same reason WhatsApp puts dark text on its green. */
+.button-primary {
+  background: linear-gradient(135deg, #35d2cd 0%, #0fa8a3 100%) !important;
+  color: var(--accent-ink) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  border-radius: 0.65rem !important;
+  box-shadow: 0 4px 14px 0 rgba(46, 201, 196, 0.26) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.button-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px 0 rgba(46, 201, 196, 0.45) !important;
+  transform: translateY(-1.5px) !important;
+  filter: brightness(1.1) !important;
+}
+
+.button-primary:active:not(:disabled) {
+  transform: translateY(0.5px) !important;
+}
+
+.button-secondary {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+  border-radius: 0.65rem !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15) !important;
+}
+
+.button-secondary:active:not(:disabled) {
+  transform: translateY(0.5px) !important;
+}
+
+/* Slick inputs, textareas, selects */
+.input-field {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  padding: 0.65rem 0.85rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.input-field:focus {
+  border-color: #2ec9c4 !important;
+  box-shadow: 0 0 0 2px rgba(46, 201, 196, 0.25) !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  outline: none !important;
+}
+
+/* Layout improvements: list cards spacing & glow */
+.staff-duplicate-group {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.4) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.staff-duplicate-group:hover {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35), 0 0 20px rgba(245, 158, 11, 0.04) !important;
+}
+
+/* Beautiful Custom Scrollbar for all lists */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Status dots */
+.status-dot {
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ==========================================================================
+   GLOBAL HEADER
+   All four controls (three nav + log out) share one slot width so the bar reads
+   as a set rather than four differently-sized pills.
+   ========================================================================== */
+
+:root {
+  --nav-slot: 9.75rem;
+}
+
+.global-header {
+  background: linear-gradient(180deg, #162033 0%, #111a29 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.global-header-inner {
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+}
+
+.header-brand {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--accent-strong);
+}
+
+.header-navigation,
+.header-navigation-authenticated {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--nav-slot);
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+/* The legacy min-height rule covered board/home/logout but not contacts, which
+   left the Contacts button sitting ~7px lower than its neighbours. */
+.header-nav-slot,
+.header-nav-board,
+.header-nav-contacts,
+.header-nav-home,
+.header-nav-logout {
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+}
+
+/* Label is always Tiffany; only the background changes with state. */
+.header-nav-button {
+  width: 100%;
+  min-height: 2.6rem;
+  height: 2.6rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(46, 201, 196, 0.22) !important;
+  background: rgba(46, 201, 196, 0.05) !important;
+  color: var(--accent-strong) !important;
+  font-size: 0.9rem;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+}
+
+/* Navigation must feel like a fixed bar, not a set of springy buttons. The
+   shared .button-secondary rules lift on hover and dip on :active; both are
+   cancelled here, along with the transition that animated them. */
+.header-nav-button,
+.header-nav-button:hover,
+.header-nav-button:focus,
+.header-nav-button:focus-visible,
+.header-nav-button:active,
+.header-nav-button[data-active="true"] {
+  transform: none !important;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+.header-nav-button:hover:not(:disabled) {
+  background: rgba(46, 201, 196, 0.12) !important;
+  border-color: rgba(46, 201, 196, 0.4) !important;
+  color: var(--accent-strong) !important;
+}
+
+/* Current section: background fills in, the label does not change colour. */
+.header-nav-button[data-active="true"] {
+  background: rgba(46, 201, 196, 0.26) !important;
+  border-color: rgba(46, 201, 196, 0.6) !important;
+  color: var(--accent-strong) !important;
+}
+
+/* Log out matches the nav slot exactly. */
+.header-account {
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.header-account .header-nav-button {
+  width: var(--nav-slot);
+}
+
+@media (max-width: 780px) {
+  .header-navigation,
+  .header-navigation-authenticated {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+
+  .header-account .header-nav-button {
+    width: auto;
+    min-width: 7rem;
+  }
+}
+
+/* ==========================================================================
+   THIRD-PARTY SERVICE BRANDS
+   A link out to a real service should look like that service — people
+   recognise the mark faster than they read the label.
+   ========================================================================== */
+
+:root {
+  /* Official WhatsApp brand green, not Tailwind emerald. */
+  --whatsapp: #25d366;
+  --whatsapp-ink: #0b141a;
+  --whatsapp-deep: #128c7e;
+}
+
+.button-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--whatsapp);
+  border-radius: 0.65rem;
+  background: var(--whatsapp);
+  color: var(--whatsapp-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button-whatsapp:hover,
+.button-whatsapp:focus-visible {
+  background: #1fbe5b;
+  border-color: #1fbe5b;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.28);
+}
+
+.button-whatsapp .button-whatsapp-glyph {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  fill: currentColor;
+}
+
+/* A card whose action is a WhatsApp group carries a hint of the brand. */
+.service-card-whatsapp {
+  border-left: 3px solid rgba(37, 211, 102, 0.55) !important;
+}
+
+/* ==========================================================================
+   EMERGENCY SERVICE NUMBERS
+   Colour by the kind of service so it is recognised at a glance under stress,
+   and keep every one of them above WCAG AA on the dark surface.
+   ========================================================================== */
+
+/* Five services, so a 4-up grid always orphans one on a second row. At desktop
+   they fit in a single row of five; below that the grid steps down evenly. */
+.emergency-number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+  gap: 0.85rem;
+}
+
+@media (min-width: 1200px) {
+  .emergency-number-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.emergency-number-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-left: 3px solid var(--service-tone, var(--border)) !important;
+}
+
+.emergency-number-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.emergency-number-label {
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.emergency-number-digits {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--service-tone);
+}
+
+.emergency-number-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.emergency-call-button {
+  display: block;
+  padding: 0.5rem;
+  border: 1px solid var(--service-tone);
+  border-radius: 0.6rem;
+  background: var(--service-wash);
+  color: var(--service-tone);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.emergency-call-button:hover,
+.emergency-call-button:focus-visible {
+  background: var(--service-tone);
+  color: #0b1220;
+  transform: translateY(-1.5px);
+}
+
+/* Medical, police, fire, universal, text-relay. Each ≥4.5:1 on the surface. */
+.emergency-number-card[data-service="medical"] {
+  --service-tone: #f87171;
+  --service-wash: rgba(248, 113, 113, 0.12);
+}
+
+.emergency-number-card[data-service="police"] {
+  --service-tone: #7dd3fc;
+  --service-wash: rgba(125, 211, 252, 0.12);
+}
+
+.emergency-number-card[data-service="fire"] {
+  --service-tone: #fbbf24;
+  --service-wash: rgba(251, 191, 36, 0.12);
+}
+
+.emergency-number-card[data-service="universal"] {
+  --service-tone: #6ee7b7;
+  --service-wash: rgba(110, 231, 183, 0.12);
+}
+
+.emergency-number-card[data-service="text-relay"] {
+  --service-tone: #c4b5fd;
+  --service-wash: rgba(196, 181, 253, 0.12);
+}
+
+/* --- Contacts page scaffolding (was inline styles) --------------------- */
+
+.contacts-page {
+  display: grid;
+  gap: 2rem;
+}
+
+.contacts-section-title {
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.25rem;
+}
+
+.contacts-group-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.contacts-group-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.contacts-group-copy {
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.contacts-group-title {
+  margin: 0 0 0.2rem;
+  font-size: 1.02rem;
+}
+
+.contacts-group-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: break-word;
+}
+
+.safety-notice {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 0.7rem;
+  background: rgba(248, 113, 113, 0.09);
+}
+
+.safety-notice-title {
+  color: #f87171;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.safety-notice p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility fix: .eyebrow used --accent (#0a8f8b) as a text colour, which
+   is 1.72:1 on the page background — far below the 4.5:1 AA minimum, so the
+   label was effectively invisible. Use the readable accent instead.
+   -------------------------------------------------------------------------- */
+.eyebrow {
+  color: var(--accent-strong);
+}
+
+/* ==========================================================================
+   STAFF FOLLOW-UP LIST DENSITY
+   One full-width card per row meant a lot of card for a little information.
+   Two per row on wide screens, with a tighter card so more of the queue is
+   visible without scrolling.
+   ========================================================================== */
+
+.staff-case-list .staff-case-stack {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.staff-case-list .staff-compact-card {
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+}
+
+/* A thumbnail, not a portrait — it was 4.5rem square driving the card height. */
+.staff-case-list .staff-avatar-shell {
+  inline-size: 3.1rem;
+  block-size: 3.1rem;
+  max-inline-size: 3.1rem;
+  max-block-size: 3.1rem;
+}
+
+.staff-case-list .staff-compact-content {
+  gap: 0.2rem;
+}
+
+.staff-case-list .staff-compact-title {
+  font-size: 0.95rem;
+}
+
+.staff-case-list .staff-compact-top-row {
+  gap: 0.3rem;
+}
+
+.staff-case-list .staff-compact-meta,
+.staff-case-list .staff-clamped-copy {
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+/* .support-copy carries `margin: 1rem 0 0`, which left a dead band inside every
+   card between the meta lines and the description. */
+.staff-case-list .staff-compact-content .support-copy {
+  margin: 0;
+}
+
+.staff-case-list .staff-compact-top-row .status-pill,
+.staff-case-list .staff-compact-top-row .staff-status-badge {
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.staff-case-list .staff-compact-actions {
+  gap: 0.35rem;
+}
+
+.staff-case-list .staff-compact-actions .button-primary,
+.staff-case-list .staff-compact-actions .button-secondary,
+.staff-case-list .staff-compact-actions .button-danger,
+.staff-case-list .staff-compact-actions .staff-link-button {
+  min-height: 2.05rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* The note editor takes the full card width when open, so keep it last. */
+.staff-case-list .staff-inline-note textarea {
+  min-height: 3.4rem;
+}
+
+/* --- Search, sitting directly on top of the list it filters ------------- */
+
+.staff-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.85rem;
+}
+
+.staff-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+
+.staff-search-icon {
+  position: absolute;
+  left: 0.7rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.staff-search-field .input-field {
+  width: 100%;
+  padding-left: 2.3rem !important;
+}
+
+.staff-search-field:focus-within .staff-search-icon {
+  color: var(--accent-strong);
+}
+
+.staff-search-count {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   STAFF DETAIL PAGES (case + report review workspaces)
+   Replaces the inline styles those components used to carry, so the two pages
+   share one set of tokens and stay readable down to phone widths.
+   ========================================================================== */
+
+:root {
+  --staff-rule: rgba(255, 255, 255, 0.08);
+  --staff-label: #94a3b8;
+  --staff-accent: #7dd3fc;
+  --staff-danger: #f87171;
+  --staff-danger-bg: rgba(248, 113, 113, 0.12);
+  --staff-danger-border: rgba(248, 113, 113, 0.32);
+  --staff-merge: #fbbf24;
+  --staff-merge-bg: rgba(251, 191, 36, 0.1);
+  --staff-merge-border: rgba(251, 191, 36, 0.3);
+}
+
+/* Header must never push the document sideways on a phone. */
+@media (max-width: 780px) {
+  :root {
+    --app-header-control-height: 2.85rem;
+  }
+
+  .global-header-inner {
+    justify-content: flex-start;
+    row-gap: 0.6rem;
+  }
+
+  .header-account {
+    margin-left: auto;
+  }
+
+  .header-navigation,
+  .header-navigation-authenticated {
+    order: 3;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .header-nav-button {
+    height: auto;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+    /* Labels like "Staff dashboard" do not fit one line in a phone-width
+       column, so let them wrap instead of being clipped by overflow: hidden. */
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    overflow: visible;
+  }
+}
+
+/* The staff workspaces are working tools, not alarms: keep the alarm gradient
+   for public-facing headlines and give staff titles a calm, legible one. */
+.staff-headline.headline {
+  background: none;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
+  color: var(--accent-strong);
+  font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+}
+
+.staff-detail-container {
+  width: min(1120px, calc(100% - 24px));
+}
+
+/* --- Page header ------------------------------------------------------- */
+
+.staff-detail-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.staff-detail-topbar-headings {
+  min-width: 0;
+}
+
+.staff-detail-title-row {
+  row-gap: 0.5rem;
+}
+
+/* At body size these pills read as buttons sitting next to the page title;
+   scale them down so they are clearly labels. */
+.staff-detail-title-row .status-pill,
+.staff-detail-title-row .staff-status-badge {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.staff-detail-topbar .lede {
+  margin: 0.3rem 0 0;
+}
+
+/* --- Fact tiles ------------------------------------------------------- */
+
+.staff-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.staff-fact {
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--staff-rule);
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.staff-fact dt {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--staff-label);
+}
+
+.staff-fact dd {
+  margin: 0.15rem 0 0;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  /* The reviewer email used to spill out of this tile and collide with its
+     neighbour; anywhere-breaking keeps long emails and codes contained. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* --- Section headings inside the review cards -------------------------- */
+
+.staff-block {
+  min-width: 0;
+}
+
+.staff-block + .staff-block {
+  margin-top: 1.5rem;
+}
+
+.staff-block-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--staff-label);
+}
+
+.staff-block-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--staff-rule);
+}
+
+.staff-divider {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--staff-rule);
+}
+
+/* --- Parsed intake narrative ------------------------------------------ */
+
+.staff-narrative-fields {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr);
+  gap: 0.4rem 1rem;
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.staff-narrative-fields dt {
+  color: var(--staff-label);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.staff-narrative-fields dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.staff-narrative-rest {
+  margin: 0.85rem 0 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .staff-narrative-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+
+  .staff-narrative-fields dd {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* --- Comment composer ------------------------------------------------- */
+
+.staff-composer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.staff-composer textarea {
+  flex: 1 1 16rem;
+  min-width: 0;
+  resize: vertical;
+}
+
+.staff-composer button {
+  align-self: flex-end;
+  min-height: 2.7rem;
+  padding: 0 1.15rem;
+  white-space: nowrap;
+}
+
+/* --- Activity timeline ------------------------------------------------- */
+
+.staff-timeline {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.staff-timeline-entry {
+  display: grid;
+  grid-template-columns: 0.75rem minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+}
+
+.staff-timeline-entry[data-note="true"] {
+  border-color: rgba(125, 211, 252, 0.16);
+  background: rgba(125, 211, 252, 0.05);
+}
+
+.staff-timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.4rem;
+}
+
+.staff-timeline-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.staff-timeline-entry[data-note="true"] .staff-timeline-dot {
+  background: var(--staff-accent);
+  box-shadow: 0 0 6px var(--staff-accent);
+}
+
+.staff-timeline-line {
+  flex: 1;
+  width: 1px;
+  margin-top: 4px;
+  background: var(--staff-rule);
+}
+
+.staff-timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 0.75rem;
+}
+
+.staff-timeline-title {
+  font-size: 0.82rem;
+  color: var(--staff-label);
+}
+
+.staff-timeline-entry[data-note="true"] .staff-timeline-title {
+  color: var(--staff-accent);
+}
+
+.staff-timeline-time {
+  font-size: 0.72rem;
+  color: var(--staff-label);
+  white-space: nowrap;
+}
+
+.staff-timeline-body {
+  margin: 0.15rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* --- Actions rail ----------------------------------------------------- */
+
+.staff-detail-grid-layout {
+  align-items: start;
+}
+
+.staff-actions-rail {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+  margin: 0;
+}
+
+@media (min-width: 901px) {
+  .staff-actions-rail {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.staff-actions-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--staff-rule);
+}
+
+.staff-actions-head .section-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.staff-action-stack {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.staff-action-stack .button-primary,
+.staff-action-stack .button-secondary,
+.staff-action-stack .button-danger {
+  width: 100%;
+}
+
+.staff-action-note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--staff-label);
+}
+
+.staff-action-group-label {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--staff-label);
+}
+
+.staff-action-warning {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--staff-merge-border);
+  border-radius: 0.55rem;
+  background: var(--staff-merge-bg);
+  color: var(--staff-merge);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* Facts sit in the narrow rail, so they stack rather than compete for width. */
+.staff-fact-grid-rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Review substance (case detail, then duplicate candidates) stacks on the left;
+   the rail holds the controls. */
+.staff-detail-col-left {
+  gap: 1.25rem;
+}
+
+.staff-detail-grid-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(17rem, 0.75fr);
+}
+
+/* --- Secondary rail cards (notes, change log) -------------------------- */
+
+.staff-detail-col-right {
+  gap: 0.85rem;
+}
+
+@media (min-width: 901px) {
+  .staff-detail-col-right {
+    position: sticky;
+    top: 1rem;
+  }
+
+  /* The rail is sticky as a whole; individual cards must not also stick. */
+  .staff-actions-rail {
+    position: static;
+  }
+}
+
+.staff-rail-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  margin: 0;
+}
+
+.staff-rail-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.staff-rail-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--staff-label);
+}
+
+.staff-rail-count {
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 0.7rem;
+  letter-spacing: 0;
+}
+
+.staff-rail-toggle {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--staff-rule);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--staff-accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.staff-rail-toggle:hover {
+  background: rgba(125, 211, 252, 0.08);
+  border-color: rgba(125, 211, 252, 0.35);
+}
+
+.staff-rail-composer {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.staff-rail-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--staff-label);
+}
+
+.staff-rail-notes {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-rail-notes li {
+  padding: 0.45rem 0.6rem;
+  border-left: 2px solid rgba(125, 211, 252, 0.35);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: rgba(125, 211, 252, 0.04);
+}
+
+.staff-rail-note-body {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.staff-rail-note-time {
+  font-size: 0.7rem;
+  color: var(--staff-label);
+}
+
+.staff-rail-card .staff-audit-compact li {
+  padding: 0.45rem 0;
+}
+
+.staff-rail-card .staff-audit-compact-title {
+  font-size: 0.82rem;
+}
+
+.staff-rail-card .staff-audit-compact-detail {
+  font-size: 0.76rem;
+}
+
+/* Destructive outcome must not look like the neutral one beside it. */
+.button-danger {
+  padding: 0.55rem 0.9rem;
+  background: var(--staff-danger-bg) !important;
+  border: 1px solid var(--staff-danger-border) !important;
+  border-radius: 0.65rem !important;
+  color: var(--staff-danger) !important;
+  font: inherit;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button-danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.18) !important;
+  border-color: rgba(248, 113, 113, 0.5) !important;
+  transform: translateY(-1.5px);
+}
+
+.button-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Merge is its own kind of action — amber, matching the duplicate review. */
+.button-merge {
+  padding: 0.55rem 0.9rem;
+  background: var(--staff-merge-bg) !important;
+  border: 1px solid var(--staff-merge-border) !important;
+  border-radius: 0.65rem !important;
+  color: var(--staff-merge) !important;
+  font: inherit;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button-merge:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  transform: translateY(-1.5px);
+}
+
+.button-merge:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- Duplicate candidate cards ---------------------------------------- */
+
+.staff-candidate-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.staff-candidate-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.staff-candidate-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.staff-candidate-code {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--staff-label);
+  white-space: nowrap;
+}
+
+.staff-candidate-location {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--staff-label);
+  overflow-wrap: anywhere;
+}
+
+.staff-candidate-preview {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.staff-candidate-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-candidate-reasons li {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--staff-rule);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: var(--staff-label);
+}
+
+.staff-candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.staff-candidate-actions .button-secondary,
+.staff-candidate-actions .button-merge {
+  flex: 0 1 auto;
+}
+
+/* --- Compact audit log ------------------------------------------------ */
+
+.staff-audit-compact {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.staff-audit-compact li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--staff-rule);
+}
+
+.staff-audit-compact li:last-child {
+  border-bottom: none;
+}
+
+.staff-audit-compact-main {
+  min-width: 0;
+}
+
+.staff-audit-compact-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.staff-audit-compact-detail {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+  color: var(--staff-label);
+  overflow-wrap: anywhere;
+}
+
+.staff-audit-compact-time {
+  font-size: 0.75rem;
+  color: var(--staff-label);
+  white-space: nowrap;
+}
+
+/* Long values inside any staff fact list should wrap, not overflow. */
+.staff-detail-container dd,
+.staff-detail-container .status-pill {
+  overflow-wrap: anywhere;
+}
+
+.staff-detail-container .staff-status-badge {
+  white-space: nowrap;
+}

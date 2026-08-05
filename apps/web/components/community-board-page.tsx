@@ -13,6 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { getCurrentPublicIncidentReportPage, getPublicBoard } from "@/lib/api";
 import { matchesCardSearch } from "@/lib/card-search";
+import { SearchIcon } from "@/components/search-icon";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
 type CommunityBoardPageProps = {
@@ -101,6 +102,7 @@ export function CommunityBoardPage({
 
   return (
     <AppShell
+      contentVariant="wide"
       locale={locale}
       publicBoardLabel={dictionary.home.boardCta}
       sectionLabel={dictionary.board.eyebrow}
@@ -157,29 +159,35 @@ export function CommunityBoardPage({
               <p className="info-banner">{dictionary.board.empty}</p>
             ) : (
               <>
-                <label className="field-label compact-copy board-search-row">
-                  {dictionary.board.searchLabel}
-                  <input
-                    className="input-field"
-                    type="search"
-                    value={searchQuery}
-                    placeholder={dictionary.board.searchPlaceholder}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                  />
-                </label>
-                <div className="board-filter-row" role="group" aria-label={dictionary.board.filterLabel}>
-                  {boardFilterOptions.map((filter) => (
-                    <button
-                      className="button-secondary header-nav-button"
-                      data-active={activeFilter === filter}
-                      key={filter}
-                      type="button"
-                      onClick={() => setActiveFilter(filter)}
-                    >
-                      {boardFilterLabel(dictionary, filter)} ({filterCounts[filter]})
-                    </button>
-                ))}
-              </div>
+                {/* Search and filters share one full-width toolbar so they read as
+                    controls, separate from the explanatory copy above. */}
+                <div className="board-toolbar">
+                  <label className="search-field board-search-field">
+                    <span className="sr-only">{dictionary.board.searchLabel}</span>
+                    <SearchIcon />
+                    <input
+                      className="input-field"
+                      type="search"
+                      value={searchQuery}
+                      placeholder={dictionary.board.searchPlaceholder}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                    />
+                  </label>
+                  <div className="board-filter-row" role="group" aria-label={dictionary.board.filterLabel}>
+                    {boardFilterOptions.map((filter) => (
+                      <button
+                        aria-pressed={activeFilter === filter}
+                        className={filterChipClassName(filter, activeFilter === filter)}
+                        key={filter}
+                        type="button"
+                        onClick={() => setActiveFilter(filter)}
+                      >
+                        {boardFilterLabel(dictionary, filter)}
+                        <span className="board-filter-count">{filterCounts[filter]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {filteredRecords.length === 0 ? (
                   <p className="info-banner">
                     {searchQuery.trim() ? dictionary.board.searchEmpty : dictionary.board.emptyForFilter}
@@ -235,7 +243,11 @@ function BoardRecordCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt="" className="community-board-image" src={imageUrl} />
         </div>
-      ) : null}
+      ) : (
+        <div className="community-board-image-frame community-board-image-frame-placeholder">
+          <span className="photo-placeholder-label">NO PHOTO</span>
+        </div>
+      )}
       <div className="community-board-card-body">
         <div className="community-board-card-title-row">
           <h3 className="community-board-title">{subjectName}</h3>
@@ -319,14 +331,33 @@ function boardFilterLabel(dictionary: Dictionary, filter: BoardFilter) {
   return dictionary.board.filters.deceased;
 }
 
+// Every status needs an explicit variant. Falling through to a bare `status-pill`
+// gave confirmed deaths the base green, identical to a confirmed-safe record, and
+// spent the red alert style on "someone is following up". Colours now match the
+// staff dashboard: purple waiting, amber in progress, green safe, red deceased.
 function statusClassName(status: OperationalStatus) {
-  if (status === "in_progress") {
-    return "status-pill status-pill-alert";
-  }
   if (status === "unassigned") {
+    return "status-pill status-pill-purple";
+  }
+  if (status === "in_progress") {
     return "status-pill status-pill-warning";
   }
-  return "status-pill";
+  if (status === "found_alive") {
+    return "status-pill status-pill-success";
+  }
+  return "status-pill status-pill-alert";
+}
+
+function filterChipClassName(filter: BoardFilter, isActive: boolean) {
+  const tone =
+    filter === "safe"
+      ? "success"
+      : filter === "deceased"
+        ? "alert"
+        : filter === "missing"
+          ? "warning"
+          : "neutral";
+  return `board-filter-chip board-filter-chip-${tone}${isActive ? " board-filter-chip-active" : ""}`;
 }
 
 function publicStatusLabel(

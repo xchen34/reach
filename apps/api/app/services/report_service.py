@@ -117,7 +117,13 @@ class ReportService:
         triage_status: Optional[ReportTriageStatus] = None,
         incident_id: Optional[int] = None,
     ) -> ReportInboxResponse:
-        statement = select(Report).order_by(Report.received_at.desc(), Report.id.desc())
+        statement = (
+            select(Report)
+            # Rows removed from the source sheet are kept for the record but must
+            # not sit in the queue as if they were live work.
+            .where(Report.source_row_withdrawn_at.is_(None))
+            .order_by(Report.received_at.desc(), Report.id.desc())
+        )
         if triage_status is not None:
             statement = statement.where(Report.triage_status == triage_status)
         if incident_id is not None:
@@ -502,7 +508,11 @@ class ReportService:
             is_legacy_backfill=report.is_legacy_backfill,
             migration_note=report.migration_note,
             source_label=self._source_label(report),
-            attachments=ReportAttachmentService(self.db).list_report_attachments(report.id),
+            attachments=ReportAttachmentService(self.db).list_report_attachments(
+                report.id,
+                incident_id=report.incident_id,
+                attachment_code=self._raw_answer_text(report, "attachment_code"),
+            ),
         )
 
     def _to_detail(self, report: Report) -> ReportDetailResponse:

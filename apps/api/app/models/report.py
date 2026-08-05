@@ -40,6 +40,14 @@ class Report(Base):
     source_form_id: Mapped[Optional[str]] = mapped_column(String(160))
     source_form_name: Mapped[Optional[str]] = mapped_column(String(160))
     source_entry_id: Mapped[Optional[str]] = mapped_column(String(160))
+    # Stable identity for a spreadsheet row, independent of its position. Row
+    # numbers shift whenever a row is inserted, deleted or sorted, which used to
+    # make the importer overwrite a different person's report.
+    source_row_key: Mapped[Optional[str]] = mapped_column(String(160), index=True)
+    # Set when the row backing this report disappears from the sheet. The report
+    # is kept for the record but hidden from the queue and the public board, and
+    # cleared again if the row comes back.
+    source_row_withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

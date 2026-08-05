@@ -169,6 +169,59 @@ def test_import_creates_idempotent_incident_scoped_report(monkeypatch: pytest.Mo
         assert db.query(Case).count() == 0
 
 
+def test_import_rescans_existing_rows_and_withdraws_missing_source_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    first_rows = [
+        SHEET_HEADERS,
+        _sheet_row(name="Resident A", timestamp="07/13/2026 12:27:00"),
+        _sheet_row(name="Resident B", timestamp="07/13/2026 12:31:00"),
+    ]
+    second_rows = [SHEET_HEADERS, _sheet_row(name="Resident A Updated", timestamp="07/13/2026 12:27:00")]
+    rows_by_call = [first_rows, second_rows]
+
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows_by_call.pop(0),
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    first_response = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+    second_response = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import",
+        headers=headers,
+    )
+
+    assert first_response.status_code == 200
+    assert first_response.json()["imported"] == 2
+    assert second_response.status_code == 200
+    assert second_response.json()["imported"] == 0
+    assert second_response.json()["last_imported_row"] == 2
+
+    reports_response = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
+    assert reports_response.status_code == 200
+    report_items = reports_response.json()["reports"]
+    assert len(report_items) == 1
+    assert report_items[0]["person_name"] == "Resident A Updated"
+
+    with next(override_get_db()) as db:
+        reports = db.query(Report).order_by(Report.id).all()
+        # The vanished row is retained, only flagged — intake evidence must not be
+        # destroyed just because someone tidied the spreadsheet.
+        assert len(reports) == 2
+        live = [report for report in reports if report.source_row_withdrawn_at is None]
+        withdrawn = [report for report in reports if report.source_row_withdrawn_at is not None]
+        assert len(live) == 1
+        assert live[0].raw_answers_json["person_name"] == "Resident A Updated"
+        assert live[0].source_entry_id == "Form Responses 1:07/13/2026 12:27:00"
+        assert len(withdrawn) == 1
+        assert withdrawn[0].raw_answers_json["person_name"] == "Resident B"
+
+
 def test_import_defaults_missing_subject_type_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
     incident_id, source_id = _create_incident_with_source()
     legacy_headers = SHEET_HEADERS[:-2]
@@ -425,13 +478,19 @@ def _authenticate_staff(email: str, role: StaffRole) -> dict[str, str]:
     return {"Authorization": f"Bearer {verify_response.json()['access_token']}"}
 
 
-def _sheet_row(*, subject_type: str = "person", attachment_code: str = "") -> list[str]:
+def _sheet_row(
+    *,
+    subject_type: str = "person",
+    attachment_code: str = "",
+    name: str = "Resident A",
+    timestamp: str = "07/13/2026 12:27:00",
+) -> list[str]:
     return [
-        "07/13/2026 12:27:00",
+        timestamp,
         "A new report about a person",
         "",
         "",
-        "Resident A",
+        name,
         "Res A",
         "72",
         "Female",
@@ -477,3 +536,114 @@ def _malformed_timestamp_row() -> list[str]:
 def db_case_subject(case_id: int) -> SubjectType:
     with next(override_get_db()) as db:
         return db.get(Case, case_id).subject_type
+
+
+def test_inserting_a_row_does_not_overwrite_another_persons_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Row numbers shift when a row is inserted, so identity cannot be positional.
+
+    Before the stable row key, importing after an insert matched row N to the
+    report that used to be at row N and overwrote it with a different person.
+    """
+    incident_id, source_id = _create_incident_with_source()
+    first_rows = [
+        SHEET_HEADERS,
+        _sheet_row(name="Amina Diallo", timestamp="07/13/2026 09:00:00"),
+        _sheet_row(name="Bruno Costa", timestamp="07/13/2026 09:05:00"),
+    ]
+    # A new submission is pasted above the existing two, shifting both down.
+    second_rows = [
+        SHEET_HEADERS,
+        _sheet_row(name="Chen Wei", timestamp="07/13/2026 09:02:00"),
+        _sheet_row(name="Amina Diallo", timestamp="07/13/2026 09:00:00"),
+        _sheet_row(name="Bruno Costa", timestamp="07/13/2026 09:05:00"),
+    ]
+    rows_by_call = [first_rows, second_rows]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows_by_call.pop(0),
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    client.post(f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers)
+    second = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers
+    )
+
+    assert second.status_code == 200
+    assert second.json()["imported"] == 1, "only the pasted row is new"
+
+    with next(override_get_db()) as db:
+        names = sorted(
+            report.raw_answers_json["person_name"]
+            for report in db.query(Report).all()
+            if report.source_row_withdrawn_at is None
+        )
+    assert names == ["Amina Diallo", "Bruno Costa", "Chen Wei"]
+
+
+def test_reimport_after_spreadsheet_is_repointed_does_not_duplicate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The dedupe lookup used to require a matching source_form_id.
+
+    Re-pointing an intake source at a different spreadsheet therefore hid every
+    previously imported report and duplicated all of them on the next import.
+    """
+    incident_id, source_id = _create_incident_with_source()
+    rows = [
+        SHEET_HEADERS,
+        _sheet_row(name="Amina Diallo", timestamp="07/13/2026 09:00:00"),
+        _sheet_row(name="Bruno Costa", timestamp="07/13/2026 09:05:00"),
+    ]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows,
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+    client.post(f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers)
+
+    with next(override_get_db()) as db:
+        source = db.get(IncidentIntakeSource, source_id)
+        source.google_spreadsheet_id = "1NEWSPREADSHEETIDxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        db.commit()
+
+    second = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers
+    )
+
+    assert second.status_code == 200
+    assert second.json()["imported"] == 0, "the same rows must not import twice"
+    with next(override_get_db()) as db:
+        assert db.query(Report).count() == 2
+
+
+def test_withdrawn_report_is_restored_when_the_row_comes_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    present = [SHEET_HEADERS, _sheet_row(name="Amina Diallo", timestamp="07/13/2026 09:00:00")]
+    removed = [SHEET_HEADERS]
+    rows_by_call = [present, removed, present]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows_by_call.pop(0),
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+    url = f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import"
+
+    client.post(url, headers=headers)
+    client.post(url, headers=headers)
+    with next(override_get_db()) as db:
+        report = db.query(Report).one()
+        assert report.source_row_withdrawn_at is not None
+    hidden = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
+    assert hidden.json()["reports"] == []
+
+    client.post(url, headers=headers)
+    with next(override_get_db()) as db:
+        report = db.query(Report).one()
+        assert report.source_row_withdrawn_at is None
+    restored = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
+    assert len(restored.json()["reports"]) == 1

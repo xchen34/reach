@@ -41,6 +41,8 @@ from app.schemas.case import (
     StaffCaseActionResponse,
     StaffCaseOperationalStatusRequest,
     StaffCaseOutcomeRequest,
+    StaffCaseMergeDuplicatesRequest,
+    StaffCaseMergeDuplicatesResponse,
     StaffCasePublishRequest,
     StaffCasePublishResponse,
     StaffCaseRelationRequest,
@@ -525,6 +527,103 @@ class CaseService:
             relation_type=payload.relation_type,
             note=relation_note,
             created_at=action.created_at,
+        )
+
+    def merge_duplicate_cases(
+        self,
+        case_id: int,
+        actor: StaffUserSummary,
+        payload: StaffCaseMergeDuplicatesRequest,
+    ) -> StaffCaseMergeDuplicatesResponse:
+        primary_case = self.db.get(Case, case_id)
+        if primary_case is None:
+            raise LookupError("Case not found.")
+        if primary_case.merged_into_case_id is not None:
+            raise ValueError("Primary case has already been merged into another case.")
+
+        duplicate_ids = list(dict.fromkeys(payload.duplicate_case_ids))
+        if case_id in duplicate_ids:
+            raise ValueError("A case cannot be merged into itself.")
+
+        duplicates: list[Case] = []
+        for duplicate_id in duplicate_ids:
+            duplicate_case = self.db.get(Case, duplicate_id)
+            if duplicate_case is None:
+                raise ValueError(f"Duplicate case {duplicate_id} not found.")
+            if duplicate_case.incident_id != primary_case.incident_id:
+                raise ValueError("Cases from different incidents cannot be merged.")
+            if duplicate_case.merged_into_case_id is not None:
+                raise ValueError(f"Duplicate case {duplicate_id} has already been merged.")
+            duplicates.append(duplicate_case)
+
+        note = payload.note.strip() if payload.note else None
+        if not note:
+            merged_codes = ", ".join(duplicate.case_code for duplicate in duplicates)
+            note = f"Merged duplicate case(s) {merged_codes} into {primary_case.case_code}."
+
+        now = datetime.now(timezone.utc)
+        for duplicate_case in duplicates:
+            previous_status = duplicate_case.status
+            duplicate_case.merged_into_case_id = primary_case.id
+            self.apply_legacy_status(duplicate_case, CaseStatus.CLOSED)
+            self.db.add(
+                CaseAction(
+                    case_id=duplicate_case.id,
+                    actor_user_id=actor.id,
+                    action_type=CaseActionType.NOTE,
+                    note=note,
+                    from_status=previous_status,
+                    to_status=duplicate_case.status,
+                )
+            )
+            self.db.add(
+                AuditLogEntry(
+                    actor_type=AuditActorType.STAFF,
+                    actor_user_id=actor.id,
+                    case_id=duplicate_case.id,
+                    event_type=AuditEventType.CASE_ACTION_CREATED,
+                    metadata_json={
+                        "action_type": "duplicate_merged",
+                        "primary_case_id": primary_case.id,
+                        "primary_case_code": primary_case.case_code,
+                        "merged_case_id": duplicate_case.id,
+                        "merged_case_code": duplicate_case.case_code,
+                        "note": note,
+                    },
+                )
+            )
+
+        self.db.add(
+            CaseAction(
+                case_id=primary_case.id,
+                actor_user_id=actor.id,
+                action_type=CaseActionType.NOTE,
+                note=note,
+            )
+        )
+        self.db.add(
+            AuditLogEntry(
+                actor_type=AuditActorType.STAFF,
+                actor_user_id=actor.id,
+                case_id=primary_case.id,
+                event_type=AuditEventType.CASE_ACTION_CREATED,
+                metadata_json={
+                    "action_type": "duplicate_merged",
+                    "primary_case_id": primary_case.id,
+                    "primary_case_code": primary_case.case_code,
+                    "merged_case_ids": [duplicate.id for duplicate in duplicates],
+                    "merged_case_codes": [duplicate.case_code for duplicate in duplicates],
+                    "note": note,
+                },
+            )
+        )
+        self.db.commit()
+
+        return StaffCaseMergeDuplicatesResponse(
+            primary_case_id=primary_case.id,
+            merged_case_ids=[duplicate.id for duplicate in duplicates],
+            note=note,
+            created_at=now,
         )
 
     def list_audit_entries(self, case_id: int) -> list[AuditLogEntryResponse]:

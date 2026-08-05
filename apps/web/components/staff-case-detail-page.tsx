@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   assignStaffCaseToSelf,
@@ -39,7 +39,8 @@ import {
   withStaffAuthorization,
 } from "@/lib/staff-session";
 import { AppShell } from "@/components/app-shell";
-import { findSuggestedCaseMatches, type SuggestedCaseMatch } from "@/lib/staff-case-matches";
+import { buildNarrativePreview, parseNarrativeFields } from "@/lib/staff-narrative";
+import { findSuggestedCaseMatches } from "@/lib/staff-case-matches";
 
 type StaffCaseDetailPageProps = {
   caseId: number;
@@ -77,6 +78,7 @@ export function StaffCaseDetailPage({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [isLinkingRelation, setIsLinkingRelation] = useState(false);
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [correctionTarget, setCorrectionTarget] = useState<OperationalStatus>("unassigned");
   const [correctionNote, setCorrectionNote] = useState("");
   const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
@@ -88,6 +90,78 @@ export function StaffCaseDetailPage({
         timeStyle: "short",
       }),
     [locale],
+  );
+
+  const timelineEntries = useMemo(() => {
+    const auditEntries = state.status === "ready" ? state.auditEntries : [];
+    return auditEntries
+      .filter((entry) => {
+        const actionType = entry.metadata_json?.action_type;
+        // The change log is for state transitions only — merges, status changes and
+        // assignment. Notes are a separate, lighter-weight thing (see noteEntries).
+        return (
+          actionType === "relation_marked" ||
+          actionType === "note" ||
+          actionType === "status_change" ||
+          actionType === "operational_status_correction" ||
+          actionType === "claim" ||
+          actionType === "duplicate_merged"
+        );
+      })
+      .map((entry) => {
+        const metadata = (entry.metadata_json ?? {}) as any;
+        const isNote = metadata.action_type === "note";
+        
+        let title = "";
+        let description = "";
+        
+        if (metadata.action_type === "publish_update") {
+          title = "Public Update Published";
+          description = metadata.latest_public_update ?? "";
+        } else if (metadata.relation_type && metadata.action_type === "relation_marked") {
+          title = "Case Relationship Marked";
+          description = `${getRelationTypeLabel(dictionary, metadata.relation_type as StaffCaseRelationType)} · #${metadata.related_case_id}`;
+        } else if (metadata.action_type === "note") {
+          title = "Internal Staff Comment";
+          description = metadata.note ?? "";
+        } else if (metadata.action_type === "duplicate_merged") {
+          title = "Duplicates Merged";
+          description = metadata.note ?? `Merged duplicate case REF-${metadata.merged_case_code} into this case.`;
+        } else if (metadata.action_type === "status_change" || metadata.action_type === "operational_status_correction") {
+          title = "Operational Status Updated";
+          const fromLabel = metadata.from_operational_status ? correctionStatusLabel(dictionary, metadata.from_operational_status as OperationalStatus) : "";
+          const toLabel = metadata.to_operational_status ? correctionStatusLabel(dictionary, metadata.to_operational_status as OperationalStatus) : "";
+          description = fromLabel ? `${fromLabel} ➔ ${toLabel}` : (dictionary.caseStatus.labels[metadata.to_status as CaseStatus] ?? "Status changed");
+        } else if (metadata.action_type === "claim") {
+          title = "Case Review Claimed";
+          description = `Claimed by reviewer.`;
+        } else if (entry.event_type === "case_submitted") {
+          title = "Report Received";
+          description = "Original report created in system.";
+        } else {
+          title = "System Activity";
+          description = "System updated case parameters.";
+        }
+        
+        return {
+          id: entry.id,
+          isNote,
+          title,
+          description,
+          createdAt: entry.created_at,
+        };
+      });
+  }, [state, dictionary]);
+
+  // Notes are a small side function; state changes are the log. Keeping them in
+  // one feed made the page read as if commenting were the main activity.
+  const noteEntries = useMemo(
+    () => timelineEntries.filter((entry) => entry.isNote && entry.description.trim()),
+    [timelineEntries],
+  );
+  const changeEntries = useMemo(
+    () => timelineEntries.filter((entry) => !entry.isNote),
+    [timelineEntries],
   );
 
   const loadCase = useCallback(async () => {
@@ -399,6 +473,7 @@ export function StaffCaseDetailPage({
 
   const { caseDetail, auditEntries, session, queue } = state;
   const assignedEmail = caseDetail.assigned_staff_user?.email ?? dictionary.staff.detail.unassigned;
+  const subjectName = caseDetail.person_label || caseDetail.case_code;
   const locationSummary = caseDetail.location_summary.trim() || dictionary.staff.detail.summaryFallback;
   const needsSummary = caseDetail.needs_summary.trim() || dictionary.staff.detail.summaryFallback;
   const latestUpdate = caseDetail.latest_public_update ?? dictionary.staff.detail.latestUpdateFallback;
@@ -413,22 +488,19 @@ export function StaffCaseDetailPage({
   const canClaim = !caseDetail.assigned_staff_user && !isFinal;
   const canCoordinatorReassign =
     session.user.role === "coordinator" && Boolean(caseDetail.assigned_staff_user) && !isFinal;
-  const canResolve =
-    (isAssignedToCurrentUser || session.user.role === "coordinator") &&
-    Boolean(caseDetail.assigned_staff_user) &&
-    !isFinal;
+  // You may only record an outcome on a case you own. An unclaimed case must be
+  // claimed first, and someone else's case must be reassigned to you — so the
+  // outcome is always attributable to whoever is accountable for the follow-up.
+  // (The API itself is permissive here; this is the deliberate workflow rule.)
+  const canRecordOutcome = isAssignedToCurrentUser && !isFinal;
+  const isSomeoneElsesCase = Boolean(caseDetail.assigned_staff_user) && !isAssignedToCurrentUser;
+  const isUnclaimed = !caseDetail.assigned_staff_user;
   const currentOperationalStatusLabel = operationalStatusLabel(
     dictionary,
     caseOperationalStatus,
     caseDetail.subject_type,
   );
-  const reviewSummaryItems = [
-    { label: dictionary.staff.detail.statusLabel, value: currentOperationalStatusLabel },
-    { label: dictionary.staff.detail.assignedLabel, value: assignedEmail },
-    { label: dictionary.staff.detail.urgencyLabel, value: dictionary.home.form.urgency.options[caseDetail.urgency] },
-    { label: dictionary.staff.detail.updatedAtLabel, value: dateFormatter.format(new Date(caseDetail.updated_at)) },
-  ];
-  const recentAuditEntries = [...auditEntries].filter(isUsefulAuditEntry).reverse().slice(0, 5);
+  const narrative = parseNarrativeFields(needsSummary);
   const suggestedMatches = findSuggestedCaseMatches(caseDetail, queue.events.flatMap((event) => event.related_cases));
   const showCoordinatorTools = session.user.role === "coordinator";
 
@@ -450,304 +522,430 @@ export function StaffCaseDetailPage({
       sectionLabel={dictionary.staff.eyebrow}
     >
       <div className="staff-detail-container">
-        <div className="staff-toolbar">
-          <div>
+        <div className="staff-detail-topbar">
+          <div className="staff-detail-topbar-headings">
             <div className="staff-detail-title-row">
               <h1 className="headline headline-compact staff-headline">{dictionary.staff.detail.title}</h1>
-              <span className={getOperationalStatusClassName(caseOperationalStatus)}>
+              <span className="staff-status-badge" data-status={caseOperationalStatus}>
+                <span className="status-dot" />
                 {currentOperationalStatusLabel}
               </span>
+              {caseDetail.subject_type === "person" || caseDetail.subject_type === "pet" ? (
+                <span className="status-pill status-pill-neutral">{dictionary.subjectTypes[caseDetail.subject_type]}</span>
+              ) : null}
             </div>
-            <p className="lede emergency-lede">{dictionary.staff.detail.description}</p>
+            <p className="lede">{dictionary.staff.detail.description}</p>
           </div>
-        </div>
-
-        <div className="button-row">
-          <Link className="button-secondary" href="/staff">
+          <Link className="button-secondary staff-link-button" href="/staff">
             {dictionary.staff.detail.backToList}
           </Link>
         </div>
 
         <section className="staff-review-shell" aria-labelledby="staff-review-title">
           <div className="staff-review-main">
-            <section className="detail-card staff-review-hero" aria-labelledby="staff-review-title">
-              <div className="staff-review-hero-header">
-                <div>
-                  <span className="status-pill status-pill-neutral">{caseDetail.case_code}</span>
-                  <h2 className="section-title staff-case-title" id="staff-review-title">
-                    {locationSummary}
-                  </h2>
-                  <p className="field-hint compact-copy">
-                    {assignedEmail} · {session.user.email}
-                  </p>
-                </div>
-                <div className={getUrgencyPillClassName(caseDetail.urgency)}>
-                  {dictionary.home.form.urgency.options[caseDetail.urgency]}
-                </div>
-              </div>
 
-              <dl className="detail-grid">
-                {reviewSummaryItems.map((item) => (
-                  <div className="detail-card" key={item.label}>
-                    <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div className="staff-narrative-grid">
-                <article className="detail-card detail-card-plain">
-                  <h3 className="section-title staff-action-title">{dictionary.staff.detail.needsTitle}</h3>
-                  <p className="staff-narrative-text">{needsSummary}</p>
-                </article>
-                <article className="detail-card detail-card-plain">
-                  <h3 className="section-title staff-action-title">{dictionary.staff.detail.latestUpdateLabel}</h3>
-                  <p className="staff-narrative-text">{latestUpdate}</p>
-                </article>
-              </div>
-            </section>
-
-            <section className="staff-review-panel" aria-labelledby="staff-actions-title">
-              <div className="staff-section-heading">
-                <div>
-                  <h2 className="section-title" id="staff-actions-title">
-                    {dictionary.staff.detail.actionsTitle}
-                  </h2>
-                </div>
-                <div className="staff-inline-status">
-                  <span className={getOperationalStatusClassName(caseOperationalStatus)}>
-                    {currentOperationalStatusLabel}
-                  </span>
-                </div>
-              </div>
-
-              {actionError ? (
-                <p className="error-banner" role="alert">
-                  {actionError}
-                </p>
-              ) : null}
-              {actionSuccess ? (
-                <p className="info-banner" role="status">
-                  {actionSuccess}
-                </p>
-              ) : null}
-
-              <div className="detail-card form-stack staff-action-card">
-                <h3 className="section-title staff-action-title">{dictionary.staff.detail.nextActionTitle}</h3>
-                <div className="button-row staff-primary-actions">
-                  {canClaim || canCoordinatorReassign ? (
-                    <button
-                      className="button-primary"
-                      disabled={isClaiming}
-                      type="button"
-                      onClick={() => void handleClaim()}
-                    >
-                      {canCoordinatorReassign
-                        ? dictionary.staff.detail.reassignToMeAction
-                        : dictionary.staff.detail.claimSubmit}
-                    </button>
-                  ) : null}
-                  {canResolve ? (
-                    <>
-                      <button
-                        className="button-primary"
-                        disabled={isSubmittingOutcome}
-                        type="button"
-                        onClick={() => void handleOutcome("safe")}
-                      >
-                        {dictionary.staff.detail.foundSafeAction}
-                      </button>
-                      <button
-                        className="button-secondary"
-                        disabled={isSubmittingOutcome}
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(dictionary.staff.detail.confirmDeathPrompt)) {
-                            void handleOutcome("deceased");
-                          }
-                        }}
-                      >
-                        {dictionary.staff.detail.confirmDeathAction}
-                      </button>
-                      <button
-                        className="button-secondary"
-                        disabled={isSubmittingOutcome}
-                        type="button"
-                        onClick={() => void handleOutcome("return")}
-                      >
-                        {dictionary.staff.detail.returnAction}
-                      </button>
-                    </>
-                  ) : null}
-                  {isFinal ? (
-                    <button
-                      className="button-primary"
-                      type="button"
-                      onClick={() => {
-                        setCorrectionTarget(caseOperationalStatus);
-                        setCorrectionNote("");
-                        setIsCorrectionOpen(true);
-                      }}
-                    >
-                      {dictionary.staff.detail.correctStatusAction}
-                    </button>
-                  ) : null}
-                  {!canClaim && !canCoordinatorReassign && !canResolve ? (
-                    isFinal ? null : (
-                      <p className="field-hint compact-copy">{dictionary.staff.detail.noPrimaryAction}</p>
-                    )
-                  ) : null}
-                </div>
-                {isCorrectionOpen ? (
-                  <form
-                    aria-labelledby="staff-status-correction-title"
-                    className="status-correction-dialog form-stack"
-                    role="dialog"
-                    onSubmit={(event) => void handleStatusCorrection(event)}
-                  >
-                    <h4 className="section-title staff-action-title" id="staff-status-correction-title">
-                      {dictionary.staff.detail.statusCorrectionTitle}
-                    </h4>
-                    <p className="field-hint compact-copy">
-                      {dictionary.staff.detail.currentStatusLabel}: {currentOperationalStatusLabel}
-                    </p>
-                    <label className="form-field">
-                      <span>{dictionary.staff.detail.targetStatusLabel}</span>
-                      <select
-                        className="input-field"
-                        value={correctionTarget}
-                        onChange={(event) => setCorrectionTarget(event.target.value as OperationalStatus)}
-                      >
-                        {correctionStatusOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {correctionStatusLabel(dictionary, option)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="form-field">
-                      <span>{dictionary.staff.detail.optionalNoteLabel}</span>
-                      <textarea
-                        className="input-field"
-                        maxLength={4000}
-                        placeholder={dictionary.staff.detail.optionalNotePlaceholder}
-                        rows={3}
-                        value={correctionNote}
-                        onChange={(event) => setCorrectionNote(event.target.value)}
-                      />
-                    </label>
-                    <div className="button-row">
-                      <button
-                        className="button-secondary"
-                        disabled={isSubmittingCorrection}
-                        type="button"
-                        onClick={() => setIsCorrectionOpen(false)}
-                      >
-                        {dictionary.staff.detail.cancelStatusCorrection}
-                      </button>
-                      <button className="button-primary" disabled={isSubmittingCorrection} type="submit">
-                        {isSubmittingCorrection
-                          ? dictionary.staff.detail.submitting
-                          : dictionary.staff.detail.confirmStatusCorrection}
-                      </button>
+            <div className="staff-detail-grid-layout">
+              {/* Left Column: Compressed Case Detail Card */}
+              <div className="staff-detail-col-left">
+                <section className="detail-card staff-review-hero" aria-labelledby="staff-review-title" style={{ margin: 0 }}>
+                  <div className="staff-review-hero-header">
+                    <div>
+                      <span className="status-pill status-pill-neutral">{caseDetail.case_code}</span>
+                      <h2 className="section-title staff-case-title" id="staff-review-title" style={{ marginTop: "0.5rem" }}>
+                        {subjectName}
+                      </h2>
+                      <p className="field-hint compact-copy">{locationSummary}</p>
                     </div>
-                  </form>
+                  </div>
+
+                  <div className="staff-block">
+                    <h3 className="staff-block-title">Case needs &amp; description</h3>
+                    {narrative.fields.length > 0 ? (
+                      <dl className="staff-narrative-fields">
+                        {narrative.fields.map((field, index) => (
+                          <Fragment key={`${field.label}-${index}`}>
+                            <dt>{field.label}</dt>
+                            <dd>{field.value}</dd>
+                          </Fragment>
+                        ))}
+                      </dl>
+                    ) : null}
+                    {narrative.rest ? <p className="staff-narrative-rest">{narrative.rest}</p> : null}
+                  </div>
+
+                  {caseDetail.latest_public_update ? (
+                    <div className="staff-block">
+                      <h3 className="staff-block-title">Latest public board update</h3>
+                      <p className="staff-narrative-rest">{caseDetail.latest_public_update}</p>
+                    </div>
+                  ) : null}
+                </section>
+                {showCoordinatorTools ? (
+                <section className="staff-review-panel" aria-labelledby="staff-duplicates-title">
+                  <div className="staff-section-heading">
+                    <div>
+                      <h2 className="section-title" id="staff-duplicates-title">
+                        {dictionary.staff.detail.duplicateTitle}
+                      </h2>
+                      <p className="support-copy compact-copy">{dictionary.staff.detail.duplicateDescription}</p>
+                    </div>
+                  </div>
+                  {suggestedMatches.length === 0 ? (
+                    <p className="info-banner">{dictionary.staff.detail.noDuplicateSuggestions}</p>
+                  ) : (
+                    <div className="staff-case-stack">
+                      {suggestedMatches.map((match) => (
+                        <article className="detail-card staff-candidate-card" key={match.case.id}>
+                          <div className="staff-candidate-head">
+                            {/* The person is what a reviewer matches on, so it leads; the
+                                address and code are supporting detail. */}
+                            <h3 className="staff-candidate-name">
+                              {match.case.person_label || match.case.location_summary}
+                            </h3>
+                            <span className="staff-candidate-code">{match.case.case_code}</span>
+                          </div>
+                          {match.case.person_label ? (
+                            <p className="staff-candidate-location">{match.case.location_summary}</p>
+                          ) : null}
+                          <p className="staff-candidate-preview">
+                            {buildNarrativePreview(match.case.needs_summary)}
+                          </p>
+                          <ul className="staff-candidate-reasons">
+                            {match.reasons.map((reason) => (
+                              <li key={reason}>{dictionary.staff.detail.matchReasons[reason]}</li>
+                            ))}
+                          </ul>
+                          <div className="staff-candidate-actions">
+                            <Link className="button-secondary" href={`/staff/cases/${match.case.id}`}>
+                              {dictionary.staff.detail.openSuggestedCase}
+                            </Link>
+                            <button
+                              className="button-secondary"
+                              disabled={isLinkingRelation}
+                              type="button"
+                              onClick={() => setActionSuccess(dictionary.staff.detail.keepSeparateSuccess)}
+                            >
+                              {dictionary.staff.detail.keepSeparate}
+                            </button>
+                            <button
+                              className="button-merge"
+                              disabled={isLinkingRelation}
+                              type="button"
+                              onClick={() => void handleRelation(match.case, "confirmed_duplicate")}
+                            >
+                              {isLinkingRelation
+                                ? dictionary.staff.detail.submitting
+                                : dictionary.staff.detail.confirmDuplicate}
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                  {relatedMarkers.length > 0 ? (
+                    <div className="staff-existing-relations">
+                      <h3 className="section-title staff-action-title">{dictionary.staff.detail.relatedLinksTitle}</h3>
+                      <ol className="staff-review-list">
+                        {relatedMarkers.map((marker) => (
+                          <li key={`${marker.relatedCaseId}-${marker.createdAt}-${marker.relationType}`}>
+                            {getRelationTypeLabel(dictionary, marker.relationType)} · #{marker.relatedCaseId} ·{" "}
+                            {dateFormatter.format(new Date(marker.createdAt))}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+                </section>
                 ) : null}
               </div>
-            </section>
 
-            {showCoordinatorTools ? (
-            <section className="staff-review-panel" aria-labelledby="staff-duplicates-title">
-              <div className="staff-section-heading">
-                <div>
-                  <h2 className="section-title" id="staff-duplicates-title">
-                    {dictionary.staff.detail.duplicateTitle}
-                  </h2>
-                  <p className="support-copy compact-copy">{dictionary.staff.detail.duplicateDescription}</p>
-                </div>
-              </div>
-              {suggestedMatches.length === 0 ? (
-                <p className="info-banner">{dictionary.staff.detail.noDuplicateSuggestions}</p>
-              ) : (
-                <div className="staff-case-stack">
-                  {suggestedMatches.map((match) => (
-                    <article className="detail-card staff-duplicate-card" key={match.case.id}>
-                      <div>
-                        <p className="field-hint compact-copy">{match.case.case_code}</p>
-                        <h3 className="section-title staff-action-title">{match.case.location_summary}</h3>
-                        <p className="support-copy compact-copy">{match.case.needs_summary}</p>
-                        <p className="field-hint staff-match-reasons">
-                          {getMatchReasonLabel(dictionary, match)}
-                        </p>
+              {/* Right Column: Actions Panel */}
+              <div className="staff-detail-col-right">
+                <section className="detail-card staff-action-card staff-actions-rail" aria-labelledby="staff-actions-title">
+                  <div className="staff-actions-head">
+                    <h2 className="section-title" id="staff-actions-title">
+                      {dictionary.staff.detail.actionsTitle}
+                    </h2>
+                    <span className="staff-status-badge" data-status={caseOperationalStatus}>
+                      <span className="status-dot" />
+                      {currentOperationalStatusLabel}
+                    </span>
+                  </div>
+
+                  {actionError ? (
+                    <p className="error-banner" role="alert" style={{ margin: 0 }}>
+                      {actionError}
+                    </p>
+                  ) : null}
+                  {actionSuccess ? (
+                    <p className="info-banner" role="status" style={{ margin: 0 }}>
+                      {actionSuccess}
+                    </p>
+                  ) : null}
+
+                  <div className="form-stack" style={{ display: "grid", gap: "0.85rem" }}>
+                    <dl className="staff-fact-grid staff-fact-grid-rail">
+                      <div className="staff-fact">
+                        <dt>{dictionary.staff.detail.assignedLabel}</dt>
+                        <dd>{assignedEmail}</dd>
                       </div>
-                      <div className="button-row">
-                        <Link className="button-secondary" href={`/staff/cases/${match.case.id}`}>
-                          {dictionary.staff.detail.openSuggestedCase}
-                        </Link>
-                        <button
-                          className="button-secondary"
-                          disabled={isLinkingRelation}
-                          type="button"
-                          onClick={() => setActionSuccess(dictionary.staff.detail.keepSeparateSuccess)}
-                        >
-                          {dictionary.staff.detail.keepSeparate}
-                        </button>
+                      <div className="staff-fact">
+                        <dt>{dictionary.staff.detail.updatedAtLabel}</dt>
+                        <dd>{dateFormatter.format(new Date(caseDetail.updated_at))}</dd>
+                      </div>
+                    </dl>
+
+                    {/* Outcomes require ownership, so the rail always explains what to
+                        do first rather than showing an empty panel. */}
+                    {isUnclaimed && !isFinal ? (
+                      <div className="staff-action-stack">
+                        <p className="staff-action-group-label">{dictionary.staff.detail.nextActionTitle}</p>
+                        <p className="staff-action-note">
+                          Claim this case before recording an outcome, so the decision is
+                          attributable to a named reviewer.
+                        </p>
                         <button
                           className="button-primary"
-                          disabled={isLinkingRelation}
+                          disabled={isClaiming}
                           type="button"
-                          onClick={() => void handleRelation(match.case, "confirmed_duplicate")}
+                          onClick={() => void handleClaim()}
                         >
-                          {isLinkingRelation
-                            ? dictionary.staff.detail.submitting
-                            : dictionary.staff.detail.confirmDuplicate}
+                          {dictionary.staff.detail.claimSubmit}
                         </button>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-              {relatedMarkers.length > 0 ? (
-                <div className="staff-existing-relations">
-                  <h3 className="section-title staff-action-title">{dictionary.staff.detail.relatedLinksTitle}</h3>
-                  <ol className="staff-review-list">
-                    {relatedMarkers.map((marker) => (
-                      <li key={`${marker.relatedCaseId}-${marker.createdAt}-${marker.relationType}`}>
-                        {getRelationTypeLabel(dictionary, marker.relationType)} · #{marker.relatedCaseId} ·{" "}
-                        {dateFormatter.format(new Date(marker.createdAt))}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
-            </section>
-            ) : null}
+                    ) : null}
 
-            <section className="staff-review-panel" aria-labelledby="staff-audit-title">
-              <div className="staff-section-heading">
-                <div>
-                  <h2 className="section-title" id="staff-audit-title">
-                    {dictionary.staff.detail.auditTitle}
-                  </h2>
-                </div>
-              </div>
-
-              {recentAuditEntries.length === 0 ? (
-                <p className="support-copy">{dictionary.staff.detail.auditEmpty}</p>
-              ) : (
-                <ol className="staff-audit-list">
-                  {recentAuditEntries.map((entry) => (
-                    <li className="detail-card" key={entry.id}>
-                      <div className="staff-audit-row">
-                        <strong>{getAuditEntryTitle(dictionary, entry)}</strong>
-                        <span>{dateFormatter.format(new Date(entry.created_at))}</span>
+                    {isSomeoneElsesCase && !isFinal ? (
+                      <div className="staff-action-stack">
+                        <p className="staff-action-warning" role="note">
+                          {assignedEmail} is following this case up. Reassign it to yourself
+                          before changing anything.
+                        </p>
+                        <button
+                          className="button-primary"
+                          disabled={isClaiming}
+                          type="button"
+                          onClick={() => void handleClaim()}
+                        >
+                          {dictionary.staff.detail.reassignToMeAction}
+                        </button>
                       </div>
-                      <p className="support-copy">{getAuditEntryDescription(dictionary, entry)}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
+                    ) : null}
+
+                    {canRecordOutcome ? (
+                      <>
+                        <div className="staff-action-stack">
+                          <p className="staff-action-group-label">Record an outcome</p>
+                          <button
+                            className="button-primary"
+                            disabled={isSubmittingOutcome}
+                            type="button"
+                            onClick={() => {
+                              // Both outcomes close the case and publish to the public
+                              // board, so both are confirmed — not just death.
+                              if (window.confirm(dictionary.staff.detail.confirmSafePrompt)) {
+                                void handleOutcome("safe");
+                              }
+                            }}
+                          >
+                            {dictionary.staff.detail.foundSafeAction}
+                          </button>
+                          <button
+                            className="button-danger"
+                            disabled={isSubmittingOutcome}
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(dictionary.staff.detail.confirmDeathPrompt)) {
+                                void handleOutcome("deceased");
+                              }
+                            }}
+                          >
+                            {dictionary.staff.detail.confirmDeathAction}
+                          </button>
+                        </div>
+                        <div className="staff-action-stack">
+                          <p className="staff-action-group-label">Hand back</p>
+                          <button
+                            className="button-secondary"
+                            disabled={isSubmittingOutcome}
+                            type="button"
+                            onClick={() => void handleOutcome("return")}
+                          >
+                            {dictionary.staff.detail.returnAction}
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {isFinal ? (
+                      <div className="staff-action-stack">
+                        <p className="staff-action-note">
+                          This case is closed. Reopen it only to correct a recording mistake.
+                        </p>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={() => {
+                            setCorrectionTarget(caseOperationalStatus);
+                            setCorrectionNote("");
+                            setIsCorrectionOpen(true);
+                          }}
+                        >
+                          {dictionary.staff.detail.correctStatusAction}
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {isCorrectionOpen ? (
+                      <form
+                        aria-labelledby="staff-status-correction-title"
+                        className="status-correction-dialog form-stack"
+                        role="dialog"
+                        onSubmit={(event) => void handleStatusCorrection(event)}
+                      >
+                        <h4 className="section-title staff-action-title" id="staff-status-correction-title" style={{ fontSize: "0.85rem" }}>
+                          {dictionary.staff.detail.statusCorrectionTitle}
+                        </h4>
+                        <p className="field-hint compact-copy">
+                          {dictionary.staff.detail.currentStatusLabel}: {currentOperationalStatusLabel}
+                        </p>
+                        <label className="form-field">
+                          <span>{dictionary.staff.detail.targetStatusLabel}</span>
+                          <select
+                            className="input-field"
+                            value={correctionTarget}
+                            onChange={(event) => setCorrectionTarget(event.target.value as OperationalStatus)}
+                          >
+                            {correctionStatusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {correctionStatusLabel(dictionary, option)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {/* Each state name alone did not say what it means for the case. */}
+                        <p className="staff-action-note">
+                          {correctionStatusHint(dictionary, correctionTarget)}
+                        </p>
+                        <label className="form-field">
+                          <span>{dictionary.staff.detail.optionalNoteLabel}</span>
+                          <textarea
+                            className="input-field"
+                            maxLength={4000}
+                            placeholder={dictionary.staff.detail.optionalNotePlaceholder}
+                            rows={3}
+                            value={correctionNote}
+                            onChange={(event) => setCorrectionNote(event.target.value)}
+                          />
+                        </label>
+                        <div className="button-row" style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            className="button-secondary"
+                            disabled={isSubmittingCorrection}
+                            type="button"
+                            onClick={() => setIsCorrectionOpen(false)}
+                          >
+                            {dictionary.staff.detail.cancelStatusCorrection}
+                          </button>
+                          <button className="button-primary" disabled={isSubmittingCorrection} type="submit">
+                            {isSubmittingCorrection
+                              ? dictionary.staff.detail.submitting
+                              : dictionary.staff.detail.confirmStatusCorrection}
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+                  </div>
+                </section>
+
+                {/* Notes are a small side function, so they live in the rail behind a
+                    toggle rather than occupying the main column. */}
+                <section className="detail-card staff-rail-card" aria-labelledby="staff-notes-title">
+                  <div className="staff-rail-card-head">
+                    <h3 className="staff-rail-card-title" id="staff-notes-title">
+                      Internal notes
+                      {noteEntries.length > 0 ? (
+                        <span className="staff-rail-count">{noteEntries.length}</span>
+                      ) : null}
+                    </h3>
+                    <button
+                      className="staff-rail-toggle"
+                      type="button"
+                      aria-expanded={isNotesOpen}
+                      onClick={() => setIsNotesOpen((open) => !open)}
+                    >
+                      {isNotesOpen ? "Close" : "Add note"}
+                    </button>
+                  </div>
+
+                  {isNotesOpen ? (
+                    <form className="staff-rail-composer" onSubmit={(e) => void handleNoteSubmit(e)}>
+                      {noteError ? (
+                        <p className="error-banner" role="alert" style={{ margin: 0 }}>
+                          {noteError}
+                        </p>
+                      ) : null}
+                      <textarea
+                        className="input-field"
+                        maxLength={1000}
+                        placeholder="Internal note for other reviewers..."
+                        rows={3}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                      />
+                      <button className="button-secondary" disabled={isSubmittingNote} type="submit">
+                        {isSubmittingNote ? dictionary.staff.detail.submitting : "Save note"}
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {noteEntries.length === 0 ? (
+                    <p className="staff-rail-empty">No notes yet.</p>
+                  ) : (
+                    <ul className="staff-rail-notes">
+                      {noteEntries.slice(0, 4).map((entry) => (
+                        <li key={entry.id}>
+                          <p className="staff-rail-note-body">{entry.description}</p>
+                          <span className="staff-rail-note-time">
+                            {dateFormatter.format(new Date(entry.createdAt))}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                {/* Change log: merges, status changes and assignment only. */}
+                <section className="detail-card staff-rail-card" aria-labelledby="staff-changelog-title">
+                  <div className="staff-rail-card-head">
+                    <h3 className="staff-rail-card-title" id="staff-changelog-title">
+                      Change log
+                    </h3>
+                  </div>
+                  {changeEntries.length === 0 ? (
+                    <p className="staff-rail-empty">No changes recorded yet.</p>
+                  ) : (
+                    <ol className="staff-audit-compact">
+                      {changeEntries.slice(0, 5).map((entry) => (
+                        <li key={entry.id}>
+                          <div className="staff-audit-compact-main">
+                            <span className="staff-audit-compact-title">{entry.title}</span>
+                            {entry.description.trim() ? (
+                              <p className="staff-audit-compact-detail">{entry.description}</p>
+                            ) : null}
+                          </div>
+                          <span className="staff-audit-compact-time">
+                            {dateFormatter.format(new Date(entry.createdAt))}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+              </div>
+            </div>
+
+
           </div>
         </section>
       </div>
@@ -780,81 +978,6 @@ function getRelationTypeLabel(dictionary: Dictionary, relationType: StaffCaseRel
   }
 }
 
-function getMatchReasonLabel(dictionary: Dictionary, match: SuggestedCaseMatch) {
-  const reasons = match.reasons.map((reason) => dictionary.staff.detail.matchReasons[reason]);
-  return reasons.join(" · ");
-}
-
-function getAuditEntryTitle(dictionary: Dictionary, entry: AuditLogEntryResponse) {
-  const metadata = entry.metadata_json ?? {};
-  if (metadata.action_type === "publish_update") {
-    return dictionary.staff.detail.auditEvents.published;
-  }
-  if (metadata.action_type === "relation_marked") {
-    return metadata.relation_type === "confirmed_duplicate"
-      ? dictionary.staff.detail.auditEvents.duplicateConfirmed
-      : dictionary.staff.detail.auditEvents.relationMarked;
-  }
-  if (metadata.action_type === "note") {
-    return dictionary.staff.detail.auditEvents.noteAdded;
-  }
-  if (metadata.action_type === "status_change" || metadata.action_type === "operational_status_correction") {
-    return dictionary.staff.detail.auditEvents.statusChanged;
-  }
-  if (metadata.action_type === "claim") {
-    return dictionary.staff.detail.auditEvents.claimed;
-  }
-  if (entry.event_type === "case_submitted") {
-    return dictionary.staff.detail.auditEvents.reportReceived;
-  }
-  return dictionary.staff.detail.auditEvents.systemActivity;
-}
-
-function isUsefulAuditEntry(entry: AuditLogEntryResponse) {
-  if (entry.event_type === "case_submitted") {
-    return true;
-  }
-
-  const actionType = entry.metadata_json?.action_type;
-  return (
-    actionType === "publish_update" ||
-    actionType === "relation_marked" ||
-    actionType === "note" ||
-    actionType === "status_change" ||
-    actionType === "operational_status_correction" ||
-    actionType === "claim"
-  );
-}
-
-function getAuditEntryDescription(dictionary: Dictionary, entry: AuditLogEntryResponse) {
-  const metadata = entry.metadata_json ?? {};
-  if (metadata.action_type === "publish_update" && typeof metadata.latest_public_update === "string") {
-    return metadata.latest_public_update;
-  }
-  if (metadata.action_type === "relation_marked" && typeof metadata.related_case_id === "number") {
-    return `${getRelationTypeLabel(dictionary, metadata.relation_type as StaffCaseRelationType)} · #${metadata.related_case_id}`;
-  }
-  if (typeof metadata.note === "string" && metadata.note.trim()) {
-    return metadata.note;
-  }
-  if (
-    metadata.action_type === "operational_status_correction" &&
-    typeof metadata.from_operational_status === "string" &&
-    typeof metadata.to_operational_status === "string"
-  ) {
-    const fromLabel = correctionStatusLabel(dictionary, metadata.from_operational_status as OperationalStatus);
-    const toLabel = correctionStatusLabel(dictionary, metadata.to_operational_status as OperationalStatus);
-    return `${fromLabel} -> ${toLabel}`;
-  }
-  if (metadata.action_type === "status_change" && typeof metadata.to_status === "string") {
-    const status = metadata.to_status as CaseStatus;
-    return status in dictionary.caseStatus.labels
-      ? dictionary.caseStatus.labels[status]
-      : dictionary.staff.detail.auditEvents.noDetail;
-  }
-  return dictionary.staff.detail.auditEvents.noDetail;
-}
-
 function getRelatedMarker(entry: AuditLogEntryResponse): RelatedMarker | null {
   const metadata = entry.metadata_json;
   if (!metadata || metadata.action_type !== "relation_marked") {
@@ -878,18 +1001,6 @@ function getRelatedMarker(entry: AuditLogEntryResponse): RelatedMarker | null {
     relationType,
     createdAt: entry.created_at,
   };
-}
-
-function getUrgencyPillClassName(urgency: StaffCaseDetailResponse["urgency"]) {
-  if (urgency === "critical" || urgency === "high") {
-    return "status-pill status-pill-alert";
-  }
-
-  if (urgency === "medium") {
-    return "status-pill status-pill-warning";
-  }
-
-  return "status-pill";
 }
 
 const correctionStatusOptions: OperationalStatus[] = [
@@ -920,6 +1031,19 @@ function operationalStatusLabel(
     : dictionary.staff.cases.operationalStatuses.personConfirmedDeceased;
 }
 
+function correctionStatusHint(dictionary: Dictionary, status: OperationalStatus) {
+  if (status === "unassigned") {
+    return dictionary.staff.detail.correctionStatusHints.unassigned;
+  }
+  if (status === "in_progress") {
+    return dictionary.staff.detail.correctionStatusHints.inProgress;
+  }
+  if (status === "found_alive") {
+    return dictionary.staff.detail.correctionStatusHints.foundAlive;
+  }
+  return dictionary.staff.detail.correctionStatusHints.confirmedDeceased;
+}
+
 function correctionStatusLabel(dictionary: Dictionary, status: OperationalStatus) {
   if (status === "unassigned") {
     return dictionary.staff.detail.correctionStatuses.unassigned;
@@ -931,14 +1055,4 @@ function correctionStatusLabel(dictionary: Dictionary, status: OperationalStatus
     return dictionary.staff.detail.correctionStatuses.foundAlive;
   }
   return dictionary.staff.detail.correctionStatuses.confirmedDeceased;
-}
-
-function getOperationalStatusClassName(status: OperationalStatus) {
-  if (status === "unassigned") {
-    return "status-pill status-pill-warning";
-  }
-  if (status === "in_progress") {
-    return "status-pill status-pill-alert";
-  }
-  return "status-pill";
 }

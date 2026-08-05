@@ -310,6 +310,34 @@ export interface StaffReportListItem {
   attachments: StaffAttachment[];
 }
 
+export interface StaffReportTriageAction {
+  id: number;
+  report_id: number;
+  actor_user_id: number | null;
+  action_type:
+    | "create_case"
+    | "link_existing_case"
+    | "mark_out_of_scope"
+    | "mark_invalid_or_insufficient"
+    | "note";
+  from_status: ReportTriageStatus | null;
+  to_status: ReportTriageStatus | null;
+  case_id: number | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface StaffReportDetailResponse extends StaffReportListItem {
+  raw_answers_json: Record<string, unknown> | null;
+  original_narrative: string;
+  reporter_name: string | null;
+  reporter_email: string | null;
+  reporter_phone: string | null;
+  media_refs_json: Array<Record<string, unknown>> | null;
+  voice_intake_id: number | null;
+  triage_actions: StaffReportTriageAction[];
+}
+
 export interface PublicAttachmentUploadItem {
   id: number;
   original_filename: string | null;
@@ -335,6 +363,18 @@ export interface StaffCaseOutcomeRequest {
 export interface StaffCaseOperationalStatusRequest {
   target_status: OperationalStatus;
   note?: string | null;
+}
+
+export interface StaffCaseMergeDuplicatesRequest {
+  duplicate_case_ids: number[];
+  note?: string | null;
+}
+
+export interface StaffCaseMergeDuplicatesResponse {
+  primary_case_id: number;
+  merged_case_ids: number[];
+  note: string | null;
+  created_at: string;
 }
 
 export interface StaffCaseDetailResponse extends StaffCaseListItem {

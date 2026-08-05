@@ -6,6 +6,9 @@ import type {
   PublicBoardResponse,
   StaffIncidentSummary,
   StaffReportInboxResponse,
+  StaffReportDetailResponse,
+  StaffCaseMergeDuplicatesRequest,
+  StaffCaseMergeDuplicatesResponse,
   StaffCaseOperationalStatusRequest,
   StaffCaseOutcomeRequest,
   StaffCaseIntakeReviewResponse,
@@ -154,9 +157,27 @@ export function getStaffIncidents(accessToken: string) {
   });
 }
 
+export function importStaffIncidentIntakeSource(
+  accessToken: string,
+  incidentId: number,
+  sourceId: number,
+) {
+  return apiFetch(`/staff/incidents/${incidentId}/intake-sources/${sourceId}/import`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({}),
+  });
+}
+
 export function getStaffReports(accessToken: string, incidentId?: number | null) {
   const query = incidentId ? `?incident_id=${encodeURIComponent(String(incidentId))}` : "";
   return apiFetch<StaffReportInboxResponse>(`/staff/reports${query}`, {
+    headers: buildBearerHeaders(accessToken),
+  });
+}
+
+export function getStaffReportDetail(accessToken: string, reportId: number) {
+  return apiFetch<StaffReportDetailResponse>(`/staff/reports/${reportId}`, {
     headers: buildBearerHeaders(accessToken),
   });
 }
@@ -306,6 +327,18 @@ export function relateStaffCase(
   payload: StaffCaseRelationRequest,
 ) {
   return apiFetch<StaffCaseRelationResponse>(`/staff/cases/${caseId}/relations`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function mergeStaffDuplicateCases(
+  accessToken: string,
+  caseId: number,
+  payload: StaffCaseMergeDuplicatesRequest,
+) {
+  return apiFetch<StaffCaseMergeDuplicatesResponse>(`/staff/cases/${caseId}/merge-duplicates`, {
     method: "POST",
     headers: buildBearerHeaders(accessToken),
     body: JSON.stringify(payload),

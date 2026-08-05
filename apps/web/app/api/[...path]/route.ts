@@ -38,6 +38,7 @@ const allowedRoutes = [
   { method: "POST", pattern: /^staff\/cases\/\d+\/actions$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/publish$/ },
   { method: "POST", pattern: /^staff\/cases\/\d+\/relations$/ },
+  { method: "POST", pattern: /^staff\/cases\/\d+\/merge-duplicates$/ },
   { method: "PATCH", pattern: /^staff\/attachments\/\d+$/ },
   { method: "GET", pattern: /^staff\/attachments\/\d+\/content$/ },
 ] as const;

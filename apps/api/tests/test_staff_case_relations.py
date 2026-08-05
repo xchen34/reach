@@ -79,3 +79,48 @@ def test_staff_can_confirm_duplicate_and_close_the_duplicate_record() -> None:
     assert relation_entries[0]["metadata_json"]["related_case_id"] == related_case["id"]
     assert relation_entries[0]["metadata_json"]["relation_type"] == "confirmed_duplicate"
     assert relation_entries[0]["metadata_json"]["closed_as_duplicate"] is True
+
+
+def test_staff_can_merge_duplicate_cases_and_audit_both_records() -> None:
+    primary_case = _submit_case("Shelter desk", "Need to follow up with David Bowie.")
+    duplicate_case = _submit_case("Temporary shelter near pharmacy", "David Bowie was seen near the pharmacy.")
+    headers = _authenticate_staff()
+
+    merge_response = client.post(
+        f"/staff/cases/{primary_case['id']}/merge-duplicates",
+        headers=headers,
+        json={
+            "duplicate_case_ids": [duplicate_case["id"]],
+            "note": "Same name and same shelter report; keep the shelter desk case primary.",
+        },
+    )
+    assert merge_response.status_code == 200
+    merge_payload = merge_response.json()
+    assert merge_payload["primary_case_id"] == primary_case["id"]
+    assert merge_payload["merged_case_ids"] == [duplicate_case["id"]]
+
+    duplicate_detail_response = client.get(f"/staff/cases/{duplicate_case['id']}", headers=headers)
+    assert duplicate_detail_response.status_code == 200
+    duplicate_detail = duplicate_detail_response.json()
+    assert duplicate_detail["status"] == "closed"
+    assert duplicate_detail["merged_into_case_id"] == primary_case["id"]
+
+    primary_audit_response = client.get(f"/staff/cases/{primary_case['id']}/audit", headers=headers)
+    assert primary_audit_response.status_code == 200
+    primary_merge_entries = [
+        entry
+        for entry in primary_audit_response.json()
+        if entry.get("metadata_json", {}).get("action_type") == "duplicate_merged"
+    ]
+    assert len(primary_merge_entries) == 1
+    assert primary_merge_entries[0]["metadata_json"]["merged_case_ids"] == [duplicate_case["id"]]
+
+    duplicate_audit_response = client.get(f"/staff/cases/{duplicate_case['id']}/audit", headers=headers)
+    assert duplicate_audit_response.status_code == 200
+    duplicate_merge_entries = [
+        entry
+        for entry in duplicate_audit_response.json()
+        if entry.get("metadata_json", {}).get("action_type") == "duplicate_merged"
+    ]
+    assert len(duplicate_merge_entries) == 1
+    assert duplicate_merge_entries[0]["metadata_json"]["primary_case_id"] == primary_case["id"]

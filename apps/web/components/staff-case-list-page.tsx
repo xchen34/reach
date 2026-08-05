@@ -16,6 +16,7 @@ import {
   logoutStaffSession,
   markStaffCaseDeceased,
   markStaffCaseSafe,
+  mergeStaffDuplicateCases,
   returnStaffCaseToUnassigned,
   linkReportToExistingTask,
 } from "@/lib/api";
@@ -33,7 +34,7 @@ import type {
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { buildStaffDashboardData } from "@/lib/staff-dashboard";
 import { mockStaffDashboardCases, mockStaffDashboardSession } from "@/lib/staff-dashboard-mocks";
-import { getReportPrimaryText, selectDefaultIncidentId, summarizeReports } from "@/lib/staff-reports";
+import { getReportPrimaryText, selectDefaultIncidentId } from "@/lib/staff-reports";
 import {
   buildStaffLoginHref,
   clearStaffAccessToken,
@@ -46,6 +47,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { matchesCardSearch } from "@/lib/card-search";
+import { SearchIcon } from "@/components/search-icon";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -68,14 +70,57 @@ type PageState =
 
 const mockDashboardEnabled = process.env.NEXT_PUBLIC_ENABLE_STAFF_DASHBOARD_MOCKS === "true";
 const staffListPageSize = 12;
+const followUpStatusKeys = [
+  "needs_to_be_viewed",
+  "waiting_for_volunteer",
+  "being_followed_up",
+  "found_safe",
+  "found_dead",
+] as const;
+const followUpStatusFilters = ["all", "my_follow_up", ...followUpStatusKeys] as const;
+
+type FollowUpStatusFilter = (typeof followUpStatusFilters)[number];
+type FollowUpStatusKey = (typeof followUpStatusKeys)[number];
+type FollowUpCaseItem = {
+  kind: "case";
+  status: FollowUpStatusKey;
+  searchTerms: Array<string | null | undefined>;
+  updatedAt: string;
+  assignedToCurrentUser: boolean;
+  task: StaffCaseListItem;
+};
+type FollowUpReportItem = {
+  kind: "report";
+  status: FollowUpStatusKey;
+  searchTerms: Array<string | null | undefined>;
+  updatedAt: string;
+  report: StaffReportListItem;
+  candidateCases: StaffCaseListItem[];
+};
+type FollowUpItem = FollowUpCaseItem | FollowUpReportItem;
+type DuplicateGroup = {
+  key: string;
+  label: string;
+  cases: StaffCaseListItem[];
+  reports: StaffReportListItem[];
+};
+
+const followUpStatusSortOrder: Record<FollowUpStatusKey, number> = {
+  needs_to_be_viewed: 0,
+  waiting_for_volunteer: 1,
+  being_followed_up: 2,
+  found_safe: 3,
+  found_dead: 4,
+};
 
 export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps) {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [taskPage, setTaskPage] = useState(1);
-  const [reportPage, setReportPage] = useState(1);
+  const [followUpPage, setFollowUpPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<FollowUpStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showDuplicateReview, setShowDuplicateReview] = useState(false);
   const selectedIncidentIdForEffect = state.status === "ready" ? state.selectedIncidentId : null;
 
   useEffect(() => {
@@ -186,9 +231,8 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   }, [dictionary.staff.cases.errors.network, dictionary.staff.cases.errors.server, locale, router]);
 
   useEffect(() => {
-    setTaskPage(1);
-    setReportPage(1);
-  }, [searchQuery, selectedIncidentIdForEffect]);
+    setFollowUpPage(1);
+  }, [searchQuery, selectedIncidentIdForEffect, statusFilter]);
 
   const dateFormatter = useMemo(
     () =>
@@ -261,13 +305,15 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
       return;
     }
     const accessToken = state.accessToken ?? readStoredStaffAccessToken();
-    const [dashboard, reports] = await Promise.all([
+    const [dashboard, incidents, reports] = await Promise.all([
       withStaffAuthorization(accessToken, getStaffPublishQueue),
+      withStaffAuthorization(accessToken, getStaffIncidents),
       withStaffAuthorization(accessToken, (token) => getStaffReports(token, state.selectedIncidentId)),
     ]);
     setState({
       ...state,
       dashboard,
+      incidents,
       reports,
     });
   }
@@ -305,35 +351,71 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
   }
 
   const dashboard = state.dashboard;
-  const reportSummary = summarizeReports(state.reports.reports);
   const activeIncidents = state.incidents.filter((incident) => incident.status === "active");
   const selectedIncident = state.incidents.find((incident) => incident.id === state.selectedIncidentId) ?? null;
-  const reportsNeedingReview = state.reports.reports.filter((report) => report.triage_status === "awaiting_review");
+  // `status !== "closed"` used to be filtered out here, but mark-deceased sets
+  // status=CLOSED while mark-safe sets SAFE_RESOLVED — so confirmed deaths
+  // vanished from the dashboard and its counters while still being published on
+  // the public board (dashboard said 0 deceased, board showed 5). Every case in
+  // the incident is counted now; the status tiles do the narrowing.
   const taskCases = dashboard.events
     .flatMap((group) => group.related_cases)
-    .filter((task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId);
-  const filteredTaskCases = taskCases.filter((task) =>
-    matchesCardSearch([task.person_label, task.case_code, task.location_summary], searchQuery),
-  );
-  const filteredReportsNeedingReview = reportsNeedingReview.filter((report) =>
-    matchesCardSearch(
-      [
+    .filter(
+      (task) => state.selectedIncidentId === null || task.incident_id === state.selectedIncidentId,
+    );
+  const reportsNeedingReview = state.reports.reports.filter((report) => report.triage_status === "awaiting_review");
+  const myFollowUpCaseCount = taskCases.filter((task) => task.assigned_staff_user?.id === state.session.user.id).length;
+  const followUpSummary = summarizeFollowUpItems(taskCases, reportsNeedingReview);
+  const followUpFilterCounts: Record<FollowUpStatusFilter, number> = {
+    all: followUpSummary.total,
+    my_follow_up: myFollowUpCaseCount,
+    needs_to_be_viewed: followUpSummary.needs_to_be_viewed,
+    waiting_for_volunteer: followUpSummary.waiting_for_volunteer,
+    being_followed_up: followUpSummary.being_followed_up,
+    found_safe: followUpSummary.found_safe,
+    found_dead: followUpSummary.found_dead,
+  };
+  const followUpItems: FollowUpItem[] = [
+    ...reportsNeedingReview.map((report) => ({
+      kind: "report" as const,
+      status: "needs_to_be_viewed" as const,
+      searchTerms: [
         report.person_name,
         report.report_code,
         report.linked_case?.case_code,
         report.location_text,
         report.original_narrative_preview,
       ],
-      searchQuery,
-    ),
-  );
-  const taskSummary = summarizeTasks(taskCases);
-  const taskPageCount = getPageCount(filteredTaskCases.length, staffListPageSize);
-  const reportPageCount = getPageCount(filteredReportsNeedingReview.length, staffListPageSize);
-  const visibleTaskPage = Math.min(taskPage, taskPageCount);
-  const visibleReportPage = Math.min(reportPage, reportPageCount);
-  const pagedTaskCases = paginateItems(filteredTaskCases, visibleTaskPage, staffListPageSize);
-  const pagedReportsNeedingReview = paginateItems(filteredReportsNeedingReview, visibleReportPage, staffListPageSize);
+      updatedAt: report.submitted_at ?? report.received_at,
+      report,
+      candidateCases: taskCases.filter((item) => item.incident_id === report.incident_id),
+    })),
+    ...taskCases.map((task) => ({
+      kind: "case" as const,
+      status: getTaskFollowUpStatus(task),
+      searchTerms: [task.person_label, task.case_code, task.location_summary, task.needs_summary, task.reporter_phone],
+      updatedAt: task.platform_last_updated_at ?? task.updated_at,
+      assignedToCurrentUser: task.assigned_staff_user?.id === state.session.user.id,
+      task,
+    })),
+  ].sort(compareFollowUpItems);
+  const duplicateGroups = buildDuplicateGroups(followUpItems);
+  const searchedFollowUpItems = searchQuery
+    ? followUpItems.filter((item) => matchesCardSearch(item.searchTerms, searchQuery))
+    : null;
+  const filteredFollowUpItems = followUpItems.filter((item) => {
+    if (statusFilter === "all") {
+      return true;
+    }
+    if (statusFilter === "my_follow_up") {
+      return item.kind === "case" && item.assignedToCurrentUser;
+    }
+    return item.status === statusFilter;
+  });
+  const visibleFollowUpItems = searchedFollowUpItems ?? filteredFollowUpItems;
+  const followUpPageCount = getPageCount(visibleFollowUpItems.length, staffListPageSize);
+  const visibleFollowUpPage = Math.min(followUpPage, followUpPageCount);
+  const pagedFollowUpItems = paginateItems(visibleFollowUpItems, visibleFollowUpPage, staffListPageSize);
 
   return (
     <AppShell
@@ -356,66 +438,18 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
         <div className="staff-toolbar">
           <div>
             <h1 className="headline headline-compact staff-headline">{dictionary.staff.cases.taskBoardTitle}</h1>
-            <p className="lede emergency-lede">
-              {dictionary.staff.cases.taskBoardDescription}
-            </p>
+            <p className="lede emergency-lede">{dictionary.staff.cases.taskBoardDescription}</p>
           </div>
-          <label className="field-label compact-copy staff-search">
-            {dictionary.staff.cases.searchLabel}
-            <input
-              className="input-field"
-              type="search"
-              value={searchQuery}
-              placeholder={dictionary.staff.cases.searchPlaceholder}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <section className="staff-dashboard-source" aria-labelledby="staff-dashboard-source-title">
-          <p className="field-hint compact-copy" id="staff-dashboard-source-title">
-            {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
-            {dictionary.staff.cases.operationalStatuses.unassigned}: {taskSummary.unassigned} ·{" "}
-            {dictionary.staff.cases.operationalStatuses.inProgress}: {taskSummary.inProgress} ·{" "}
-            {dictionary.staff.cases.operationalStatuses.personFoundAlive}: {taskSummary.foundAlive} ·{" "}
-            {dictionary.staff.cases.operationalStatuses.personConfirmedDeceased}: {taskSummary.confirmedDeceased} ·{" "}
-            {dictionary.staff.cases.reportsLabel}: {reportSummary.total} ·{" "}
-            {dictionary.staff.cases.lastUpdatedLabel}{" "}
-            {dashboard.summary.last_updated_at
-              ? dateFormatter.format(new Date(dashboard.summary.last_updated_at))
-              : dictionary.staff.cases.lastUpdatedFallback}
-          </p>
-        </section>
-
-        <section className="detail-card staff-guide-panel" aria-labelledby="staff-action-guide-title">
-          <h2 className="section-title" id="staff-action-guide-title">
-            {dictionary.staff.cases.actionGuideTitle}
-          </h2>
-          <ol className="staff-guide-list">
-            {dictionary.staff.cases.actionGuideSteps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="staff-case-list" aria-labelledby="staff-task-list-title">
-          <div className="staff-section-header">
-            <div>
-              <h2 className="section-title" id="staff-task-list-title">
-                {dictionary.staff.cases.taskListTitle}
-              </h2>
-              <p className="field-hint compact-copy">
-                {dictionary.staff.cases.taskListDescription}
-              </p>
-            </div>
+          <div className="staff-toolbar-controls">
             {state.mode === "live" && activeIncidents.length > 1 ? (
               <label className="field-label compact-copy staff-event-filter">
                 {dictionary.staff.cases.currentEventLabel}
                 <select
                   className="input-field"
-                  value={state.selectedIncidentId ?? ""}
+                  value={state.selectedIncidentId === null ? "all" : String(state.selectedIncidentId)}
                   onChange={(event) => void handleIncidentChange(event.target.value)}
                 >
+                  <option value="all">{dictionary.staff.cases.allIncidentsLabel}</option>
                   {activeIncidents.map((incident) => (
                     <option key={incident.id} value={incident.id}>
                       {incident.public_name}
@@ -429,86 +463,416 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               </p>
             ) : null}
           </div>
+        </div>
 
-          {taskCases.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.noHelpRequestsYet}</p>
-          ) : filteredTaskCases.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.searchEmpty}</p>
-          ) : (
-            <>
-              <div className="staff-case-stack">
-                {pagedTaskCases.map((task) => (
-                  <TaskCard
-                    accessToken={state.accessToken}
-                    dateFormatter={dateFormatter}
-                    key={task.id}
-                    locale={locale}
-                    dictionary={dictionary}
-                    onReload={() => void reloadWorkspace()}
-                    currentUserId={state.session.user.id}
-                    sessionRole={state.session.user.role}
-                    task={task}
-                  />
-                ))}
-              </div>
-              <PaginationControls
-                currentPage={visibleTaskPage}
-                labels={dictionary.staff.cases.pagination}
-                pageSize={staffListPageSize}
-                totalItems={filteredTaskCases.length}
-                onPageChange={setTaskPage}
-              />
-            </>
-          )}
+        <section className="detail-card staff-guide-panel" aria-labelledby="staff-action-guide-title">
+          <h2 className="section-title" id="staff-action-guide-title">
+            {dictionary.staff.cases.actionGuideTitle}
+          </h2>
+          <ol className="staff-guide-list">
+            {dictionary.staff.cases.actionGuideSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
         </section>
 
-        <section className="staff-case-list staff-secondary-section" aria-labelledby="staff-report-list-title">
+        <section className="detail-card staff-overview-panel" aria-labelledby="staff-overview-title">
+          <div className="staff-section-header staff-overview-header">
+            <div>
+              <h2 className="section-title" id="staff-overview-title">
+                {dictionary.staff.cases.followUpOverviewTitle}
+              </h2>
+              <p className="field-hint compact-copy">{dictionary.staff.cases.followUpOverviewDescription}</p>
+            </div>
+            <p className="field-hint compact-copy staff-overview-meta">
+              {state.session.user.email} · {dictionary.staff.roleLabels[state.session.user.role]} ·{" "}
+              {dashboard.summary.last_updated_at
+                ? `${dictionary.staff.cases.lastUpdatedLabel} ${dateFormatter.format(new Date(dashboard.summary.last_updated_at))}`
+                : dictionary.staff.cases.lastUpdatedFallback}
+            </p>
+          </div>
+          <div className="staff-stat-grid" role="listbox" aria-label={dictionary.staff.cases.followUpOverviewTitle}>
+            {followUpStatusFilters.map((filter) => (
+              <button
+                className="staff-stat-card"
+                aria-selected={statusFilter === filter}
+                data-active={statusFilter === filter}
+                data-tone={isFollowUpStatusKey(filter) ? filter : undefined}
+                key={filter}
+                role="option"
+                type="button"
+                onClick={() => setStatusFilter(filter)}
+              >
+                <span>{followUpFilterLabel(dictionary, filter)}</span>
+                <strong>{followUpFilterCounts[filter]}</strong>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="staff-case-list staff-secondary-section" aria-labelledby="staff-follow-up-title">
           <div className="staff-section-header">
             <div>
-              <h2 className="section-title" id="staff-report-list-title">
-                {dictionary.staff.cases.incomingReportsTitle}
+              <h2 className="section-title" id="staff-follow-up-title">
+                {dictionary.staff.cases.followUpListTitle}
               </h2>
-              <p className="field-hint compact-copy">
-                {dictionary.staff.cases.needsReviewLabel}: {reportSummary.untriaged} ·{" "}
-                {dictionary.staff.cases.addedToHelpListLabel}: {reportSummary.linkedNew} ·{" "}
-                {dictionary.staff.cases.combinedLabel}: {reportSummary.linkedExisting} ·{" "}
-                {dictionary.staff.cases.noActionNeededLabel}: {reportSummary.rejected}
-              </p>
+              <p className="field-hint compact-copy">{dictionary.staff.cases.followUpListDescription}</p>
             </div>
           </div>
 
-          {reportsNeedingReview.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.noReportsMatchFilter}</p>
-          ) : filteredReportsNeedingReview.length === 0 ? (
-            <p className="support-copy">{dictionary.staff.cases.searchEmpty}</p>
+          <DuplicateReviewPanel
+            accessToken={state.accessToken}
+            dictionary={dictionary}
+            duplicateGroups={duplicateGroups}
+            isOpen={showDuplicateReview}
+            onReload={() => void reloadWorkspace()}
+            onToggle={() => setShowDuplicateReview((value) => !value)}
+          />
+
+          {/* Directly above the list it filters — it used to sit in the section
+              header, separated from the results by the duplicates panel. */}
+          <div className="staff-search-bar">
+            <label className="staff-search-field">
+              <span className="sr-only">{dictionary.staff.cases.searchLabel}</span>
+              <SearchIcon className="staff-search-icon" />
+              <input
+                className="input-field"
+                type="search"
+                value={searchQuery}
+                placeholder={dictionary.staff.cases.searchPlaceholder}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </label>
+            <p className="staff-search-count">
+              {searchQuery.trim()
+                ? `${visibleFollowUpItems.length} of ${followUpItems.length}`
+                : `${followUpItems.length} cards`}
+            </p>
+          </div>
+
+          {followUpItems.length === 0 ? (
+            <p className="support-copy">{dictionary.staff.cases.noFollowUpItemsYet}</p>
+          ) : visibleFollowUpItems.length === 0 ? (
+            <p className="support-copy">{dictionary.staff.cases.noFollowUpItemsMatchFilter}</p>
           ) : (
             <>
               <div className="staff-case-stack">
-                {pagedReportsNeedingReview.map((report) => (
-                  <ReportCard
-                    accessToken={state.accessToken}
-                    candidateCases={taskCases.filter((item) => item.incident_id === report.incident_id)}
-                    dateFormatter={dateFormatter}
-                    key={report.id}
-                    locale={locale}
-                    dictionary={dictionary}
-                    onReload={() => void reloadWorkspace()}
-                    report={report}
-                  />
-                ))}
+                {pagedFollowUpItems.map((item) =>
+                  item.kind === "case" ? (
+                    <TaskCard
+                      accessToken={state.accessToken}
+                      dateFormatter={dateFormatter}
+                      key={`case-${item.task.id}`}
+                      locale={locale}
+                      dictionary={dictionary}
+                      onReload={() => void reloadWorkspace()}
+                      currentUserId={state.session.user.id}
+                      sessionRole={state.session.user.role}
+                      task={item.task}
+                    />
+                  ) : (
+                    <ReportCard
+                      accessToken={state.accessToken}
+                      candidateCases={item.candidateCases}
+                      dateFormatter={dateFormatter}
+                      key={`report-${item.report.id}`}
+                      locale={locale}
+                      dictionary={dictionary}
+                      onReload={() => void reloadWorkspace()}
+                      report={item.report}
+                    />
+                  ),
+                )}
               </div>
               <PaginationControls
-                currentPage={visibleReportPage}
+                currentPage={visibleFollowUpPage}
                 labels={dictionary.staff.cases.pagination}
                 pageSize={staffListPageSize}
-                totalItems={filteredReportsNeedingReview.length}
-                onPageChange={setReportPage}
+                totalItems={visibleFollowUpItems.length}
+                onPageChange={setFollowUpPage}
               />
             </>
           )}
         </section>
       </div>
     </AppShell>
+  );
+}
+
+function DuplicateReviewPanel({
+  accessToken,
+  dictionary,
+  duplicateGroups,
+  isOpen,
+  onReload,
+  onToggle,
+}: {
+  accessToken: string | null;
+  dictionary: Dictionary;
+  duplicateGroups: DuplicateGroup[];
+  isOpen: boolean;
+  onReload: () => void;
+  onToggle: () => void;
+}) {
+  const [primaryByGroup, setPrimaryByGroup] = useState<Record<string, number>>({});
+  const [submittingGroup, setSubmittingGroup] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Pagination state for duplicate groups
+  const [dupPage, setDupPage] = useState(1);
+  const dupPageSize = 3; // Keep it compact and paginated!
+
+  // Reset pagination if the groups change
+  useEffect(() => {
+    setDupPage(1);
+  }, [duplicateGroups.length]);
+
+  async function handleMergeGroup(group: DuplicateGroup) {
+    if (!accessToken || submittingGroup) {
+      return;
+    }
+    const primaryCase = group.cases.find((item) => item.id === primaryByGroup[group.key]) ?? group.cases[0];
+    if (!primaryCase) {
+      return;
+    }
+    const duplicateCaseIds = group.cases.filter((item) => item.id !== primaryCase.id).map((item) => item.id);
+    setSubmittingGroup(group.key);
+    setError(null);
+    setMessage(null);
+    try {
+      const note = `Merged same-name duplicate group "${group.label}" into ${primaryCase.case_code}.`;
+      if (duplicateCaseIds.length > 0) {
+        await mergeStaffDuplicateCases(accessToken, primaryCase.id, {
+          duplicate_case_ids: duplicateCaseIds,
+          note,
+        });
+      }
+      for (const report of group.reports) {
+        await linkReportToExistingTask(accessToken, report.id, primaryCase.id);
+      }
+      setMessage(dictionary.staff.cases.duplicateMergeSuccess);
+      onReload();
+    } catch (error) {
+      setError(error instanceof ApiError ? error.message : dictionary.staff.cases.duplicateMergeError);
+    } finally {
+      setSubmittingGroup(null);
+    }
+  }
+
+  const totalGroups = duplicateGroups.length;
+  const pagedDuplicateGroups = duplicateGroups.slice(
+    (dupPage - 1) * dupPageSize,
+    dupPage * dupPageSize
+  );
+
+  return (
+    <section className="detail-card staff-duplicate-review" aria-labelledby="staff-duplicate-review-title">
+      <div className="staff-section-header staff-duplicate-review-header">
+        <div>
+          <h3 className="section-title" id="staff-duplicate-review-title">
+            {dictionary.staff.cases.duplicateReviewTitle}
+          </h3>
+          <p className="field-hint compact-copy">{dictionary.staff.cases.duplicateReviewDescription}</p>
+        </div>
+        <button
+          className="button-secondary"
+          type="button"
+          onClick={onToggle}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+        >
+          {dictionary.staff.cases.findDuplicatesAction}
+          {duplicateGroups.length > 0 ? (
+            <span
+              className="status-pill status-pill-warning animate-pulse"
+              style={{
+                padding: "0.15rem 0.45rem",
+                borderRadius: "1rem",
+                fontSize: "0.75rem",
+                fontWeight: "bold",
+                background: "#f59e0b",
+                color: "#1e1b4b",
+              }}
+            >
+              {duplicateGroups.length}
+            </span>
+          ) : null}
+        </button>
+      </div>
+      {message ? <p className="success-banner compact-copy">{message}</p> : null}
+      {error ? (
+        <p className="error-banner compact-copy" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {isOpen ? (
+        duplicateGroups.length === 0 ? (
+          <p className="support-copy compact-copy">{dictionary.staff.cases.duplicateReviewEmpty}</p>
+        ) : (
+          <>
+            <div className="staff-duplicate-scroll-container" style={{ maxHeight: "520px", overflowY: "auto", display: "grid", gap: "1.25rem", paddingRight: "0.5rem" }}>
+              {pagedDuplicateGroups.map((group) => {
+                const primaryCaseId = primaryByGroup[group.key] ?? group.cases[0]?.id;
+                return (
+                  <article className="staff-duplicate-group" key={group.key}>
+                    
+                    {/* Left Column: Comparison Area */}
+                    <div className="staff-duplicate-compare-pane">
+                      <div className="staff-duplicate-compare-header">
+                        <strong>{group.label}</strong>
+                        <span className="field-hint compact-copy">
+                          ({group.cases.length} case{group.cases.length === 1 ? "" : "s"} · {group.reports.length} report{group.reports.length === 1 ? "" : "s"})
+                        </span>
+                      </div>
+                      <div className="staff-duplicate-compare-list">
+                        {/* Render cases */}
+                        {group.cases.map((candidate) => (
+                          <div key={`case-${candidate.id}`} className="staff-duplicate-compare-card" data-type="case">
+                            <div className="staff-duplicate-card-header">
+                              <span className="staff-duplicate-card-code">{candidate.case_code}</span>
+                              <span className="staff-status-badge" data-status={candidate.operational_status ?? "unassigned"}>
+                                <span className="status-dot" />
+                                {operationalStatusLabel(dictionary, candidate.operational_status ?? "unassigned")}
+                              </span>
+                            </div>
+                            <div className="staff-duplicate-card-body">
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Location:</span>
+                                <span className="attribute-value">{candidate.location_summary || "Not provided"}</span>
+                              </div>
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Details:</span>
+                                <span className="attribute-value staff-clamped-val">{candidate.needs_summary || "No description"}</span>
+                              </div>
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Updated:</span>
+                                <span className="attribute-value">{candidate.updated_at ? new Date(candidate.updated_at).toLocaleDateString() : "Unknown"}</span>
+                              </div>
+
+                              {/* Direct Primary Selector */}
+                              <div style={{ marginTop: "0.75rem", borderTop: "1px solid rgba(255, 255, 255, 0.06)", paddingTop: "0.5rem", display: "flex", justifyContent: "flex-end" }}>
+                                {primaryCaseId === candidate.id ? (
+                                  <span className="status-pill status-pill-success" style={{ fontSize: "0.75rem", fontWeight: "bold", padding: "0.2rem 0.5rem", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#10b981", borderRadius: "0.25rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                    <span style={{ width: "6px", height: "6px", background: "#10b981", borderRadius: "50%" }} />
+                                    Primary Case
+                                  </span>
+                                ) : (
+                                  <button
+                                    className="button-secondary"
+                                    type="button"
+                                    style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem", lineHeight: "1" }}
+                                    onClick={() => {
+                                      setPrimaryByGroup((current) => ({
+                                        ...current,
+                                        [group.key]: candidate.id,
+                                      }));
+                                    }}
+                                  >
+                                    Set as Primary
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {/* Render reports */}
+                        {group.reports.map((report) => (
+                          <div key={`report-${report.id}`} className="staff-duplicate-compare-card" data-type="report">
+                            <div className="staff-duplicate-card-header">
+                              <span className="staff-duplicate-card-code">{report.report_code}</span>
+                              <span className="staff-status-badge" data-status="needs_to_be_viewed">
+                                <span className="status-dot" />
+                                Need to be viewed
+                              </span>
+                            </div>
+                            <div className="staff-duplicate-card-body">
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Location:</span>
+                                <span className="attribute-value">{report.location_text || "Not provided"}</span>
+                              </div>
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Details:</span>
+                                <span className="attribute-value staff-clamped-val">{report.original_narrative_preview || "No description"}</span>
+                              </div>
+                              <div className="staff-attribute-row">
+                                <span className="attribute-label">Source:</span>
+                                <span className="attribute-value">{report.source_label || "Form Ingest"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Right Column: Decision Area */}
+                    <div className="staff-duplicate-decision-pane">
+                      {group.cases.length > 0 ? (
+                        <div className="staff-decision-box">
+                          <p className="field-hint compact-copy" style={{ marginBottom: "1rem", textAlign: "center" }}>
+                            Merging into: <strong style={{ color: "#fff" }}>{group.cases.find(c => c.id === primaryCaseId)?.case_code || group.cases[0]?.case_code}</strong>
+                          </p>
+                          <button
+                            className="button-primary staff-merge-btn"
+                            disabled={submittingGroup === group.key}
+                            type="button"
+                            onClick={() => void handleMergeGroup(group)}
+                          >
+                            {submittingGroup === group.key
+                              ? dictionary.staff.cases.noteSaving
+                              : dictionary.staff.cases.mergeDuplicateGroupAction}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="staff-duplicate-dashed-box">
+                          <p className="field-hint compact-copy" style={{ marginBottom: "0.75rem", textAlign: "center" }}>
+                            No active cases found. Convert a report to start:
+                          </p>
+                          <div style={{ display: "grid", gap: "0.5rem", width: "100%" }}>
+                            {group.reports.map((report) => (
+                              <button
+                                key={report.id}
+                                className="button-secondary staff-create-case-btn"
+                                type="button"
+                                disabled={submittingGroup === group.key}
+                                onClick={async () => {
+                                  if (!accessToken) return;
+                                  setSubmittingGroup(group.key);
+                                  try {
+                                    await createFollowUpTaskFromReport(accessToken, report.id);
+                                    onReload();
+                                  } catch {
+                                    setError(dictionary.staff.cases.duplicateMergeError);
+                                  } finally {
+                                    setSubmittingGroup(null);
+                                  }
+                                }}
+                              >
+                                Create Case from {report.report_code}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            {totalGroups > dupPageSize && (
+              <div style={{ marginTop: "1rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+                <PaginationControls
+                  currentPage={dupPage}
+                  labels={dictionary.staff.cases.pagination}
+                  pageSize={dupPageSize}
+                  totalItems={totalGroups}
+                  onPageChange={setDupPage}
+                />
+              </div>
+            )}
+          </>
+        )
+      ) : null}
+    </section>
   );
 }
 
@@ -529,14 +893,25 @@ function ReportCard({
   onReload: () => void;
   report: StaffReportListItem;
 }) {
-  const [selectedCaseId, setSelectedCaseId] = useState(candidateCases[0]?.id ?? null);
+  const [candidateSearch, setCandidateSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isMergeOpen, setIsMergeOpen] = useState(false);
   const [noteBadge, setNoteBadge] = useState<string | null>(null);
   const primaryText = getReportPrimaryText(report);
   const submittedAt = report.submitted_at ?? report.received_at;
   const isOpen = report.triage_status === "awaiting_review";
+  const reportFollowUpStatus = getReportFollowUpStatus(report);
   const linkedTaskStatus = report.linked_case?.operational_status;
+  const trimmedCandidateSearch = candidateSearch.trim();
+  const searchableCandidateCases = trimmedCandidateSearch
+    ? candidateCases.filter((task) =>
+        matchesCardSearch(
+          [task.person_label, task.case_code, task.location_summary, task.needs_summary, task.reporter_phone],
+          trimmedCandidateSearch,
+        ),
+      )
+    : [];
+  const bestCandidateCase = searchableCandidateCases[0] ?? null;
 
   async function runAction(action: () => Promise<unknown>) {
     if (!accessToken || isSubmitting) {
@@ -567,40 +942,45 @@ function ReportCard({
   return (
     <article className="detail-card staff-event-card staff-compact-card">
       <div className="staff-compact-main">
-        <StaffAttachmentThumbnail accessToken={accessToken} attachment={report.attachments[0]} />
+        <StaffCardAvatar
+          accessToken={accessToken}
+          attachment={report.attachments[0]}
+          fallbackLabel={report.person_name ?? report.report_code}
+        />
         <div className="staff-compact-content">
           <div className="staff-compact-top-row">
-            <h3 className="staff-compact-title">{primaryText.personName}</h3>
+            <span className={getFollowUpStatusClassName(reportFollowUpStatus)}>
+              {followUpStatusLabel(dictionary, reportFollowUpStatus)}
+            </span>
             {report.subject_type === "person" || report.subject_type === "pet" ? (
               <span className="status-pill status-pill-neutral">{subjectTypeLabel(dictionary, report.subject_type)}</span>
             ) : null}
+            <h3 className="staff-compact-title">{primaryText.personName}</h3>
             {linkedTaskStatus ? (
               <span className={getOperationalStatusClassName(linkedTaskStatus)}>
-                {operationalStatusLabel(dictionary, linkedTaskStatus, report.linked_case?.subject_type ?? report.subject_type)}
+                {operationalStatusLabel(dictionary, linkedTaskStatus)}
               </span>
             ) : null}
             {noteBadge ? <NoteBadge dictionary={dictionary} note={noteBadge} /> : null}
           </div>
+          {report.linked_case ? (
+            <p className="field-hint compact-copy staff-compact-meta">
+              {dictionary.staff.cases.linkedCaseLabel}: {report.linked_case.case_code} ·{" "}
+              {operationalStatusLabel(dictionary, report.linked_case.operational_status)}
+            </p>
+          ) : null}
           <p className="field-hint compact-copy staff-compact-meta">
             {report.location_text}
           </p>
           <p className="field-hint compact-copy staff-compact-meta">{primaryText.ageGender}</p>
           <p className="support-copy compact-copy staff-clamped-copy">{primaryText.submissionType}</p>
-          {isDetailsOpen ? (
-            <div className="info-banner staff-report-details">
-              <p className="compact-copy">{primaryText.currentStatus}</p>
-              <p className="field-hint compact-copy">
-                {dictionary.staff.cases.reportTimeLabel}: {dateFormatter.format(new Date(submittedAt))}
-              </p>
-            </div>
-          ) : null}
         </div>
       </div>
       {isOpen ? (
         <div className="button-row staff-compact-actions">
-          <button className="button-secondary" type="button" onClick={() => setIsDetailsOpen((value) => !value)}>
+          <Link className="button-secondary staff-link-button" href={`/staff/reports/${report.id}`}>
             {dictionary.staff.cases.viewReportAction}
-          </button>
+          </Link>
           <button
             className="button-primary"
             disabled={isSubmitting}
@@ -610,31 +990,18 @@ function ReportCard({
             {dictionary.staff.cases.addToHelpListAction}
           </button>
           {candidateCases.length > 0 ? (
-            <>
-              <select
-                className="input-field"
-                value={selectedCaseId ?? ""}
-                onChange={(event) => setSelectedCaseId(Number(event.target.value))}
-              >
-                {candidateCases.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.person_label || task.location_summary}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="button-secondary"
-                disabled={isSubmitting || selectedCaseId === null}
-                type="button"
-                onClick={() =>
-                  void runAction(() =>
-                    linkReportToExistingTask(accessToken ?? "", report.id, selectedCaseId ?? 0),
-                  )
-                }
-              >
-                {dictionary.staff.cases.combineReportsAction}
-              </button>
-            </>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => setIsMergeOpen((value) => !value)}
+            >
+              {dictionary.staff.cases.combineReportsAction}
+            </button>
+          ) : null}
+          {report.linked_case ? (
+            <Link className="button-primary staff-link-button" href={`/staff/cases/${report.linked_case.id}`}>
+              {dictionary.staff.cases.openCombinedCaseAction}
+            </Link>
           ) : null}
           <InlineNoteEditor
             currentNote={noteBadge}
@@ -642,11 +1009,55 @@ function ReportCard({
             disabled={isSubmitting || !accessToken}
             onSave={handleSaveReportNote}
           />
+          {isMergeOpen && candidateCases.length > 0 ? (
+            <div className="staff-merge-panel">
+              <label className="field-label compact-copy staff-merge-search">
+                {dictionary.staff.cases.mergeSearchLabel}
+                <input
+                  className="input-field"
+                  type="search"
+                  value={candidateSearch}
+                  placeholder={dictionary.staff.cases.mergeSearchPlaceholder}
+                  onChange={(event) => setCandidateSearch(event.target.value)}
+                />
+              </label>
+              {!trimmedCandidateSearch ? null : bestCandidateCase ? (
+                <div className="staff-merge-candidate">
+                  <div>
+                    <strong>{bestCandidateCase.person_label || bestCandidateCase.location_summary}</strong>
+                    <span>
+                      {bestCandidateCase.case_code}
+                      {bestCandidateCase.last_known_location || bestCandidateCase.location_summary
+                        ? ` · ${bestCandidateCase.last_known_location || bestCandidateCase.location_summary}`
+                        : ""}
+                    </span>
+                  </div>
+                  <button
+                    className="button-secondary"
+                    disabled={isSubmitting}
+                    type="button"
+                    onClick={() =>
+                      void runAction(() =>
+                        linkReportToExistingTask(accessToken ?? "", report.id, bestCandidateCase.id),
+                      )
+                    }
+                  >
+                    {dictionary.staff.cases.combineReportsAction}
+                  </button>
+                </div>
+              ) : (
+                <p className="field-hint compact-copy">{dictionary.staff.cases.mergeSearchEmpty}</p>
+              )}
+            </div>
+          ) : null}
         </div>
       ) : report.linked_case ? (
         <div className="button-row staff-compact-actions">
+          <Link className="button-secondary staff-link-button" href={`/staff/reports/${report.id}`}>
+            {dictionary.staff.cases.viewReportAction}
+          </Link>
           <Link className="button-primary staff-link-button" href={`/staff/cases/${report.linked_case.id}`}>
-            {dictionary.staff.cases.openTaskAction}
+            {dictionary.staff.cases.openCombinedCaseAction}
           </Link>
         </div>
       ) : null}
@@ -679,7 +1090,9 @@ function TaskCard({
   const isAssignedToCurrentUser = task.assigned_staff_user?.id === currentUserId;
   const canClaim = !task.assigned_staff_user && !isFinal;
   const canCoordinatorReassign = sessionRole === "coordinator" && Boolean(task.assigned_staff_user) && !isFinal;
-  const canResolve = (isAssignedToCurrentUser || sessionRole === "coordinator") && Boolean(task.assigned_staff_user) && !isFinal;
+  // Same rule as the case detail page: only the assigned reviewer records an
+  // outcome. Otherwise the list would be a way around that rule.
+  const canResolve = isAssignedToCurrentUser && !isFinal;
 
   async function runAction(action: () => Promise<unknown>) {
     if (!accessToken || isSubmitting) {
@@ -713,11 +1126,15 @@ function TaskCard({
   return (
     <article className="detail-card staff-event-card staff-compact-card">
       <div className="staff-compact-main">
-        <StaffAttachmentThumbnail accessToken={accessToken} attachment={task.attachments?.[0]} />
+        <StaffCardAvatar
+          accessToken={accessToken}
+          attachment={task.attachments?.[0]}
+          fallbackLabel={task.person_label ?? task.case_code}
+        />
         <div className="staff-compact-content">
           <div className="staff-compact-top-row">
             <span className={getOperationalStatusClassName(task.operational_status ?? "unassigned")}>
-              {operationalStatusLabel(dictionary, task.operational_status ?? "unassigned", task.subject_type ?? "unknown")}
+              {operationalStatusLabel(dictionary, task.operational_status ?? "unassigned")}
             </span>
             {task.subject_type === "person" || task.subject_type === "pet" ? (
               <span className="status-pill status-pill-neutral">
@@ -760,12 +1177,18 @@ function TaskCard({
               className="button-primary"
               disabled={isSubmitting}
               type="button"
-              onClick={() => void runAction(() => markStaffCaseSafe(accessToken ?? "", task.id, {}))}
+              onClick={() => {
+                // Closing a case as safe also publishes to the public board, so it
+                // gets the same confirmation step as confirming a death.
+                if (window.confirm(dictionary.staff.detail.confirmSafePrompt)) {
+                  void runAction(() => markStaffCaseSafe(accessToken ?? "", task.id, {}));
+                }
+              }}
             >
               {dictionary.staff.cases.foundSafeAction}
             </button>
             <button
-              className="button-secondary"
+              className="button-danger"
               disabled={isSubmitting}
               type="button"
               onClick={() => {
@@ -899,54 +1322,179 @@ function redirectToLogin(
   router.replace(buildStaffLoginHref(reason));
 }
 
+function getTaskFollowUpStatus(task: StaffCaseListItem): FollowUpStatusKey {
+  const status = task.operational_status ?? "unassigned";
+  if (status === "in_progress") {
+    return "being_followed_up";
+  }
+  if (status === "found_alive") {
+    return "found_safe";
+  }
+  if (status === "confirmed_deceased") {
+    return "found_dead";
+  }
+  return "waiting_for_volunteer";
+}
+
+function getReportFollowUpStatus(report: StaffReportListItem): FollowUpStatusKey {
+  if (report.triage_status === "awaiting_review") {
+    return "needs_to_be_viewed";
+  }
+  return "waiting_for_volunteer";
+}
+
+function followUpStatusLabel(dictionary: Dictionary, status: FollowUpStatusKey) {
+  return dictionary.staff.cases.followUpStatusFilters[status];
+}
+
+function followUpFilterLabel(dictionary: Dictionary, filter: FollowUpStatusFilter) {
+  if (filter === "my_follow_up") {
+    return dictionary.staff.cases.myFollowUpTitle;
+  }
+  if (filter === "all") {
+    return dictionary.staff.cases.followUpStatusFilters.all;
+  }
+  return followUpStatusLabel(dictionary, filter);
+}
+
+function isFollowUpStatusKey(filter: FollowUpStatusFilter): filter is FollowUpStatusKey {
+  return filter !== "all" && filter !== "my_follow_up";
+}
+
+function buildDuplicateGroups(items: FollowUpItem[]): DuplicateGroup[] {
+  const groups = new Map<string, DuplicateGroup>();
+
+  for (const item of items) {
+    const label = item.kind === "case" ? item.task.person_label : item.report.person_name;
+    const normalized = normalizeDuplicateName(label);
+    if (!normalized) {
+      continue;
+    }
+    const group = groups.get(normalized) ?? { key: normalized, label: label?.trim() ?? normalized, cases: [], reports: [] };
+    if (item.kind === "case") {
+      group.cases.push(item.task);
+    } else {
+      group.reports.push(item.report);
+    }
+    groups.set(normalized, group);
+  }
+
+  return Array.from(groups.values())
+    .filter((group) => group.cases.length + group.reports.length > 1)
+    .sort((left, right) => right.cases.length + right.reports.length - (left.cases.length + left.reports.length));
+}
+
+function normalizeDuplicateName(value: string | null | undefined) {
+  const normalized = value
+    ?.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized && normalized.length >= 2 ? normalized : null;
+}
+
+function getFollowUpStatusClassName(status: FollowUpStatusKey) {
+  if (status === "waiting_for_volunteer") {
+    return "status-pill status-pill-purple";
+  }
+  if (status === "being_followed_up") {
+    return "status-pill status-pill-warning";
+  }
+  if (status === "found_safe") {
+    return "status-pill status-pill-success";
+  }
+  if (status === "found_dead") {
+    return "status-pill status-pill-alert";
+  }
+  return "status-pill status-pill-info";
+}
+
 function operationalStatusLabel(
   dictionary: Dictionary,
   status: OperationalStatus,
-  subjectType: SubjectType,
 ) {
   if (status === "unassigned") {
-    return dictionary.staff.cases.operationalStatuses.unassigned;
+    return dictionary.staff.cases.followUpStatusFilters.waiting_for_volunteer;
   }
   if (status === "in_progress") {
-    return dictionary.staff.cases.operationalStatuses.inProgress;
+    return dictionary.staff.cases.followUpStatusFilters.being_followed_up;
   }
   if (status === "found_alive") {
-    return subjectType === "pet"
-      ? dictionary.staff.cases.operationalStatuses.petFoundAlive
-      : dictionary.staff.cases.operationalStatuses.personFoundAlive;
+    return dictionary.staff.cases.followUpStatusFilters.found_safe;
   }
-  return subjectType === "pet"
-    ? dictionary.staff.cases.operationalStatuses.petConfirmedDeceased
-    : dictionary.staff.cases.operationalStatuses.personConfirmedDeceased;
+  return dictionary.staff.cases.followUpStatusFilters.found_dead;
 }
 
 function getOperationalStatusClassName(status: OperationalStatus) {
   if (status === "unassigned") {
-    return "status-pill status-pill-warning";
+    return "status-pill status-pill-purple";
   }
   if (status === "in_progress") {
-    return "status-pill status-pill-alert";
+    return "status-pill status-pill-warning";
   }
-  return "status-pill";
+  if (status === "found_alive") {
+    return "status-pill status-pill-success";
+  }
+  return "status-pill status-pill-alert";
 }
 
-function summarizeTasks(tasks: StaffCaseListItem[]) {
-  return tasks.reduce(
-    (summary, task) => {
-      const status = task.operational_status ?? "unassigned";
-      if (status === "unassigned") {
-        summary.unassigned += 1;
-      } else if (status === "in_progress") {
-        summary.inProgress += 1;
-      } else if (status === "found_alive") {
-        summary.foundAlive += 1;
-      } else {
-        summary.confirmedDeceased += 1;
-      }
+function summarizeFollowUpItems(tasks: StaffCaseListItem[], reports: StaffReportListItem[]) {
+  return [...tasks, ...reports].reduce(
+    (summary, item) => {
+      const status = "triage_status" in item ? getReportFollowUpStatus(item) : getTaskFollowUpStatus(item);
+      summary.total += 1;
+      summary[status] += 1;
       return summary;
     },
-    { unassigned: 0, inProgress: 0, foundAlive: 0, confirmedDeceased: 0 },
+    {
+      total: 0,
+      needs_to_be_viewed: 0,
+      waiting_for_volunteer: 0,
+      being_followed_up: 0,
+      found_safe: 0,
+      found_dead: 0,
+    } satisfies Record<"total" | FollowUpStatusKey, number>,
   );
+}
+
+function compareFollowUpItems(
+  left:
+    | {
+        kind: "case";
+        status: FollowUpStatusKey;
+        updatedAt: string;
+      }
+    | {
+        kind: "report";
+        status: FollowUpStatusKey;
+        updatedAt: string;
+      },
+  right:
+    | {
+        kind: "case";
+        status: FollowUpStatusKey;
+        updatedAt: string;
+      }
+    | {
+        kind: "report";
+        status: FollowUpStatusKey;
+        updatedAt: string;
+      },
+) {
+  const leftPriority = followUpStatusSortOrder[left.status];
+  const rightPriority = followUpStatusSortOrder[right.status];
+  if (leftPriority !== rightPriority) {
+    return leftPriority - rightPriority;
+  }
+  const leftUpdatedAt = Date.parse(left.updatedAt);
+  const rightUpdatedAt = Date.parse(right.updatedAt);
+  if (leftUpdatedAt !== rightUpdatedAt) {
+    return rightUpdatedAt - leftUpdatedAt;
+  }
+  if (left.kind !== right.kind) {
+    return left.kind === "report" ? -1 : 1;
+  }
+  return 0;
 }
 
 function toQueueResponse(dashboard: ReturnType<typeof buildStaffDashboardData>): StaffQueueResponse {
@@ -989,15 +1537,16 @@ function subjectTypeLabel(dictionary: Dictionary, subjectType: SubjectType) {
   return dictionary.subjectTypes[subjectType];
 }
 
-function StaffAttachmentThumbnail({
+function StaffCardAvatar({
   accessToken,
   attachment,
+  fallbackLabel,
 }: {
   accessToken: string | null;
   attachment?: StaffAttachment;
+  fallbackLabel: string;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!accessToken || !attachment) {
@@ -1035,34 +1584,25 @@ function StaffAttachmentThumbnail({
     };
   }, [accessToken, attachment]);
 
-  if (!attachment || !imageUrl) {
-    return null;
-  }
-
   return (
-    <>
-      <button
-        aria-label="Open attachment preview"
-        className="staff-attachment-thumb-button"
-        type="button"
-        onClick={() => setIsPreviewOpen(true)}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img alt="" className="staff-attachment-thumb" src={imageUrl} />
-      </button>
-      {isPreviewOpen ? (
-        <div className="staff-attachment-preview" role="dialog" aria-modal="true">
-          <button
-            className="staff-attachment-preview-close button-secondary"
-            type="button"
-            onClick={() => setIsPreviewOpen(false)}
-          >
-            Close preview
-          </button>
+    <div className="staff-avatar-shell" aria-label={fallbackLabel} title={fallbackLabel}>
+      {imageUrl ? (
+        <button
+          aria-label="Open attachment preview"
+          className="staff-avatar-button"
+          type="button"
+          onClick={() => {
+            window.open(imageUrl, "_blank", "noopener,noreferrer");
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt="" className="staff-attachment-preview-image" src={imageUrl} />
+          <img alt="" className="staff-avatar-image" src={imageUrl} />
+        </button>
+      ) : (
+        <div className="staff-avatar-placeholder" aria-hidden="true">
+          <span className="staff-avatar-mark">?</span>
         </div>
-      ) : null}
-    </>
+      )}
+    </div>
   );
 }

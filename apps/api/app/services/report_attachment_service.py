@@ -150,12 +150,29 @@ class ReportAttachmentService:
                 attachment.case_id = case_id
                 attachment.linked_at = attachment.linked_at or now
 
-    def list_report_attachments(self, report_id: int) -> list[StaffAttachmentResponse]:
+    def list_report_attachments(
+        self,
+        report_id: int,
+        *,
+        incident_id: int | None = None,
+        attachment_code: str | None = None,
+    ) -> list[StaffAttachmentResponse]:
         attachments = self.db.scalars(
             select(ReportAttachment)
             .where(ReportAttachment.report_id == report_id)
             .order_by(ReportAttachment.created_at.asc(), ReportAttachment.id.asc())
         ).all()
+        if not attachments and incident_id is not None:
+            code = self.normalize_attachment_code(attachment_code)
+            if code:
+                attachments = self.db.scalars(
+                    select(ReportAttachment)
+                    .where(
+                        ReportAttachment.incident_id == incident_id,
+                        ReportAttachment.attachment_code == code,
+                    )
+                    .order_by(ReportAttachment.created_at.asc(), ReportAttachment.id.asc())
+                ).all()
         return [self._to_staff_attachment(attachment) for attachment in attachments]
 
     def list_case_attachments(self, case_id: int) -> list[StaffAttachmentResponse]:

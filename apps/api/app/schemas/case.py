@@ -161,6 +161,18 @@ class StaffCaseRelationResponse(ApiModel):
     created_at: datetime
 
 
+class StaffCaseMergeDuplicatesRequest(BaseModel):
+    duplicate_case_ids: list[int] = Field(min_length=1)
+    note: Optional[str] = Field(default=None, max_length=4000)
+
+
+class StaffCaseMergeDuplicatesResponse(ApiModel):
+    primary_case_id: int
+    merged_case_ids: list[int]
+    note: Optional[str] = None
+    created_at: datetime
+
+
 class StaffCaseOutcomeRequest(BaseModel):
     note: Optional[str] = Field(default=None, max_length=4000)
     confirmation_source: Optional[str] = Field(default=None, max_length=280)
