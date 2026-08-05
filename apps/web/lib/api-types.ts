@@ -144,6 +144,7 @@ export interface StaffIncidentIntakeSource {
   google_form_id: string | null;
   google_sheet_name: string;
   last_imported_row: number;
+  last_imported_at: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -486,4 +487,16 @@ export interface AuditLogEntryResponse {
   event_type: string;
   metadata_json: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface StaffIntakeImportResult {
+  incident_id: number;
+  intake_source_id: number;
+  imported: number;
+  skipped: number;
+  failed: number;
+  withdrawn: number;
+  last_imported_row: number;
+  last_imported_at: string | null;
+  errors: string[];
 }

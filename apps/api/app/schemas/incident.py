@@ -28,6 +28,7 @@ class StaffIncidentIntakeSourceResponse(ApiModel):
     google_form_id: Optional[str] = None
     google_sheet_name: str
     last_imported_row: int
+    last_imported_at: Optional[datetime] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -50,5 +51,7 @@ class IncidentIntakeImportResponse(ApiModel):
     imported: int
     skipped: int
     failed: int
+    withdrawn: int = 0
     last_imported_row: int
+    last_imported_at: Optional[datetime] = None
     errors: list[str]

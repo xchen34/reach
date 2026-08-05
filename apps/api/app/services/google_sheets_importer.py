@@ -171,6 +171,7 @@ class GoogleSheetsImportService:
             seen_row_numbers=seen_row_numbers,
         )
         source.last_imported_row = highest_successful_row
+        source.last_imported_at = datetime.now(timezone.utc)
         self.db.add(
             AuditLogEntry(
                 actor_type=AuditActorType.STAFF,
@@ -189,7 +190,9 @@ class GoogleSheetsImportService:
         self.db.commit()
         self.db.refresh(source)
 
-        return self._response(source, imported=imported, skipped=skipped, failed=failed, errors=errors)
+        return self._response(
+            source, imported=imported, skipped=skipped, failed=failed, withdrawn=removed_stale, errors=errors
+        )
 
     def _import_row(
         self,
@@ -392,6 +395,7 @@ class GoogleSheetsImportService:
         skipped: int,
         failed: int,
         errors: list[str],
+        withdrawn: int = 0,
     ) -> IncidentIntakeImportResponse:
         return IncidentIntakeImportResponse(
             incident_id=source.incident_id,
@@ -399,7 +403,9 @@ class GoogleSheetsImportService:
             imported=imported,
             skipped=skipped,
             failed=failed,
+            withdrawn=withdrawn,
             last_imported_row=source.last_imported_row,
+            last_imported_at=source.last_imported_at,
             errors=errors[:20],
         )
 

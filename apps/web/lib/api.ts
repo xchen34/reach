@@ -5,6 +5,7 @@ import type {
   PublicAttachmentUploadResponse,
   PublicBoardResponse,
   StaffIncidentSummary,
+  StaffIntakeImportResult,
   StaffReportInboxResponse,
   StaffReportDetailResponse,
   StaffCaseMergeDuplicatesRequest,
@@ -162,7 +163,7 @@ export function importStaffIncidentIntakeSource(
   incidentId: number,
   sourceId: number,
 ) {
-  return apiFetch(`/staff/incidents/${incidentId}/intake-sources/${sourceId}/import`, {
+  return apiFetch<StaffIntakeImportResult>(`/staff/incidents/${incidentId}/intake-sources/${sourceId}/import`, {
     method: "POST",
     headers: buildBearerHeaders(accessToken),
     body: JSON.stringify({}),

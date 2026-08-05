@@ -3702,6 +3702,51 @@ body:has(.staff-detail-v2-container) .app-content {
   min-height: 3.4rem;
 }
 
+/* --- Sheet sync -------------------------------------------------------- */
+
+.staff-sync-control {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: end;
+  text-align: right;
+}
+
+.staff-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.staff-sync-button {
+  min-height: 2.2rem !important;
+  padding: 0.3rem 0.7rem !important;
+  border-radius: 0.55rem !important;
+  font-size: 0.82rem !important;
+}
+
+.staff-sync-meta {
+  font-size: 0.76rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.staff-sync-result {
+  margin: 0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+}
+
+.staff-sync-error {
+  margin: 0;
+  max-width: 22rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--staff-danger);
+}
+
 /* --- Search, sitting directly on top of the list it filters ------------- */
 
 .staff-search-bar {

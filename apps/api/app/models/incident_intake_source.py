@@ -29,6 +29,9 @@ class IncidentIntakeSource(Base):
     google_spreadsheet_id: Mapped[str] = mapped_column(String(200), nullable=False)
     google_sheet_name: Mapped[str] = mapped_column(String(200), nullable=False, default="Form Responses 1")
     last_imported_row: Mapped[int] = mapped_column(nullable=False, default=1)
+    # When the sheet was last pulled. Distinct from updated_at, which moves for
+    # any edit to this row.
+    last_imported_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

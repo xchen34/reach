@@ -13,6 +13,7 @@ import {
   getStaffIncidents,
   getStaffPublishQueue,
   getStaffReports,
+  importStaffIncidentIntakeSource,
   logoutStaffSession,
   markStaffCaseDeceased,
   markStaffCaseSafe,
@@ -27,6 +28,7 @@ import type {
   StaffReportInboxResponse,
   StaffReportListItem,
   StaffCaseListItem,
+  StaffIntakeImportResult,
   StaffAttachment,
   SubjectType,
   OperationalStatus,
@@ -461,6 +463,18 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
               <p className="field-hint compact-copy staff-current-event-label">
                 {dictionary.staff.cases.currentEventLabel}: {selectedIncident.public_name}
               </p>
+            ) : null}
+            {/* Importing was manual and had no UI at all, so new form responses
+                sat in the sheet until someone ran a script. */}
+            {state.mode === "live" ? (
+              <SheetSyncControl
+                accessToken={state.accessToken}
+                canSync={state.session.user.role === "coordinator"}
+                dateFormatter={dateFormatter}
+                incidents={state.incidents}
+                selectedIncidentId={state.selectedIncidentId}
+                onSynced={() => void reloadWorkspace()}
+              />
             ) : null}
           </div>
         </div>
@@ -1302,6 +1316,130 @@ function InlineNoteEditor({
           {isSaving ? dictionary.staff.cases.noteSaving : dictionary.staff.cases.noteSaveAction}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Pulls the Google Sheet on demand and reports what changed.
+ *
+ * The import endpoint existed and `importStaffIncidentIntakeSource` was already
+ * written, but nothing called it — so a submitted form stayed invisible until a
+ * coordinator ran scripts/import_google_sheets_intake.sh by hand.
+ */
+function SheetSyncControl({
+  accessToken,
+  canSync,
+  dateFormatter,
+  incidents,
+  selectedIncidentId,
+  onSynced,
+}: {
+  accessToken: string | null;
+  canSync: boolean;
+  dateFormatter: Intl.DateTimeFormat;
+  incidents: StaffIncidentSummary[];
+  selectedIncidentId: number | null;
+  onSynced: () => void;
+}) {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [result, setResult] = useState<StaffIntakeImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Only sheet-backed sources can be pulled, and only for the selected event.
+  const sources = incidents
+    .filter((incident) => selectedIncidentId === null || incident.id === selectedIncidentId)
+    .flatMap((incident) =>
+      incident.intake_sources
+        .filter((source) => source.is_active && source.source_type === "google_sheets")
+        .map((source) => ({ incidentId: incident.id, source })),
+    );
+
+  if (sources.length === 0) {
+    return null;
+  }
+
+  const lastImportedAt = sources
+    .map((entry) => entry.source.last_imported_at)
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1);
+
+  async function handleSync() {
+    if (!accessToken || isSyncing) {
+      return;
+    }
+    setIsSyncing(true);
+    setError(null);
+    setResult(null);
+    try {
+      let totals: StaffIntakeImportResult | null = null;
+      for (const entry of sources) {
+        const response = await importStaffIncidentIntakeSource(
+          accessToken,
+          entry.incidentId,
+          entry.source.id,
+        );
+        totals = totals
+          ? {
+              ...response,
+              imported: totals.imported + response.imported,
+              skipped: totals.skipped + response.skipped,
+              failed: totals.failed + response.failed,
+              withdrawn: totals.withdrawn + response.withdrawn,
+              errors: [...totals.errors, ...response.errors],
+            }
+          : response;
+      }
+      setResult(totals);
+      onSynced();
+    } catch (syncError) {
+      setError(
+        syncError instanceof ApiError && syncError.status === 403
+          ? "Only coordinators can sync the sheet."
+          : "The sheet could not be synced. Check the connection and try again.",
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
+  return (
+    <div className="staff-sync-control">
+      <div className="staff-sync-row">
+        {canSync ? (
+          <button
+            className="button-secondary staff-sync-button"
+            disabled={isSyncing || !accessToken}
+            type="button"
+            onClick={() => void handleSync()}
+          >
+            {isSyncing ? "Syncing..." : "Sync sheet"}
+          </button>
+        ) : null}
+        <span className="staff-sync-meta">
+          {lastImportedAt
+            ? `Last synced ${dateFormatter.format(new Date(lastImportedAt))}`
+            : "Never synced"}
+        </span>
+      </div>
+      {result ? (
+        <p className="staff-sync-result" role="status">
+          {`${result.imported} new \u00b7 ${result.skipped} unchanged`}
+          {result.withdrawn > 0 ? ` \u00b7 ${result.withdrawn} withdrawn` : ""}
+          {result.failed > 0 ? ` \u00b7 ${result.failed} failed` : ""}
+        </p>
+      ) : null}
+      {result && result.errors.length > 0 ? (
+        <p className="staff-sync-error" role="alert">
+          {result.errors[0]}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="staff-sync-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
