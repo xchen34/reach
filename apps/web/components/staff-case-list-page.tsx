@@ -689,27 +689,17 @@ function DuplicateReviewPanel({
           </h3>
           <p className="field-hint compact-copy">{dictionary.staff.cases.duplicateReviewDescription}</p>
         </div>
+        {/* Once the groups have been dealt with the panel should be dismissable,
+            rather than staying open for the rest of the session. */}
         <button
-          className="button-secondary"
+          className="button-merge staff-duplicate-toggle"
           type="button"
+          aria-expanded={isOpen}
           onClick={onToggle}
-          style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
         >
-          {dictionary.staff.cases.findDuplicatesAction}
-          {duplicateGroups.length > 0 ? (
-            <span
-              className="status-pill status-pill-warning animate-pulse"
-              style={{
-                padding: "0.15rem 0.45rem",
-                borderRadius: "1rem",
-                fontSize: "0.75rem",
-                fontWeight: "bold",
-                background: "#f59e0b",
-                color: "#1e1b4b",
-              }}
-            >
-              {duplicateGroups.length}
-            </span>
+          {isOpen ? "Close" : dictionary.staff.cases.findDuplicatesAction}
+          {!isOpen && duplicateGroups.length > 0 ? (
+            <span className="staff-duplicate-count">{duplicateGroups.length}</span>
           ) : null}
         </button>
       </div>

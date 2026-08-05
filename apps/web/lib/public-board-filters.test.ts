@@ -10,8 +10,11 @@ test("public board exposes simple volunteer-facing status filters", () => {
   assert.match(boardSource, /record\.operational_status === "unassigned" \|\| record\.operational_status === "in_progress"/);
   assert.match(boardSource, /record\.operational_status === "found_alive"/);
   assert.match(boardSource, /record\.operational_status === "confirmed_deceased"/);
-  assert.match(enLocaleSource, /missing: "Missing \/ in progress"/);
-  assert.match(enLocaleSource, /safe: "Confirmed safe"/);
+  // Wording aligned with staff.cases.operationalStatuses: the board, the
+  // dashboard and the change-status dialog previously gave these same four
+  // states three different names.
+  assert.match(enLocaleSource, /missing: "Still missing"/);
+  assert.match(enLocaleSource, /safe: "Found safe"/);
   assert.match(enLocaleSource, /deceased: "Confirmed deceased"/);
   assert.match(boardSource, /const boardPageSize = 24/);
   assert.match(boardSource, /PaginationControls/);

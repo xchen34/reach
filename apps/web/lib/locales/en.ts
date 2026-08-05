@@ -651,7 +651,7 @@ export const en = {
       reassignToMeAction: "Reassign to me",
       foundSafeAction: "Found / safe",
       confirmDeathAction: "Confirm death",
-      returnAction: "Return case to unassigned",
+      returnAction: "Return to unassigned",
       viewDetailsAction: "View full details",
       confirmDeathPrompt:
         "Confirm that this person or pet should be marked as confirmed deceased? Use this only when the information comes from a credible source.",
@@ -833,7 +833,7 @@ export const en = {
       reassignToMeAction: "Reassign to me",
       foundSafeAction: "Found / safe",
       confirmDeathAction: "Confirm death",
-      returnAction: "Return case to unassigned",
+      returnAction: "Return to unassigned",
       correctStatusAction: "Change status",
       statusCorrectionTitle: "Change status",
       currentStatusLabel: "Current status",

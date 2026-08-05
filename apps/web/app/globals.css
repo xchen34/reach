@@ -3702,6 +3702,25 @@ body:has(.staff-detail-v2-container) .app-content {
   min-height: 3.4rem;
 }
 
+/* --- Duplicate review toggle ------------------------------------------- */
+
+.staff-duplicate-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.staff-duplicate-count {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--staff-merge);
+  color: #1e1b4b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Sheet sync -------------------------------------------------------- */
 
 .staff-sync-control {

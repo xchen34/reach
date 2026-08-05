@@ -20,7 +20,14 @@ class StaffQueueService:
         self.db = db
 
     def get_publish_queue(self) -> StaffQueueResponse:
-        cases = self.db.scalars(select(Case).order_by(Case.updated_at.desc(), Case.created_at.desc())).all()
+        # A case merged into another is no longer its own piece of work. The
+        # public board already skipped these; the staff queue did not, so a card
+        # kept sitting in the list after it had been merged away.
+        cases = self.db.scalars(
+            select(Case)
+            .where(Case.merged_into_case_id.is_(None))
+            .order_by(Case.updated_at.desc(), Case.created_at.desc())
+        ).all()
         case_ids = [case.id for case in cases]
 
         metadata_by_case_id = self._load_case_submission_metadata(case_ids)
