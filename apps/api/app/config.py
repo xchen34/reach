@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     report_attachment_storage_dir: str = "/tmp/Reach/report_attachments"
     report_attachment_max_upload_bytes: int = 8 * 1024 * 1024
     report_attachment_max_files: int = 4
+    # Background pull of every active Google Sheets intake source. Off by default:
+    # it reaches an external API on a timer, which a deployment should opt into.
+    intake_auto_sync_enabled: bool = False
+    intake_auto_sync_interval_seconds: int = 300
 
 
 @lru_cache

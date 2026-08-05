@@ -647,3 +647,54 @@ def test_withdrawn_report_is_restored_when_the_row_comes_back(
         assert report.source_row_withdrawn_at is None
     restored = client.get(f"/staff/reports?incident_id={incident_id}", headers=headers)
     assert len(restored.json()["reports"]) == 1
+
+
+def test_auto_sync_imports_every_active_source_without_a_signed_in_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The scheduled pull has no actor, so it must attribute itself to the system."""
+    from app.models.audit_log_entry import AuditLogEntry
+    from app.models.enums import AuditActorType, AuditEventType
+    from app.services.intake_auto_sync import run_auto_sync_once
+
+    incident_id, source_id = _create_incident_with_source()
+    rows = [SHEET_HEADERS, _sheet_row(name="Amina Diallo", timestamp="07/13/2026 09:00:00")]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows,
+    )
+    monkeypatch.setattr("app.services.intake_auto_sync.SessionLocal", lambda: next(override_get_db()))
+
+    totals = run_auto_sync_once()
+
+    assert totals["sources"] == 1
+    assert totals["imported"] == 1
+    assert totals["failed_sources"] == 0
+
+    with next(override_get_db()) as db:
+        assert db.query(Report).count() == 1
+        entry = (
+            db.query(AuditLogEntry)
+            .filter(AuditLogEntry.event_type == AuditEventType.INTAKE_SOURCE_IMPORTED)
+            .one()
+        )
+        assert entry.actor_type == AuditActorType.SYSTEM
+        assert entry.actor_user_id is None
+
+
+def test_auto_sync_keeps_going_when_one_source_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One unreachable sheet must not stop the others or kill the loop."""
+    from app.services.intake_auto_sync import run_auto_sync_once
+
+    incident_id, source_id = _create_incident_with_source()
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: (_ for _ in ()).throw(RuntimeError("sheet down")),
+    )
+    monkeypatch.setattr("app.services.intake_auto_sync.SessionLocal", lambda: next(override_get_db()))
+
+    totals = run_auto_sync_once()
+
+    assert totals["sources"] == 1
+    assert totals["failed_sources"] == 1
+    assert totals["imported"] == 0

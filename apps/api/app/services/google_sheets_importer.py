@@ -101,7 +101,7 @@ class GoogleSheetsImportService:
         *,
         incident_id: int,
         source_id: int,
-        actor: StaffUserSummary,
+        actor: StaffUserSummary | None = None,
     ) -> IncidentIntakeImportResponse:
         source = self.db.get(IncidentIntakeSource, source_id)
         if source is None or source.incident_id != incident_id:
@@ -174,8 +174,10 @@ class GoogleSheetsImportService:
         source.last_imported_at = datetime.now(timezone.utc)
         self.db.add(
             AuditLogEntry(
-                actor_type=AuditActorType.STAFF,
-                actor_user_id=actor.id,
+                # A scheduled sync has no signed-in user behind it, so the audit
+                # trail must attribute it to the system rather than to a person.
+                actor_type=AuditActorType.STAFF if actor else AuditActorType.SYSTEM,
+                actor_user_id=actor.id if actor else None,
                 event_type=AuditEventType.INTAKE_SOURCE_IMPORTED,
                 metadata_json={
                     "incident_id": incident_id,

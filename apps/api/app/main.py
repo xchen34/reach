@@ -1,3 +1,7 @@
+import asyncio
+import contextlib
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -20,15 +24,44 @@ from app.api.staff import router as staff_router
 from app.api.voice import router as voice_router
 from app.api.voice import staff_router as staff_voice_router
 from app.config import get_settings
+from app.services.intake_auto_sync import auto_sync_loop
+
+
+settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Own the background intake sync for the lifetime of the app."""
+    task: asyncio.Task | None = None
+    if settings.intake_auto_sync_enabled:
+        # Uvicorn only configures its own loggers, so application INFO records
+        # would otherwise fall through to the level-WARNING last-resort handler
+        # and the sync would run invisibly.
+        if not logging.getLogger().handlers:
+            logging.basicConfig(level=logging.INFO)
+        logging.getLogger("app").setLevel(logging.INFO)
+        task = asyncio.create_task(auto_sync_loop())
+    else:
+        logger.info("Automatic intake sync is disabled")
+
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            # Await the cancellation so shutdown does not leave it running.
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
 
 app = FastAPI(
     title="Reach API",
     version="0.3.0",
     description="Phase 1.5 voice intake foundation for Reach",
+    lifespan=lifespan,
 )
-
-settings = get_settings()
 
 app.add_middleware(
     CORSMiddleware,
