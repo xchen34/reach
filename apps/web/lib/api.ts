@@ -5,6 +5,8 @@ import type {
   PublicAttachmentUploadResponse,
   PublicBoardResponse,
   StaffIncidentSummary,
+  StaffAttachment,
+  AttachmentModerationStatus,
   StaffIntakeImportResult,
   StaffReportInboxResponse,
   StaffReportDetailResponse,
@@ -397,4 +399,29 @@ async function readErrorDetail(response: Response): Promise<string | null> {
     | null;
 
   return typeof payload?.detail === "string" ? payload.detail : null;
+}
+
+/**
+ * Approve or reject a photo, and set whether it may appear publicly.
+ *
+ * The endpoint already existed but nothing called it, so uploads stayed
+ * `pending` with `public_visibility: false` — and the public board requires both
+ * approved and visible, meaning photos could never reach it.
+ */
+export function updateStaffAttachment(
+  accessToken: string,
+  attachmentId: number,
+  payload: { moderation_status?: AttachmentModerationStatus; public_visibility?: boolean },
+) {
+  return apiFetch<StaffAttachment>(`/staff/attachments/${attachmentId}`, {
+    method: "PATCH",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listStaffReportAttachments(accessToken: string, reportId: number) {
+  return apiFetch<StaffAttachment[]>(`/staff/reports/${reportId}/attachments`, {
+    headers: buildBearerHeaders(accessToken),
+  });
 }

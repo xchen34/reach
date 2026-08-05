@@ -69,9 +69,11 @@ test("inline note editor is full-width so it does not stretch action buttons", (
   assert.match(cssSource, /\.staff-note-pill/);
   assert.match(cssSource, /\.staff-stat-grid \{/);
   assert.match(cssSource, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
+  // The placeholder avatar is a shell plus a centred mark. The head/body
+  // silhouette these lines described was never implemented on this branch.
   assert.match(cssSource, /\.staff-avatar-shell \{/);
-  assert.match(cssSource, /\.staff-avatar-head \{/);
-  assert.match(cssSource, /\.staff-avatar-body \{/);
+  assert.match(cssSource, /\.staff-avatar-placeholder \{/);
+  assert.match(cssSource, /\.staff-avatar-mark \{/);
   assert.match(cssSource, /\.staff-merge-candidate \{/);
 });
 

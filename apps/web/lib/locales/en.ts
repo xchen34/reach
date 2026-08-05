@@ -874,9 +874,12 @@ export const en = {
       keepSeparateSuccess: "The reports were left separate.",
       confirmDuplicate: "Combine reports",
       matchReasons: {
+        same_name: "Same name",
+        similar_name: "Similar name",
         same_location: "Same location",
+        same_age: "Same age",
+        same_phone: "Same reporter phone",
         similar_description: "Similar description",
-        same_type: "Same type",
         nearby_time: "Reported near the same time",
       },
       eventAssociationTitle: "Event association",

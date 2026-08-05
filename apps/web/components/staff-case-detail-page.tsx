@@ -39,6 +39,7 @@ import {
   withStaffAuthorization,
 } from "@/lib/staff-session";
 import { AppShell } from "@/components/app-shell";
+import { AttachmentReviewPanel } from "@/components/attachment-review-panel";
 import { buildNarrativePreview, parseNarrativeFields } from "@/lib/staff-narrative";
 import { findSuggestedCaseMatches } from "@/lib/staff-case-matches";
 
@@ -471,7 +472,7 @@ export function StaffCaseDetailPage({
     );
   }
 
-  const { caseDetail, auditEntries, session, queue } = state;
+  const { accessToken, caseDetail, auditEntries, session, queue } = state;
   const assignedEmail = caseDetail.assigned_staff_user?.email ?? dictionary.staff.detail.unassigned;
   const subjectName = caseDetail.person_label || caseDetail.case_code;
   const locationSummary = caseDetail.location_summary.trim() || dictionary.staff.detail.summaryFallback;
@@ -610,7 +611,12 @@ export function StaffCaseDetailPage({
                           <p className="staff-candidate-preview">
                             {buildNarrativePreview(match.case.needs_summary)}
                           </p>
+                          {/* Confidence leads: five equally-styled suggestions gave no
+                              sense of which was worth acting on. */}
                           <ul className="staff-candidate-reasons">
+                            <li className="staff-candidate-confidence" data-confidence={match.confidence}>
+                              {match.confidence} confidence
+                            </li>
                             {match.reasons.map((reason) => (
                               <li key={reason}>{dictionary.staff.detail.matchReasons[reason]}</li>
                             ))}
@@ -857,6 +863,13 @@ export function StaffCaseDetailPage({
                     ) : null}
                   </div>
                 </section>
+
+                {/* Approving a photo is the only way it reaches the public board. */}
+                <AttachmentReviewPanel
+                  accessToken={accessToken}
+                  attachments={caseDetail.attachments ?? []}
+                  onChanged={() => void loadCase()}
+                />
 
                 {/* Notes are a small side function, so they live in the rail behind a
                     toggle rather than occupying the main column. */}

@@ -50,6 +50,7 @@ import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { matchesCardSearch } from "@/lib/card-search";
 import { SearchIcon } from "@/components/search-icon";
+import { compareNames } from "@/lib/staff-case-matches";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -717,6 +718,10 @@ function DuplicateReviewPanel({
             <div className="staff-duplicate-scroll-container" style={{ maxHeight: "520px", overflowY: "auto", display: "grid", gap: "1.25rem", paddingRight: "0.5rem" }}>
               {pagedDuplicateGroups.map((group) => {
                 const primaryCaseId = primaryByGroup[group.key] ?? group.cases[0]?.id;
+                // Which case everything in this group will be folded into.
+                const primaryCaseLabel =
+                  group.cases.find((item) => item.id === primaryCaseId)?.case_code ??
+                  group.cases[0]?.case_code;
                 return (
                   <article className="staff-duplicate-group" key={group.key}>
                     
@@ -813,7 +818,7 @@ function DuplicateReviewPanel({
                       {group.cases.length > 0 ? (
                         <div className="staff-decision-box">
                           <p className="field-hint compact-copy" style={{ marginBottom: "1rem", textAlign: "center" }}>
-                            Merging into: <strong style={{ color: "#fff" }}>{group.cases.find(c => c.id === primaryCaseId)?.case_code || group.cases[0]?.case_code}</strong>
+                            Merging into: <strong style={{ color: "#fff" }}>{primaryCaseLabel}</strong>
                           </p>
                           <button
                             className="button-primary staff-merge-btn"
@@ -1489,25 +1494,51 @@ function isFollowUpStatusKey(filter: FollowUpStatusFilter): filter is FollowUpSt
   return filter !== "all" && filter !== "my_follow_up";
 }
 
+/**
+ * Cluster cards that may describe the same subject.
+ *
+ * This used to group on an exact normalised name, which is a different
+ * algorithm from the one the case detail page uses — so the two features
+ * disagreed by construction. Exact matching also missed the variants that
+ * actually occur: reversed order, a dropped accent, a typo. Clustering now uses
+ * the shared `compareNames` verdict.
+ */
 function buildDuplicateGroups(items: FollowUpItem[]): DuplicateGroup[] {
-  const groups = new Map<string, DuplicateGroup>();
+  const named = items
+    .map((item) => ({
+      item,
+      label: (item.kind === "case" ? item.task.person_label : item.report.person_name) ?? "",
+    }))
+    .filter((entry) => normalizeDuplicateName(entry.label));
 
-  for (const item of items) {
-    const label = item.kind === "case" ? item.task.person_label : item.report.person_name;
-    const normalized = normalizeDuplicateName(label);
-    if (!normalized) {
-      continue;
-    }
-    const group = groups.get(normalized) ?? { key: normalized, label: label?.trim() ?? normalized, cases: [], reports: [] };
-    if (item.kind === "case") {
-      group.cases.push(item.task);
+  const groups: Array<{ key: string; label: string; entries: typeof named }> = [];
+  for (const entry of named) {
+    const existing = groups.find((group) =>
+      group.entries.some(({ label }) => {
+        const verdict = compareNames(label, entry.label);
+        return verdict === "same" || verdict === "similar";
+      }),
+    );
+    if (existing) {
+      existing.entries.push(entry);
     } else {
-      group.reports.push(item.report);
+      groups.push({
+        key: normalizeDuplicateName(entry.label) ?? entry.label,
+        label: entry.label.trim(),
+        entries: [entry],
+      });
     }
-    groups.set(normalized, group);
   }
 
-  return Array.from(groups.values())
+  return groups
+    .map((group) => ({
+      key: group.key,
+      label: group.label,
+      cases: group.entries.filter((e) => e.item.kind === "case").map((e) => (e.item as FollowUpCaseItem).task),
+      reports: group.entries
+        .filter((e) => e.item.kind === "report")
+        .map((e) => (e.item as FollowUpReportItem).report),
+    }))
     .filter((group) => group.cases.length + group.reports.length > 1)
     .sort((left, right) => right.cases.length + right.reports.length - (left.cases.length + left.reports.length));
 }
