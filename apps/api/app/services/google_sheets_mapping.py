@@ -4,8 +4,25 @@ from datetime import datetime
 from typing import Any, Optional
 
 
+# The v2 form asks ten questions where the first asked twenty-nine. Sheet
+# headers are the question text verbatim, so every renamed question needs an
+# entry here or its answer lands in `unknown_columns` and the record imports
+# blank. Older headers are kept so previously imported sheets still map.
 GOOGLE_FORM_FIELD_MAP: dict[str, str] = {
+    # --- v2 form -----------------------------------------------------------
+    "Who is this information about?": "subject_type",
+    "Is this person or pet already listed on Reach?": "already_listed",
+    "What is their name?": "person_name",
+    "What is their gender?": "gender",
+    "What is their approximate age?": "approximate_age",
+    "Where were they last known to be?": "exact_location",
+    "Tell us what happened and anything that may help us find or assist them.": "situation_details",
+    "How did you know this information?": "information_source",
+    "Your phone or email": "reporter_contact",
+    # --- earlier form, kept so old sheets still import ----------------------
     "Horodateur": "submitted_at",
+    "Timestamp": "submitted_at",
+    "Horodatage": "submitted_at",
     "What are you submitting?": "submission_type",
     "subject_type": "subject_type",
     "Who is this report about?": "subject_type",
@@ -90,17 +107,25 @@ def map_google_sheet_row(row: dict[str, str], *, row_number: int) -> dict[str, A
 
 
 def build_original_narrative(mapped: dict[str, Any]) -> str:
+    """Compose the narrative from what the reporter actually wrote.
+
+    Name, subject type and location are dropped: they are stored as structured
+    columns on the case, so repeating them here only padded every record with
+    the same labels — which is what made two unrelated reports look similar to
+    the duplicate matcher.
+    """
     pieces = [
-        ("Submission type", mapped.get("submission_type")),
-        ("Subject type", mapped.get("subject_type")),
-        ("Person", mapped.get("person_name")),
-        ("Current status", mapped.get("current_status")),
         ("Situation", mapped.get("situation_details")),
+        ("Already listed on Reach", mapped.get("already_listed")),
+        ("Information source", mapped.get("information_source")),
+        # Retained for sheets produced by the earlier form.
+        ("Submission type", mapped.get("submission_type")),
+        ("Current status", mapped.get("current_status")),
         ("Last contact", mapped.get("last_contact_at")),
         ("Vulnerabilities", _join_value(mapped.get("vulnerabilities"))),
-        ("Information source", mapped.get("information_source")),
         ("Update details", mapped.get("update_details")),
         ("Previous reference", mapped.get("previous_reference")),
+        ("Identifying description", mapped.get("identifying_description")),
     ]
     lines = [f"{label}: {value}" for label, value in pieces if value]
     return "\n".join(lines) or "Google Forms submission imported for staff review."

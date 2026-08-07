@@ -741,3 +741,82 @@ def test_same_second_submissions_survive_a_reordered_sheet(
         names = sorted(report.raw_answers_json["person_name"] for report in live)
     # Nobody was overwritten and nobody was duplicated.
     assert names == ["Amina Diallo", "Bruno Costa", "Chen Wei"]
+
+
+# Exactly the column headers the v2 form writes, in sheet order. Google Sheets
+# uses the question text verbatim, so a renamed question silently sends its
+# answer to unknown_columns and the record imports blank.
+V2_HEADERS = [
+    "Horodateur",
+    "Photo attachment code",
+    "Who is this information about?",
+    "Is this person or pet already listed on Reach?",
+    "What is their name?",
+    "What is their gender?",
+    "What is their approximate age?",
+    "Where were they last known to be?",
+    "Tell us what happened and anything that may help us find or assist them.",
+    "How did you know this information?",
+    "Your phone or email",
+]
+
+
+def _v2_row(
+    *,
+    timestamp: str = "07/08/2026 10:00:00",
+    code: str = "",
+    about: str = "A person",
+    listed: str = "No",
+    name: str = "Amina Diallo",
+    gender: str = "Female",
+    age: str = "34",
+    location: str = "12 rue des Lilas, 3rd floor",
+    happened: str = "Not seen since the evacuation of the tower.",
+    source: str = "I saw them myself",
+    contact: str = "amina.reporter@example.com",
+) -> list[str]:
+    return [timestamp, code, about, listed, name, gender, age, location, happened, source, contact]
+
+
+def test_v2_form_headers_map_onto_every_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    rows = [V2_HEADERS, _v2_row()]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows,
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+
+    response = client.post(
+        f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json()["imported"] == 1
+
+    with next(override_get_db()) as db:
+        report = db.query(Report).one()
+        mapped = report.raw_answers_json
+        # Nothing may be left unrecognised: an unmapped header means a lost answer.
+        assert mapped.get("unknown_columns") in (None, {}), mapped.get("unknown_columns")
+        assert mapped["person_name"] == "Amina Diallo"
+        assert mapped["gender"] == "Female"
+        assert mapped["approximate_age"] == "34"
+        assert mapped["already_listed"] == "No"
+        assert report.subject_type == SubjectType.PERSON, "subject type must come from the v2 question"
+        assert report.location_text.startswith("12 rue des Lilas")
+        assert "Not seen since the evacuation" in report.original_narrative
+        assert report.reporter_email == "amina.reporter@example.com"
+
+
+def test_v2_pet_answer_sets_subject_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident_id, source_id = _create_incident_with_source()
+    rows = [V2_HEADERS, _v2_row(about="A pet", name="Mochi", timestamp="07/08/2026 11:00:00")]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows,
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+    client.post(f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import", headers=headers)
+
+    with next(override_get_db()) as db:
+        assert db.query(Report).one().subject_type == SubjectType.PET
