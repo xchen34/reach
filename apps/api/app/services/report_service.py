@@ -11,10 +11,12 @@ from sqlalchemy.orm import Session
 
 from app.models.audit_log_entry import AuditLogEntry
 from app.models.case import Case
+from app.models.case_action import CaseAction
 from app.models.case_report import CaseReport
 from app.models.enums import (
     AuditActorType,
     AuditEventType,
+    CaseActionType,
     CaseHandlingStatus,
     CaseSafetyStatus,
     CaseStatus,
@@ -45,6 +47,11 @@ from app.schemas.report import (
     StaffReportTriageDecisionResponse,
 )
 from app.schemas.staff import StaffUserSummary
+from app.services.case_merge_notes import (
+    build_record_fields,
+    compose_merge_note,
+    diff_against_primary,
+)
 from app.services.case_service import CaseService
 from app.services.incident_service import IncidentService
 from app.services.report_attachment_service import ReportAttachmentService
@@ -266,6 +273,44 @@ class ReportService:
         if case.incident_id != report.incident_id:
             raise ValueError("Report and case belong to different incidents.")
         ReportAttachmentService(self.db).link_report_attachments_to_case(report_id=report.id, case_id=case.id)
+
+        # An update merged into a case used to leave no trace on the card: only
+        # the link was recorded, so a report saying "seen later near the
+        # registration table" was invisible to whoever picks the case up.
+        differences = diff_against_primary(
+            primary_fields=build_record_fields(
+                location=case.location_summary,
+                narrative=case.needs_summary,
+                person_label=case.person_label,
+                approximate_age=case.approximate_age,
+                identifying_details=case.identifying_details,
+            ),
+            other_fields=build_record_fields(
+                location=report.location_text,
+                narrative=report.original_narrative,
+                person_label=self._raw_answer_text(report, "person_name"),
+                approximate_age=self._raw_answer_text(report, "approximate_age"),
+                identifying_details=self._raw_answer_text(report, "identifying_description"),
+            ),
+        )
+        submitted = report.submitted_at or report.received_at
+        carried = compose_merge_note(
+            source_code=report.report_code,
+            source_kind="report",
+            differences=differences,
+            submitted_at=submitted.strftime("%Y-%m-%d %H:%M") if submitted else None,
+        )
+        if carried:
+            self.db.add(
+                CaseAction(
+                    case_id=case.id,
+                    actor_user_id=actor.id,
+                    action_type=CaseActionType.NOTE,
+                    note=carried,
+                    from_status=case.status,
+                    to_status=case.status,
+                )
+            )
 
         action = self._link_report_to_case(
             report=report,

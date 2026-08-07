@@ -49,6 +49,11 @@ from app.schemas.case import (
     StaffCaseRelationResponse,
 )
 from app.schemas.staff import StaffUserSummary
+from app.services.case_merge_notes import (
+    build_record_fields,
+    compose_merge_note,
+    diff_against_primary,
+)
 from app.services.voice_intake import VoiceIntakeService
 from app.services.incident_service import IncidentService
 from app.services.report_attachment_service import ReportAttachmentService
@@ -614,6 +619,45 @@ class CaseService:
         if not note:
             merged_codes = ", ".join(duplicate.case_code for duplicate in duplicates)
             note = f"Merged duplicate case(s) {merged_codes} into {primary_case.case_code}."
+
+        # Carry across what each duplicate knew that the primary does not, before
+        # it disappears from the queue. Nothing is overwritten: the primary stays
+        # authoritative and the alternatives are recorded for verification.
+        primary_fields = build_record_fields(
+            location=primary_case.location_summary,
+            narrative=primary_case.needs_summary,
+            person_label=primary_case.person_label,
+            approximate_age=primary_case.approximate_age,
+            identifying_details=primary_case.identifying_details,
+        )
+        for duplicate_case in duplicates:
+            differences = diff_against_primary(
+                primary_fields=primary_fields,
+                other_fields=build_record_fields(
+                    location=duplicate_case.location_summary,
+                    narrative=duplicate_case.needs_summary,
+                    person_label=duplicate_case.person_label,
+                    approximate_age=duplicate_case.approximate_age,
+                    identifying_details=duplicate_case.identifying_details,
+                ),
+            )
+            carried = compose_merge_note(
+                source_code=duplicate_case.case_code,
+                source_kind="case",
+                differences=differences,
+                submitted_at=duplicate_case.updated_at.strftime("%Y-%m-%d %H:%M")
+                if duplicate_case.updated_at
+                else None,
+            )
+            if carried:
+                self._record_case_action(
+                    case=primary_case,
+                    actor=actor,
+                    action_type=CaseActionType.NOTE,
+                    note=carried,
+                    from_status=primary_case.status,
+                    to_status=primary_case.status,
+                )
 
         now = datetime.now(timezone.utc)
         for duplicate_case in duplicates:
