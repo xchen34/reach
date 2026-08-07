@@ -3790,6 +3790,129 @@ body:has(.staff-detail-v2-container) .app-content {
   font-size: 0.75rem !important;
 }
 
+/* --- Duplicate field comparison ---------------------------------------- */
+
+.dup-compare {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.dup-compare-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.dup-compare-flag {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--staff-rule);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.dup-compare-flag[data-state="conflict"] {
+  border-color: var(--staff-merge-border);
+  background: var(--staff-merge-bg);
+  color: var(--staff-merge);
+}
+
+.dup-compare-flag[data-state="agree"] {
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(20, 83, 45, 0.2);
+  color: #4ade80;
+}
+
+.dup-compare-hint {
+  font-size: 0.74rem;
+  color: var(--staff-label);
+}
+
+/* Wide comparisons scroll inside the panel rather than widening the page. */
+.dup-compare-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--staff-rule);
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.dup-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.dup-compare-table th,
+.dup-compare-table td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--staff-rule);
+  /* Values are read in full here — truncating them is what made the old cards
+     useless for deciding which record to keep. */
+  overflow-wrap: anywhere;
+}
+
+.dup-compare-table thead th {
+  position: sticky;
+  top: 0;
+  display: table-cell;
+  background: rgba(20, 28, 44, 0.96);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--staff-label);
+  white-space: nowrap;
+}
+
+.dup-compare-table tbody th {
+  width: 9rem;
+  min-width: 8rem;
+  font-weight: 600;
+  color: var(--staff-label);
+}
+
+.dup-compare-table td {
+  min-width: 12rem;
+  color: var(--text);
+}
+
+.dup-compare-code {
+  display: block;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dup-compare-kind {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--staff-label);
+}
+
+.dup-compare-table tbody tr[data-state="conflict"] {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.dup-compare-table tbody tr[data-state="conflict"] th {
+  color: var(--staff-merge);
+}
+
+.dup-compare-table tbody tr[data-state="partial"] {
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.dup-compare-table tbody tr[data-state="partial"] th {
+  color: #93c5fd;
+}
+
+.dup-compare-missing {
+  color: rgba(148, 163, 184, 0.65);
+  font-style: italic;
+}
+
 /* --- Duplicate review toggle ------------------------------------------- */
 
 .staff-duplicate-toggle {

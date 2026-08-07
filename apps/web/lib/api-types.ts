@@ -298,6 +298,9 @@ export interface StaffReportListItem {
   subject_type: SubjectType;
   location_text: string;
   original_narrative_preview: string;
+  // Full text as well: comparing two reports during duplicate review needs what
+  // they actually say, and the preview is cut at 220 characters.
+  original_narrative: string;
   submission_type: string | null;
   person_name: string | null;
   approximate_age: string | null;

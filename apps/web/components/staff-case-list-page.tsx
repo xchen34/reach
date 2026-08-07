@@ -50,6 +50,7 @@ import { AppShell } from "@/components/app-shell";
 import { PaginationControls, getPageCount, paginateItems } from "@/components/pagination-controls";
 import { matchesCardSearch } from "@/lib/card-search";
 import { SearchIcon } from "@/components/search-icon";
+import { DuplicateCompareTable, buildCompareColumns } from "@/components/duplicate-compare-table";
 import { compareNames } from "@/lib/staff-case-matches";
 
 type StaffCaseListPageProps = {
@@ -570,6 +571,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
           <DuplicateReviewPanel
             accessToken={state.accessToken}
+            dateFormatter={dateFormatter}
             dictionary={dictionary}
             duplicateGroups={duplicateGroups}
             isOpen={showDuplicateReview}
@@ -649,6 +651,7 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
 
 function DuplicateReviewPanel({
   accessToken,
+  dateFormatter,
   dictionary,
   duplicateGroups,
   isOpen,
@@ -656,6 +659,7 @@ function DuplicateReviewPanel({
   onToggle,
 }: {
   accessToken: string | null;
+  dateFormatter: Intl.DateTimeFormat;
   dictionary: Dictionary;
   duplicateGroups: DuplicateGroup[];
   isOpen: boolean;
@@ -766,6 +770,14 @@ function DuplicateReviewPanel({
                           ({group.cases.length} case{group.cases.length === 1 ? "" : "s"} · {group.reports.length} report{group.reports.length === 1 ? "" : "s"})
                         </span>
                       </div>
+                      {/* Aligned field comparison: two truncated narratives side by
+                          side could not show which record was right, or what one
+                          knew that the other did not. */}
+                      <DuplicateCompareTable
+                        columns={buildCompareColumns(group.cases, group.reports, (value) =>
+                          dateFormatter.format(new Date(value)),
+                        )}
+                      />
                       <div className="staff-duplicate-compare-list">
                         {/* Render cases */}
                         {group.cases.map((candidate) => (

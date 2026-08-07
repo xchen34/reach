@@ -52,6 +52,10 @@ class ReportListItem(ApiModel):
     subject_type: SubjectType = SubjectType.UNKNOWN
     location_text: str
     original_narrative_preview: str
+    # Full text as well as the preview: duplicate review has to compare what two
+    # reports actually say, and a 220-character preview cuts off exactly the
+    # detail that distinguishes them.
+    original_narrative: str
     submission_type: Optional[str] = None
     person_name: Optional[str] = None
     approximate_age: Optional[str] = None

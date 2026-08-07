@@ -498,6 +498,7 @@ class ReportService:
             subject_type=report.subject_type,
             location_text=report.location_text,
             original_narrative_preview=self._preview(report.original_narrative),
+            original_narrative=report.original_narrative,
             submission_type=self._raw_answer_text(report, "submission_type"),
             person_name=self._raw_answer_text(report, "person_name") or report.reporter_name,
             approximate_age=self._raw_answer_text(report, "approximate_age"),

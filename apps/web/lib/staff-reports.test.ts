@@ -40,6 +40,7 @@ test("getReportPrimaryText uses mapped Google Sheets fields before narrative fal
       gender: "Female",
       current_status: "Family cannot reach her.",
       original_narrative_preview: "Narrative fallback",
+      original_narrative: "Narrative fallback",
     }),
   );
 
@@ -91,6 +92,7 @@ function makeReport(overrides: Partial<StaffReportListItem>): StaffReportListIte
     subject_type: "unknown",
     location_text: "North Tower",
     original_narrative_preview: "Narrative",
+    original_narrative: "Narrative",
     submission_type: null,
     person_name: null,
     approximate_age: null,
