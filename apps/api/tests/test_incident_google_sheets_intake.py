@@ -843,3 +843,46 @@ def test_subject_type_resolves_from_a_sentence_not_only_an_exact_option() -> Non
     assert normalize_subject_type("Not sure") == "unknown"
     assert normalize_subject_type("") == "unknown"
     assert normalize_subject_type(None) == "unknown"
+
+
+def test_sync_intake_webhook_requires_the_ingest_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Apps Script trigger authenticates with the ingest token, not a session."""
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "trigger-secret")
+    get_settings.cache_clear()
+
+    assert client.post("/ingest/sync-intake").status_code == 401
+    assert (
+        client.post("/ingest/sync-intake", headers={"x-beacon-ingest-token": "nope"}).status_code
+        == 401
+    )
+
+    monkeypatch.setattr(
+        "app.api.google_forms.run_auto_sync_once",
+        lambda **kwargs: {"sources": 1, "imported": 2, "withdrawn": 0, "failed_sources": 0, "skipped_busy": 0},
+    )
+    ok = client.post("/ingest/sync-intake", headers={"x-beacon-ingest-token": "trigger-secret"})
+    assert ok.status_code == 200
+    assert ok.json()["imported"] == 2
+
+
+def test_sync_intake_skips_when_a_sync_is_already_running(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two submissions arriving together must not start overlapping passes.
+
+    Both would read the same sheet and collide on uq_reports_source_identity.
+    """
+    from app.services import intake_auto_sync
+
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "trigger-secret")
+    get_settings.cache_clear()
+
+    intake_auto_sync._sync_lock.acquire()
+    try:
+        response = client.post(
+            "/ingest/sync-intake", headers={"x-beacon-ingest-token": "trigger-secret"}
+        )
+    finally:
+        intake_auto_sync._sync_lock.release()
+
+    assert response.status_code == 200
+    assert response.json()["skipped_busy"] == 1
+    assert response.json()["imported"] == 0

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 
 from sqlalchemy import select
 
@@ -30,9 +31,30 @@ from app.services.google_sheets_importer import GoogleSheetsImportService
 logger = logging.getLogger(__name__)
 
 
-def run_auto_sync_once() -> dict[str, int]:
-    """Import every active sheet-backed source. Returns totals for logging."""
-    totals = {"sources": 0, "imported": 0, "withdrawn": 0, "failed_sources": 0}
+# One sync at a time. The periodic loop and the webhook can fire together, and
+# two concurrent passes over the same sheet would both try to insert the same
+# rows and collide on uq_reports_source_identity.
+_sync_lock = threading.Lock()
+
+
+def run_auto_sync_once(*, skip_if_busy: bool = False) -> dict[str, int]:
+    """Import every active sheet-backed source. Returns totals for logging.
+
+    With `skip_if_busy`, returns immediately when a sync is already running —
+    correct for a webhook, since the in-flight pass will pick up the same new
+    rows anyway.
+    """
+    if not _sync_lock.acquire(blocking=not skip_if_busy):
+        logger.info("Intake sync already running, skipping this trigger")
+        return {"sources": 0, "imported": 0, "withdrawn": 0, "failed_sources": 0, "skipped_busy": 1}
+    try:
+        return _run_auto_sync_locked()
+    finally:
+        _sync_lock.release()
+
+
+def _run_auto_sync_locked() -> dict[str, int]:
+    totals = {"sources": 0, "imported": 0, "withdrawn": 0, "failed_sources": 0, "skipped_busy": 0}
     with SessionLocal() as db:
         sources = db.scalars(
             select(IncidentIntakeSource).where(

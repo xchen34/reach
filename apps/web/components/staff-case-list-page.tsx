@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addStaffReportNote,
@@ -73,6 +73,9 @@ type PageState =
 
 const mockDashboardEnabled = process.env.NEXT_PUBLIC_ENABLE_STAFF_DASHBOARD_MOCKS === "true";
 const staffListPageSize = 12;
+// Long enough to be unobtrusive, short enough that a new report shows up
+// without anyone thinking to reload.
+const workspaceRefreshMs = 30_000;
 const followUpStatusKeys = [
   "needs_to_be_viewed",
   "waiting_for_volunteer",
@@ -237,6 +240,24 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     setFollowUpPage(1);
   }, [searchQuery, selectedIncidentIdForEffect, statusFilter]);
 
+  // Keep the queue current without anyone pressing reload. Polling rather than a
+  // socket: the server has nothing to push that this does not already fetch, and
+  // the delay that matters is the sheet import, not this hop.
+  const reloadRef = useRef<() => void>(() => {});
+  // Set while a reload is already in flight, so ticks cannot stack up.
+  const isBusyRef = useRef(false);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      // A hidden tab does not need refreshing, and an in-flight request or an
+      // open editor must not be interrupted by state being replaced underneath.
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      reloadRef.current();
+    }, workspaceRefreshMs);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
@@ -303,22 +324,34 @@ export function StaffCaseListPage({ dictionary, locale }: StaffCaseListPageProps
     }
   }
 
+  reloadRef.current = () => {
+    if (isBusyRef.current) {
+      return;
+    }
+    void reloadWorkspace();
+  };
+
   async function reloadWorkspace() {
     if (state.status !== "ready" || state.mode !== "live") {
       return;
     }
     const accessToken = state.accessToken ?? readStoredStaffAccessToken();
-    const [dashboard, incidents, reports] = await Promise.all([
-      withStaffAuthorization(accessToken, getStaffPublishQueue),
-      withStaffAuthorization(accessToken, getStaffIncidents),
-      withStaffAuthorization(accessToken, (token) => getStaffReports(token, state.selectedIncidentId)),
-    ]);
-    setState({
-      ...state,
-      dashboard,
-      incidents,
-      reports,
-    });
+    isBusyRef.current = true;
+    try {
+      const [dashboard, incidents, reports] = await Promise.all([
+        withStaffAuthorization(accessToken, getStaffPublishQueue),
+        withStaffAuthorization(accessToken, getStaffIncidents),
+        withStaffAuthorization(accessToken, (token) => getStaffReports(token, state.selectedIncidentId)),
+      ]);
+      setState({
+        ...state,
+        dashboard,
+        incidents,
+        reports,
+      });
+    } finally {
+      isBusyRef.current = false;
+    }
   }
 
   if (state.status === "loading") {
