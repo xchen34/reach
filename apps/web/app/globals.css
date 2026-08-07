@@ -607,7 +607,12 @@ textarea {
 .community-board-records {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  /* auto-fill, not auto-fit: auto-fit collapses the empty tracks, so a single
+     record stretched to the full width — a 1203px card with a 901px photo,
+     roughly twice the height of a normal one. Filtering to a status with one
+     result made every card balloon. auto-fill keeps the columns in place so a
+     lone card stays the same size as its neighbours would be. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
 }
 
 .board-search-row {
