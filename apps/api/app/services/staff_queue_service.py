@@ -25,7 +25,7 @@ class StaffQueueService:
         # kept sitting in the list after it had been merged away.
         cases = self.db.scalars(
             select(Case)
-            .where(Case.merged_into_case_id.is_(None))
+            .where(Case.merged_into_case_id.is_(None), Case.withdrawn_at.is_(None))
             .order_by(Case.updated_at.desc(), Case.created_at.desc())
         ).all()
         case_ids = [case.id for case in cases]

@@ -79,6 +79,11 @@ class Case(Base):
     confirmation_source: Mapped[Optional[str]] = mapped_column(String(280))
     confirmation_source_type: Mapped[Optional[str]] = mapped_column(String(80))
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # Withdrawn: hidden from the queue and the public board but kept, with who did
+    # it and why. Separate from handling_status ARCHIVED, which mark_safe sets.
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    withdrawn_reason: Mapped[Optional[str]] = mapped_column(String(400))
+    withdrawn_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
     merged_into_case_id: Mapped[Optional[int]] = mapped_column(ForeignKey("cases.id"), index=True)
     assigned_staff_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(
@@ -93,7 +98,11 @@ class Case(Base):
         nullable=False,
     )
 
-    assigned_staff_user = relationship("User", back_populates="assigned_cases")
+    # cases now has two foreign keys to users (assignee and whoever withdrew it),
+    # so the join for this relationship has to be stated explicitly.
+    assigned_staff_user = relationship(
+        "User", back_populates="assigned_cases", foreign_keys=[assigned_staff_user_id]
+    )
     incident = relationship("Incident", back_populates="cases")
     share_links = relationship("CaseShareLink", back_populates="case")
     actions = relationship("CaseAction", back_populates="case")

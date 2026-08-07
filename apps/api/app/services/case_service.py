@@ -280,6 +280,60 @@ class CaseService:
         self.db.refresh(case)
         return self._to_case_detail(case)
 
+    def withdraw_case(self, case_id: int, actor: StaffUserSummary, reason: str) -> CaseDetailResponse:
+        """Hide a case from the queue and the public board, keeping the record.
+
+        The alternative staff had was to mark someone safe or deceased in order to
+        get a mistaken or test case out of the way, which publishes a false status
+        about a person. A reason is required so the audit trail says why.
+        """
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        cleaned = reason.strip()
+        if not cleaned:
+            raise ValueError("A reason is required to withdraw a case.")
+        if case.withdrawn_at is not None:
+            raise ValueError("Case is already withdrawn.")
+
+        case.withdrawn_at = datetime.now(timezone.utc)
+        case.withdrawn_reason = cleaned[:400]
+        case.withdrawn_by_user_id = actor.id
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.NOTE,
+            note=f"Case withdrawn: {cleaned[:300]}",
+            from_status=case.status,
+            to_status=case.status,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
+    def restore_case(self, case_id: int, actor: StaffUserSummary) -> CaseDetailResponse:
+        """Undo a withdrawal. Withdrawal is reversible by design."""
+        case = self.db.get(Case, case_id)
+        if case is None:
+            raise LookupError("Case not found.")
+        if case.withdrawn_at is None:
+            raise ValueError("Case is not withdrawn.")
+
+        case.withdrawn_at = None
+        case.withdrawn_reason = None
+        case.withdrawn_by_user_id = None
+        self._record_case_action(
+            case=case,
+            actor=actor,
+            action_type=CaseActionType.NOTE,
+            note="Case restored from withdrawn.",
+            from_status=case.status,
+            to_status=case.status,
+        )
+        self.db.commit()
+        self.db.refresh(case)
+        return self._to_case_detail(case)
+
     def mark_safe_information_received(
         self,
         case_id: int,

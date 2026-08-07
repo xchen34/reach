@@ -425,3 +425,25 @@ export function listStaffReportAttachments(accessToken: string, reportId: number
     headers: buildBearerHeaders(accessToken),
   });
 }
+
+/**
+ * Hide a case from the queue and the public board, keeping the record.
+ *
+ * Without this the only ways to clear a mistaken or test case were to merge it
+ * into a real duplicate or to mark the person safe or deceased, which publishes
+ * a false status about them.
+ */
+export function withdrawStaffCase(accessToken: string, caseId: number, reason: string) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/withdraw`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function restoreStaffCase(accessToken: string, caseId: number) {
+  return apiFetch<StaffCaseDetailResponse>(`/staff/cases/${caseId}/restore`, {
+    method: "POST",
+    headers: buildBearerHeaders(accessToken),
+  });
+}

@@ -18,7 +18,7 @@ class BoardService:
     def get_public_board(self, *, include_archived: bool = False) -> PublicBoardResponse:
         statement = (
             select(Case)
-            .where(Case.status != CaseStatus.PENDING_REVIEW)
+            .where(Case.status != CaseStatus.PENDING_REVIEW, Case.withdrawn_at.is_(None))
             .order_by(Case.updated_at.desc(), Case.created_at.desc())
         )
         cases = self.db.scalars(statement).all()

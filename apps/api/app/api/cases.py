@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_staff_session
 from app.schemas.case import (
+    StaffCaseWithdrawRequest,
     AnonymousCaseSubmissionRequest,
     CaseDetailResponse,
     CaseListItem,
@@ -157,6 +158,41 @@ def mark_case_death_confirmed(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/withdraw", response_model=CaseDetailResponse)
+def withdraw_case(
+    case_id: int,
+    payload: StaffCaseWithdrawRequest,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    """Hide a case without claiming anything about the person.
+
+    Without this the only ways to clear a mistaken or test case were to merge it
+    into a real duplicate or to mark someone safe or deceased — publishing a
+    false status to the public board.
+    """
+    try:
+        return CaseService(db).withdraw_case(case_id, session_context.user, payload.reason)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@staff_router.post("/{case_id}/restore", response_model=CaseDetailResponse)
+def restore_case(
+    case_id: int,
+    db: Session = Depends(get_db),
+    session_context=Depends(require_staff_session),
+) -> CaseDetailResponse:
+    try:
+        return CaseService(db).restore_case(case_id, session_context.user)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

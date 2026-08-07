@@ -192,3 +192,9 @@ class AuditLogEntryResponse(ApiModel):
     event_type: str
     metadata_json: Optional[dict] = None
     created_at: datetime
+
+
+class StaffCaseWithdrawRequest(ApiModel):
+    """A reason is required: the audit trail must say why a case was hidden."""
+
+    reason: str = Field(min_length=3, max_length=400)

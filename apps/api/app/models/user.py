@@ -34,7 +34,11 @@ class User(Base):
 
     magic_link_tokens = relationship("MagicLinkToken", back_populates="user")
     staff_sessions = relationship("StaffSession", back_populates="user")
-    assigned_cases = relationship("Case", back_populates="assigned_staff_user")
+    assigned_cases = relationship(
+        "Case",
+        back_populates="assigned_staff_user",
+        foreign_keys="Case.assigned_staff_user_id",
+    )
     created_share_links = relationship("CaseShareLink", back_populates="created_by_user")
     case_actions = relationship(
         "CaseAction",

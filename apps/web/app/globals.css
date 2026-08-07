@@ -3790,6 +3790,42 @@ body:has(.staff-detail-v2-container) .app-content {
   font-size: 0.75rem !important;
 }
 
+/* --- Withdraw a case ---------------------------------------------------- */
+
+.staff-withdraw-block {
+  margin-top: 0.35rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--staff-rule);
+}
+
+/* Understated: hiding a case is a correction, not one of the outcomes. */
+.staff-withdraw-link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--staff-label);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.staff-withdraw-link:hover {
+  color: var(--staff-danger);
+}
+
+.staff-withdraw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.staff-withdraw-actions button {
+  flex: 1 1 auto;
+}
+
 /* --- Duplicate field comparison ---------------------------------------- */
 
 .dup-compare {

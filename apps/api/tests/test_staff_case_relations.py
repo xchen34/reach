@@ -124,3 +124,54 @@ def test_staff_can_merge_duplicate_cases_and_audit_both_records() -> None:
     ]
     assert len(duplicate_merge_entries) == 1
     assert duplicate_merge_entries[0]["metadata_json"]["primary_case_id"] == primary_case["id"]
+
+
+def test_withdrawing_a_case_hides_it_without_claiming_anything() -> None:
+    """Hiding a case must not require asserting that someone was found.
+
+    Before withdrawal existed, clearing a mistaken or test case meant merging it
+    into a real duplicate or marking the person safe or deceased — which
+    publishes a false status to the public board.
+    """
+    headers = _authenticate_staff()
+    case_id = _submit_case("7 rue Test, ground floor", "Created by mistake during setup.")["id"]
+
+    # Visible to begin with, on both surfaces.
+    assert any(c["id"] == case_id for c in _queue_cases(headers))
+
+    empty_reason = client.post(
+        f"/staff/cases/{case_id}/withdraw", headers=headers, json={"reason": ""}
+    )
+    assert empty_reason.status_code == 422, "a reason is required"
+
+    withdrawn = client.post(
+        f"/staff/cases/{case_id}/withdraw",
+        headers=headers,
+        json={"reason": "Duplicate test record created during setup."},
+    )
+    assert withdrawn.status_code == 200
+
+    # Gone from the staff queue and from the public board.
+    assert not any(c["id"] == case_id for c in _queue_cases(headers))
+    board = client.get("/board")
+    assert board.status_code == 200
+    assert all(r["case_code"] != withdrawn.json()["case_code"] for r in board.json()["records"])
+
+    # The record itself is kept, with who and why.
+    detail = client.get(f"/staff/cases/{case_id}", headers=headers)
+    assert detail.status_code == 200
+
+    again = client.post(
+        f"/staff/cases/{case_id}/withdraw", headers=headers, json={"reason": "again"}
+    )
+    assert again.status_code == 400, "withdrawing twice is a mistake worth reporting"
+
+    restored = client.post(f"/staff/cases/{case_id}/restore", headers=headers)
+    assert restored.status_code == 200
+    assert any(c["id"] == case_id for c in _queue_cases(headers)), "withdrawal is reversible"
+
+
+def _queue_cases(headers: dict[str, str]) -> list[dict]:
+    response = client.get("/staff/cases/queue", headers=headers)
+    assert response.status_code == 200
+    return [case for event in response.json()["events"] for case in event["related_cases"]]

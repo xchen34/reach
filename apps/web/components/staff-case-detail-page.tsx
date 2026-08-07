@@ -16,6 +16,7 @@ import {
   markStaffCaseDeceased,
   markStaffCaseSafe,
   returnStaffCaseToUnassigned,
+  withdrawStaffCase,
   relateStaffCase,
 } from "@/lib/api";
 import {
@@ -80,6 +81,9 @@ export function StaffCaseDetailPage({
   const [isLinkingRelation, setIsLinkingRelation] = useState(false);
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [correctionTarget, setCorrectionTarget] = useState<OperationalStatus>("unassigned");
   const [correctionNote, setCorrectionNote] = useState("");
   const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
@@ -385,6 +389,32 @@ export function StaffCaseDetailPage({
       await handleActionError(error);
     } finally {
       setIsLinkingRelation(false);
+    }
+  }
+
+  async function handleWithdraw() {
+    if (state.status !== "ready" || isWithdrawing) {
+      return;
+    }
+    const reason = withdrawReason.trim();
+    if (reason.length < 3) {
+      setActionError("Give a reason so the record says why this was hidden.");
+      return;
+    }
+    setActionError(null);
+    setIsWithdrawing(true);
+    try {
+      await withStaffAuthorization(state.accessToken, (token) =>
+        withdrawStaffCase(token, caseId, reason),
+      );
+      setIsWithdrawOpen(false);
+      setWithdrawReason("");
+      // Withdrawn cases leave the queue, so there is nothing to stay here for.
+      router.replace("/staff");
+    } catch (error) {
+      await handleActionError(error);
+    } finally {
+      setIsWithdrawing(false);
     }
   }
 
@@ -801,6 +831,57 @@ export function StaffCaseDetailPage({
                         </button>
                       </div>
                     ) : null}
+
+                    {/* Hiding a case is not an outcome, so it sits apart from the
+                        found-safe / deceased group and asks why. */}
+                    <div className="staff-action-stack staff-withdraw-block">
+                      {isWithdrawOpen ? (
+                        <>
+                          <p className="staff-action-group-label">Hide this case</p>
+                          <p className="staff-action-note">
+                            It leaves the queue and the public board but is kept, with your name and
+                            reason. You can restore it later.
+                          </p>
+                          <textarea
+                            className="input-field"
+                            maxLength={400}
+                            placeholder="Why is this being hidden? e.g. created by mistake, test record"
+                            rows={2}
+                            value={withdrawReason}
+                            onChange={(event) => setWithdrawReason(event.target.value)}
+                          />
+                          <div className="staff-withdraw-actions">
+                            <button
+                              className="button-secondary"
+                              disabled={isWithdrawing}
+                              type="button"
+                              onClick={() => {
+                                setIsWithdrawOpen(false);
+                                setWithdrawReason("");
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="button-danger"
+                              disabled={isWithdrawing}
+                              type="button"
+                              onClick={() => void handleWithdraw()}
+                            >
+                              {isWithdrawing ? "Hiding..." : "Hide case"}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          className="staff-withdraw-link"
+                          type="button"
+                          onClick={() => setIsWithdrawOpen(true)}
+                        >
+                          Hide this case
+                        </button>
+                      )}
+                    </div>
 
                     {isCorrectionOpen ? (
                       <form
