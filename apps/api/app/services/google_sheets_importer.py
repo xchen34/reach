@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import urllib.parse
 import urllib.request
@@ -127,23 +128,39 @@ class GoogleSheetsImportService:
         seen_row_keys: set[str] = set()
 
         # Resolve every row's stable key up front. Form timestamps are only
-        # second-precise, so two submissions can share one; repeats are suffixed
-        # by their occurrence so each row still gets a distinct, stable key.
+        # second-precise, so two people really can share one.
+        row_dicts = [
+            {
+                header: row_values[index] if index < len(row_values) else ""
+                for index, header in enumerate(headers)
+            }
+            for row_values in rows[1:]
+        ]
+        base_keys = [self._extract_row_key(row) for row in row_dicts]
+        # A timestamp shared by several rows is disambiguated by who the row is
+        # about, never by where it sits. Suffixing by position looked fine until
+        # the sheet was sorted or a row inserted above: the rows swapped keys and
+        # one person's report overwrote the other's.
+        duplicate_stamps = {
+            key for key in base_keys if key is not None and base_keys.count(key) > 1
+        }
         row_keys: list[str | None] = []
-        key_occurrences: dict[str, int] = {}
-        for row_values in rows[1:]:
-            base_key = self._extract_row_key(
-                {
-                    header: row_values[index] if index < len(row_values) else ""
-                    for index, header in enumerate(headers)
-                }
-            )
+        collision_counts: dict[str, int] = {}
+        for base_key, row in zip(base_keys, row_dicts):
             if base_key is None:
                 row_keys.append(None)
                 continue
-            seen = key_occurrences.get(base_key, 0) + 1
-            key_occurrences[base_key] = seen
-            resolved = base_key if seen == 1 else f"{base_key}#{seen}"
+            if base_key in duplicate_stamps:
+                resolved = f"{base_key}#{self._row_identity_hash(row)}"
+                # Genuinely identical rows cannot be told apart by content, so
+                # fall back to occurrence for those.
+                if resolved in collision_counts:
+                    collision_counts[resolved] += 1
+                    resolved = f"{resolved}-{collision_counts[resolved]}"
+                else:
+                    collision_counts[resolved] = 1
+            else:
+                resolved = base_key
             row_keys.append(resolved)
             seen_row_keys.add(resolved)
 
@@ -314,6 +331,21 @@ class GoogleSheetsImportService:
             if report.source_entry_id == source_entry_id:
                 return report
         return None
+
+    @staticmethod
+    def _row_identity_hash(row: dict[str, Any]) -> str:
+        """Short digest of who a row is about, for separating same-second rows.
+
+        Only identifying fields are used. Hashing the whole row would mean any
+        later correction produced a new key, orphaning the original record.
+        """
+        parts: list[str] = []
+        for header, value in row.items():
+            lowered = header.strip().lower()
+            if "name of the person" in lowered or "full name" in lowered or "address" in lowered:
+                parts.append(str(value or "").strip().lower())
+        digest = hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()
+        return digest[:8]
 
     @staticmethod
     def _extract_row_key(row: dict[str, Any]) -> str | None:

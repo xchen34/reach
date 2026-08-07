@@ -698,3 +698,46 @@ def test_auto_sync_keeps_going_when_one_source_fails(monkeypatch: pytest.MonkeyP
     assert totals["sources"] == 1
     assert totals["failed_sources"] == 1
     assert totals["imported"] == 0
+
+
+def test_same_second_submissions_survive_a_reordered_sheet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Form timestamps are second-precise, so two people can share one.
+
+    Disambiguating those by row position meant that sorting the sheet, or
+    inserting a row above them, swapped their keys and one person's report
+    overwrote the other's.
+    """
+    incident_id, source_id = _create_incident_with_source()
+    stamp = "07/13/2026 09:00:00"
+    amina = _sheet_row(name="Amina Diallo", timestamp=stamp)
+    bruno = _sheet_row(name="Bruno Costa", timestamp=stamp)
+
+    first_rows = [SHEET_HEADERS, amina, bruno]
+    # Same two people, opposite order, plus a row pasted above them.
+    second_rows = [
+        SHEET_HEADERS,
+        _sheet_row(name="Chen Wei", timestamp="07/13/2026 09:30:00"),
+        bruno,
+        amina,
+    ]
+    rows_by_call = [first_rows, second_rows]
+    monkeypatch.setattr(
+        "app.services.google_sheets_importer.GoogleSheetsApiRowReader.read_rows",
+        lambda self, *, spreadsheet_id, sheet_name: rows_by_call.pop(0),
+    )
+    headers = _authenticate_staff("coordinator@example.com", StaffRole.COORDINATOR)
+    url = f"/staff/incidents/{incident_id}/intake-sources/{source_id}/import"
+
+    client.post(url, headers=headers)
+    second = client.post(url, headers=headers)
+
+    assert second.status_code == 200
+    assert second.json()["imported"] == 1, "only the pasted row is new"
+
+    with next(override_get_db()) as db:
+        live = [r for r in db.query(Report).all() if r.source_row_withdrawn_at is None]
+        names = sorted(report.raw_answers_json["person_name"] for report in live)
+    # Nobody was overwritten and nobody was duplicated.
+    assert names == ["Amina Diallo", "Bruno Costa", "Chen Wei"]
