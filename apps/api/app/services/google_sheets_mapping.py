@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -151,8 +152,39 @@ def extract_reporter_contact(mapped: dict[str, Any]) -> tuple[Optional[str], Opt
 
 
 def normalize_subject_type(value: Any) -> str:
+    """Resolve person / pet from an exact option, or from a sentence.
+
+    Changing a form's destination sheet carries old responses across, and their
+    answers land under the new headers: "Who is this information about?" arrived
+    holding the previous form's "A new report about a person". Exact matching
+    alone left every one of those records as `unknown`.
+
+    Matching is on whole words — "pet" must not be found inside "petit" — and an
+    answer naming both, or neither, stays unknown rather than guessing.
+    """
     normalized = str(value or "").strip().lower()
-    return SUBJECT_TYPE_VALUES.get(normalized, "unknown")
+    if not normalized:
+        return "unknown"
+    exact = SUBJECT_TYPE_VALUES.get(normalized)
+    if exact:
+        return exact
+
+    person_words = ("person", "personne", "personnes", "people", "人员", "人員")
+    pet_words = ("pet", "pets", "animal", "animals", "animaux", "宠物", "寵物")
+    has_person = any(_contains_word(normalized, word) for word in person_words)
+    has_pet = any(_contains_word(normalized, word) for word in pet_words)
+    if has_person and not has_pet:
+        return "person"
+    if has_pet and not has_person:
+        return "pet"
+    return "unknown"
+
+
+def _contains_word(haystack: str, needle: str) -> bool:
+    if needle.isascii():
+        return re.search(rf"\b{re.escape(needle)}\b", haystack) is not None
+    # CJK has no word boundaries; substring matching is the best available.
+    return needle in haystack
 
 
 def normalize_attachment_code(value: Any) -> Optional[str]:

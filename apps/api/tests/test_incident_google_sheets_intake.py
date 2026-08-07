@@ -820,3 +820,26 @@ def test_v2_pet_answer_sets_subject_type(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with next(override_get_db()) as db:
         assert db.query(Report).one().subject_type == SubjectType.PET
+
+
+def test_subject_type_resolves_from_a_sentence_not_only_an_exact_option() -> None:
+    """Changing a form's destination carries old answers under the new headers.
+
+    "Who is this information about?" arrived holding the previous form's
+    "A new report about a person", so exact matching left every carried-over
+    record as unknown.
+    """
+    from app.services.google_sheets_mapping import normalize_subject_type
+
+    assert normalize_subject_type("A person") == "person"
+    assert normalize_subject_type("A pet") == "pet"
+    assert normalize_subject_type("A new report about a person") == "person"
+    assert normalize_subject_type("An update about a person already reported") == "person"
+    assert normalize_subject_type("A new report about a pet") == "pet"
+    # Whole words only: "pet" must not be found inside another word.
+    assert normalize_subject_type("un petit chien") == "unknown"
+    # Naming both, or neither, must not be guessed at.
+    assert normalize_subject_type("a person, not a pet") == "unknown"
+    assert normalize_subject_type("Not sure") == "unknown"
+    assert normalize_subject_type("") == "unknown"
+    assert normalize_subject_type(None) == "unknown"
