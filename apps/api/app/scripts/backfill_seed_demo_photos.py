@@ -33,7 +33,7 @@ from app.scripts.seed_demo_records import (
     PHOTO_EXTENSIONS_BY_CONTENT_TYPE,
     REPORT_PREFIX,
     PhotoAssetPool,
-    demo_png_bytes,
+    curated_seed_avatar_content,
     empty_photo_asset_pool,
     load_photo_assets,
     load_preset_photo_assets,
@@ -102,7 +102,7 @@ def main() -> int:
             print("Reach demo photo backfill complete.")
             print(f"target_attachments={refreshed}")
             print(f"refreshed_attachments={0 if args.dry_run else refreshed}")
-            print("photo_source=generated_cartoon_avatars")
+            print("photo_source=curated_seed_avatars")
             return 0
 
         case_query = select(Case)
@@ -223,7 +223,7 @@ def refresh_backfilled_avatars(db, *, dry_run: bool) -> int:
     storage = LocalReportAttachmentStorage()
     for offset, attachment in enumerate(attachments):
         subject_type = subject_type_for_attachment(attachment)
-        content = demo_png_bytes(offset, is_pet=subject_type == SubjectType.PET)
+        content, _ = curated_seed_avatar_content(offset, is_pet=subject_type == SubjectType.PET)
         if dry_run:
             continue
         storage.write_bytes(attachment.storage_key, content)
@@ -247,7 +247,7 @@ def backfill_photo_content(index: int, *, is_pet: bool, photo_assets: PhotoAsset
     if assets:
         asset = assets[index % len(assets)]
         return asset.content, asset.content_type
-    return demo_png_bytes(index, is_pet=is_pet), "image/png"
+    return curated_seed_avatar_content(index, is_pet=is_pet)
 
 
 def seed_index(code: str, *, fallback: int) -> int:

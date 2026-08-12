@@ -26,13 +26,10 @@ Legacy manifest formats still work and are reused for all subject types:
 from __future__ import annotations
 
 import argparse
-import binascii
 import json
-import struct
 import sys
 import urllib.error
 import urllib.request
-import zlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import NamedTuple
@@ -716,310 +713,24 @@ def demo_photo_content(index: int, *, is_pet: bool, photo_assets: PhotoAssetPool
     if assets:
         asset = assets[index % len(assets)]
         return asset.content, asset.content_type
-    return demo_png_bytes(index, is_pet=is_pet), "image/png"
+    return curated_seed_avatar_content(index, is_pet=is_pet)
 
 
-def demo_png_bytes(index: int, *, is_pet: bool) -> bytes:
-    width = height = 256
-    bg = avatar_background(index)
-    rows = []
-    for y in range(height):
-        row = bytearray()
-        for x in range(width):
-            color = avatar_base_pixel(x, y, index, bg)
-            if is_pet:
-                color = pet_avatar_pixel(x, y, index, color)
-            else:
-                color = human_avatar_pixel(x, y, index, color)
-            row.extend(color)
-        rows.append(b"\x00" + bytes(row))
-    raw = b"".join(rows)
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-        + png_chunk(b"IDAT", zlib.compress(raw, 9))
-        + png_chunk(b"IEND", b"")
-    )
+def curated_seed_avatar_content(index: int, *, is_pet: bool) -> tuple[bytes, str]:
+    directory = seed_avatar_root() / ("pets" if is_pet else "humans")
+    assets = sorted(path for path in directory.iterdir() if path.is_file() and detect_image_content_type(path.read_bytes()))
+    if not assets:
+        raise RuntimeError(f"No seed avatar PNG/WebP/JPEG assets found in {directory}.")
+    path = assets[index % len(assets)]
+    content = path.read_bytes()
+    content_type = detect_image_content_type(content)
+    if content_type is None:
+        raise RuntimeError(f"Unsupported seed avatar asset: {path}")
+    return content, content_type
 
 
-INK = (48, 56, 58)
-SOFT_INK = (86, 94, 93)
-LIGHT_LINE = (178, 188, 184)
-
-
-def avatar_base_pixel(x: int, y: int, index: int, bg: tuple[int, int, int]) -> tuple[int, int, int]:
-    if ellipse_fill(x, y, 128, 132, 112, 112):
-        return tint(bg, 12)
-    if ellipse_stroke(x, y, 128, 132, 112, 112, 0.965):
-        return LIGHT_LINE
-    return bg
-
-
-def human_avatar_pixel(x: int, y: int, index: int, current: tuple[int, int, int]) -> tuple[int, int, int]:
-    skin = skin_palette(index)
-    hair = hair_palette(index)
-    clothing = clothing_palette(index)
-    head_rx = [38, 42, 36, 44, 40, 39][index % 6]
-    head_ry = [52, 48, 56, 50, 54, 47][index % 6]
-    head_cy = 128 + [0, -1, 1, 0, 2, -2][index % 6]
-    style = index % 7
-
-    if ellipse_fill(x, y, 128, 226, 75, 40):
-        current = clothing
-    if ellipse_stroke(x, y, 128, 226, 75, 40, 0.91):
-        current = INK
-    if 112 <= x <= 144 and 172 <= y <= 204:
-        current = skin
-    if (line_distance(x, y, 118, 204, 128, 220) <= 1.2) or (line_distance(x, y, 138, 204, 128, 220) <= 1.2):
-        current = tint(clothing, 36)
-
-    if ellipse_fill(x, y, 92, head_cy + 6, 8, 15) or ellipse_fill(x, y, 164, head_cy + 6, 8, 15):
-        current = skin
-    if ellipse_fill(x, y, 128, head_cy, head_rx, head_ry):
-        current = skin
-    if ellipse_stroke(x, y, 128, head_cy, head_rx, head_ry, 0.94):
-        current = INK
-
-    current = human_hair_pixel(x, y, style, hair, current)
-
-    if ellipse_fill(x, y, 112, head_cy + 7, 3, 3) or ellipse_fill(x, y, 144, head_cy + 7, 3, 3):
-        current = INK
-    if line_distance(x, y, 128, head_cy + 12, 124, head_cy + 25) <= 0.85:
-        current = tint(SOFT_INK, 12)
-    if line_distance(x, y, 118, head_cy + 35, 138, head_cy + 35) <= 1.1:
-        current = muted_mouth(index)
-    if style in {2, 5}:
-        if ellipse_stroke(x, y, 112, head_cy + 7, 10, 7, 0.74) or ellipse_stroke(x, y, 144, head_cy + 7, 10, 7, 0.74):
-            current = INK
-        if 122 <= x <= 134 and head_cy + 6 <= y <= head_cy + 8:
-            current = INK
-    if style == 6 and ellipse_stroke(x, y, 128, head_cy + 1, 21, 31, 0.88):
-        current = tint(skin, -18)
-    return current
-
-
-def human_hair_pixel(
-    x: int,
-    y: int,
-    style: int,
-    hair: tuple[int, int, int],
-    current: tuple[int, int, int],
-) -> tuple[int, int, int]:
-    if style == 0:
-        if ellipse_fill(x, y, 128, 91, 44, 24) or (86 <= x <= 170 and 91 <= y <= 112):
-            return hair
-    elif style == 1:
-        if ellipse_fill(x, y, 128, 106, 50, 43) and not ellipse_fill(x, y, 128, 131, 37, 36):
-            return hair
-        if 82 <= x <= 101 and 103 <= y <= 160:
-            return hair
-        if 155 <= x <= 174 and 103 <= y <= 160:
-            return hair
-    elif style == 2:
-        if ellipse_fill(x, y, 128, 91, 37, 21):
-            return hair
-        if triangle_fill(x, y, 97, 99, 116, 75, 133, 101):
-            return hair
-    elif style == 3:
-        if ellipse_fill(x, y, 128, 94, 48, 27):
-            return hair
-        if ellipse_fill(x, y, 97, 113, 17, 34):
-            return hair
-    elif style == 4:
-        if ellipse_fill(x, y, 128, 88, 34, 19):
-            return hair
-        if 92 <= x <= 164 and 96 <= y <= 110:
-            return hair
-    elif style == 5:
-        if ellipse_fill(x, y, 128, 93, 46, 25):
-            return hair
-        if ellipse_fill(x, y, 168, 132, 13, 31):
-            return hair
-    else:
-        if ellipse_stroke(x, y, 128, 95, 44, 25, 0.62):
-            return hair
-    return current
-
-
-def pet_avatar_pixel(x: int, y: int, index: int, current: tuple[int, int, int]) -> tuple[int, int, int]:
-    species = index % 2
-    fur = fur_palette(index)
-    patch = pet_patch_palette(index)
-    collar = clothing_palette(index + 2)
-    if species == 0:
-        return cat_avatar_pixel(x, y, index, current, fur, patch, collar)
-    return dog_avatar_pixel(x, y, index, current, fur, patch, collar)
-
-
-def cat_avatar_pixel(
-    x: int,
-    y: int,
-    index: int,
-    current: tuple[int, int, int],
-    fur: tuple[int, int, int],
-    patch: tuple[int, int, int],
-    collar: tuple[int, int, int],
-) -> tuple[int, int, int]:
-    ear_shift = (index % 3) * 4
-    if triangle_fill(x, y, 78, 96, 99, 43 + ear_shift, 118, 105) or triangle_fill(x, y, 178, 96, 157, 43, 138, 105):
-        current = fur
-    if triangle_stroke(x, y, 78, 96, 99, 43 + ear_shift, 118, 105) or triangle_stroke(x, y, 178, 96, 157, 43, 138, 105):
-        current = INK
-    if triangle_fill(x, y, 91, 91, 101, 61 + ear_shift, 110, 94) or triangle_fill(x, y, 165, 91, 155, 61, 146, 94):
-        current = tint(patch, 12)
-    if ellipse_fill(x, y, 128, 137, 67, 58):
-        current = fur
-    if ellipse_stroke(x, y, 128, 137, 67, 58, 0.94):
-        current = INK
-    if index % 4 in {1, 2} and ellipse_fill(x, y, 105, 129, 20, 26):
-        current = patch
-    if ellipse_fill(x, y, 106, 138, 4, 6) or ellipse_fill(x, y, 150, 138, 4, 6):
-        current = INK
-    if ellipse_fill(x, y, 128, 156, 8, 6):
-        current = INK
-    if ellipse_stroke(x, y, 128, 175, 28, 13, 0.77):
-        current = tint(fur, 34)
-    if line_distance(x, y, 91, 161, 118, 164) <= 1.0 or line_distance(x, y, 138, 164, 165, 161) <= 1.0:
-        current = SOFT_INK
-    if 94 <= x <= 162 and 200 <= y <= 207:
-        current = collar
-    return current
-
-
-def dog_avatar_pixel(
-    x: int,
-    y: int,
-    index: int,
-    current: tuple[int, int, int],
-    fur: tuple[int, int, int],
-    patch: tuple[int, int, int],
-    collar: tuple[int, int, int],
-) -> tuple[int, int, int]:
-    floppy = index % 3 != 0
-    if floppy:
-        if ellipse_fill(x, y, 83, 125, 22, 48) or ellipse_fill(x, y, 173, 125, 22, 48):
-            current = tint(fur, -18)
-        if ellipse_stroke(x, y, 83, 125, 22, 48, 0.9) or ellipse_stroke(x, y, 173, 125, 22, 48, 0.9):
-            current = INK
-    else:
-        if triangle_fill(x, y, 81, 103, 100, 62, 117, 112) or triangle_fill(x, y, 175, 103, 156, 62, 139, 112):
-            current = tint(fur, -12)
-        if triangle_stroke(x, y, 81, 103, 100, 62, 117, 112) or triangle_stroke(x, y, 175, 103, 156, 62, 139, 112):
-            current = INK
-    if ellipse_fill(x, y, 128, 135, 62, 55):
-        current = fur
-    if ellipse_stroke(x, y, 128, 135, 62, 55, 0.94):
-        current = INK
-    if index % 4 in {0, 3} and ellipse_fill(x, y, 151, 124, 20, 25):
-        current = patch
-    if ellipse_fill(x, y, 128, 162, 32, 22):
-        current = tint(fur, 30)
-    if ellipse_stroke(x, y, 128, 162, 32, 22, 0.88):
-        current = SOFT_INK
-    if ellipse_fill(x, y, 106, 134, 4, 6) or ellipse_fill(x, y, 150, 134, 4, 6):
-        current = INK
-    if ellipse_fill(x, y, 128, 154, 9, 7):
-        current = INK
-    if line_distance(x, y, 128, 161, 128, 171) <= 1.0:
-        current = SOFT_INK
-    if 96 <= x <= 160 and 200 <= y <= 207:
-        current = collar
-    return current
-
-
-def avatar_background(index: int) -> tuple[int, int, int]:
-    colors = [(232, 237, 235), (238, 232, 224), (229, 234, 239), (236, 230, 232), (231, 236, 226)]
-    return colors[index % len(colors)]
-
-
-def skin_palette(index: int) -> tuple[int, int, int]:
-    colors = [(224, 177, 137), (188, 127, 87), (241, 199, 162), (142, 91, 67), (207, 154, 111), (116, 77, 58)]
-    return colors[index % len(colors)]
-
-
-def hair_palette(index: int) -> tuple[int, int, int]:
-    colors = [(45, 39, 35), (86, 63, 46), (35, 48, 54), (113, 82, 54), (67, 63, 69), (154, 145, 124)]
-    return colors[index % len(colors)]
-
-
-def clothing_palette(index: int) -> tuple[int, int, int]:
-    colors = [(54, 101, 100), (82, 96, 124), (126, 88, 80), (95, 111, 78), (108, 92, 124), (91, 103, 105)]
-    return colors[index % len(colors)]
-
-
-def fur_palette(index: int) -> tuple[int, int, int]:
-    colors = [(93, 70, 47), (58, 61, 58), (151, 120, 81), (210, 199, 178), (117, 91, 70), (70, 79, 82)]
-    return colors[index % len(colors)]
-
-
-def pet_patch_palette(index: int) -> tuple[int, int, int]:
-    colors = [(226, 218, 199), (116, 96, 78), (74, 70, 65), (186, 159, 120), (238, 232, 216), (139, 127, 112)]
-    return colors[index % len(colors)]
-
-
-def muted_mouth(index: int) -> tuple[int, int, int]:
-    colors = [(119, 76, 70), (101, 67, 65), (132, 83, 77)]
-    return colors[index % len(colors)]
-
-
-def ellipse_fill(x: int, y: int, cx: int, cy: int, rx: int, ry: int) -> bool:
-    return ellipse_value(x, y, cx, cy, rx, ry) <= 1
-
-
-def ellipse_stroke(x: int, y: int, cx: int, cy: int, rx: int, ry: int, inner: float) -> bool:
-    value = ellipse_value(x, y, cx, cy, rx, ry)
-    return inner <= value <= 1.04
-
-
-def ellipse_value(x: int, y: int, cx: int, cy: int, rx: int, ry: int) -> float:
-    return ((x - cx) * (x - cx)) / (rx * rx) + ((y - cy) * (y - cy)) / (ry * ry)
-
-
-def triangle_fill(x: int, y: int, ax: int, ay: int, bx: int, by: int, cx: int, cy: int) -> bool:
-    weights = triangle_weights(x, y, ax, ay, bx, by, cx, cy)
-    return weights is not None and all(value >= 0 for value in weights)
-
-
-def triangle_stroke(x: int, y: int, ax: int, ay: int, bx: int, by: int, cx: int, cy: int) -> bool:
-    weights = triangle_weights(x, y, ax, ay, bx, by, cx, cy)
-    return weights is not None and all(value >= -0.02 for value in weights) and min(weights) <= 0.035
-
-
-def triangle_weights(
-    x: int,
-    y: int,
-    ax: int,
-    ay: int,
-    bx: int,
-    by: int,
-    cx: int,
-    cy: int,
-) -> tuple[float, float, float] | None:
-    denominator = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
-    if denominator == 0:
-        return None
-    a = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / denominator
-    b = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / denominator
-    return a, b, 1 - a - b
-
-
-def line_distance(x: int, y: int, ax: int, ay: int, bx: int, by: int) -> float:
-    dx = bx - ax
-    dy = by - ay
-    if dx == 0 and dy == 0:
-        return ((x - ax) * (x - ax) + (y - ay) * (y - ay)) ** 0.5
-    t = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
-    px = ax + t * dx
-    py = ay + t * dy
-    return ((x - px) * (x - px) + (y - py) * (y - py)) ** 0.5
-
-
-def tint(color: tuple[int, int, int], amount: int) -> tuple[int, int, int]:
-    return tuple(max(0, min(255, channel + amount)) for channel in color)
-
-
-def png_chunk(kind: bytes, data: bytes) -> bytes:
-    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", binascii.crc32(kind + data) & 0xFFFFFFFF)
+def seed_avatar_root() -> Path:
+    return Path(__file__).resolve().parents[1] / "assets" / "seed-avatars"
 
 
 if __name__ == "__main__":
