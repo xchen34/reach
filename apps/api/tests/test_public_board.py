@@ -151,3 +151,48 @@ def test_public_board_uses_careful_death_confirmation_status() -> None:
     assert payload["summary"]["confirmed_deceased"] == 1
     assert payload["records"][0]["operational_status"] == "confirmed_deceased"
     assert payload["records"][0]["latest_public_update"] == "Reach has received confirmed information that the person has died."
+
+
+def test_public_board_shows_existing_case_attachment_without_moderation_gate() -> None:
+    case_payload = _submit_case(
+        urgency="high",
+        incident_type="medical",
+        location="East lobby",
+        needs="Volunteer is following up.",
+    )
+    headers = _authenticate_staff()
+    assign_response = client.post(f"/staff/cases/{case_payload['id']}/assign", headers=headers)
+    assert assign_response.status_code == 200
+
+    with next(override_get_db()) as db:
+        from app.models.case import Case
+        from app.models.report_attachment import ReportAttachment
+        from app.services.report_attachment_storage import LocalReportAttachmentStorage
+
+        case = db.get(Case, case_payload["id"])
+        assert case is not None
+        storage = LocalReportAttachmentStorage()
+        image_bytes = b"\x89PNG\r\n\x1a\navatar"
+        storage.write_bytes("public-board-test-avatar.png", image_bytes)
+        db.add(
+            ReportAttachment(
+                incident_id=case.incident_id,
+                report_id=None,
+                case_id=case_payload["id"],
+                attachment_code="PUBIMG",
+                storage_key="public-board-test-avatar.png",
+                original_filename="avatar.png",
+                content_type="image/png",
+                byte_size=len(image_bytes),
+                public_visibility=False,
+            )
+        )
+        db.commit()
+
+    board_response = client.get("/board")
+    assert board_response.status_code == 200
+    record = board_response.json()["records"][0]
+    assert record["public_image"]["url"].startswith("/public/attachments/")
+
+    image_response = client.get(record["public_image"]["url"])
+    assert image_response.status_code == 200

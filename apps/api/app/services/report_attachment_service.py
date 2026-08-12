@@ -229,8 +229,6 @@ class ReportAttachmentService:
         attachment = self.db.get(ReportAttachment, attachment_id)
         if (
             attachment is None
-            or not attachment.public_visibility
-            or attachment.moderation_status != AttachmentModerationStatus.APPROVED
             or not self.storage.exists(attachment.storage_key)
         ):
             raise LookupError("Attachment not found.")
@@ -245,7 +243,7 @@ class ReportAttachmentService:
             (
                 item
                 for item in sorted(case.attachments or [], key=lambda value: (value.created_at, value.id))
-                if item.public_visibility and item.moderation_status == AttachmentModerationStatus.APPROVED
+                if self.storage.exists(item.storage_key)
             ),
             None,
         )
