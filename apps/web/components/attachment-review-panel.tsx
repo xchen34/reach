@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { updateStaffAttachment } from "@/lib/api";
 import type { StaffAttachment } from "@/lib/api-types";
+import { ImagePreviewDialog } from "@/components/image-preview-dialog";
 
 /**
  * Approve or reject the photos attached to a case.
@@ -113,6 +114,7 @@ function AttachmentThumb({
   attachment: StaffAttachment;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!accessToken) {
@@ -149,15 +151,24 @@ function AttachmentThumb({
     return <div className="staff-photo-thumb staff-photo-thumb-empty" aria-hidden="true" />;
   }
   return (
-    <button
-      aria-label="Open photo at full size"
-      className="staff-photo-thumb"
-      type="button"
-      onClick={() => window.open(imageUrl, "_blank", "noopener,noreferrer")}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt="" className="staff-photo-image" src={imageUrl} />
-    </button>
+    <>
+      <button
+        aria-label="Open photo preview"
+        className="staff-photo-thumb"
+        type="button"
+        onClick={() => setIsPreviewOpen(true)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img alt="" className="staff-photo-image" src={imageUrl} />
+      </button>
+      {isPreviewOpen ? (
+        <ImagePreviewDialog
+          imageUrl={imageUrl}
+          label="Attachment photo preview"
+          onClose={() => setIsPreviewOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }
 

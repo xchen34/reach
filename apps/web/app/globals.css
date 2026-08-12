@@ -1861,6 +1861,59 @@ textarea {
   line-height: 1;
 }
 
+.image-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.image-preview-dialog {
+  position: relative;
+  display: grid;
+  inline-size: min(88vw, 34rem);
+  block-size: min(82vh, 34rem);
+  padding: 3rem 1rem 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.28);
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.36);
+}
+
+.image-preview-close {
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-end: 0.75rem;
+  min-block-size: 2.25rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.image-preview-frame {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: #eef2f7;
+}
+
+.image-preview-image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
 .staff-merge-panel {
   display: grid;
   gap: 0.5rem;

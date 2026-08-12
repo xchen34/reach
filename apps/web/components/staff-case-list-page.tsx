@@ -52,6 +52,7 @@ import { matchesCardSearch } from "@/lib/card-search";
 import { SearchIcon } from "@/components/search-icon";
 import { DuplicateCompareTable, buildCompareColumns } from "@/components/duplicate-compare-table";
 import { compareNames } from "@/lib/staff-case-matches";
+import { ImagePreviewDialog } from "@/components/image-preview-dialog";
 
 type StaffCaseListPageProps = {
   dictionary: Dictionary;
@@ -1751,10 +1752,12 @@ function StaffCardAvatar({
   fallbackLabel: string;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!accessToken || !attachment) {
       setImageUrl(null);
+      setIsPreviewOpen(false);
       return;
     }
     let isMounted = true;
@@ -1789,24 +1792,31 @@ function StaffCardAvatar({
   }, [accessToken, attachment]);
 
   return (
-    <div className="staff-avatar-shell" aria-label={fallbackLabel} title={fallbackLabel}>
-      {imageUrl ? (
-        <button
-          aria-label="Open attachment preview"
-          className="staff-avatar-button"
-          type="button"
-          onClick={() => {
-            window.open(imageUrl, "_blank", "noopener,noreferrer");
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt="" className="staff-avatar-image" src={imageUrl} />
-        </button>
-      ) : (
-        <div className="staff-avatar-placeholder" aria-hidden="true">
-          <span className="staff-avatar-mark">?</span>
-        </div>
-      )}
-    </div>
+    <>
+      <div className="staff-avatar-shell" aria-label={fallbackLabel} title={fallbackLabel}>
+        {imageUrl ? (
+          <button
+            aria-label="Open attachment preview"
+            className="staff-avatar-button"
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img alt="" className="staff-avatar-image" src={imageUrl} />
+          </button>
+        ) : (
+          <div className="staff-avatar-placeholder" aria-hidden="true">
+            <span className="staff-avatar-mark">?</span>
+          </div>
+        )}
+      </div>
+      {imageUrl && isPreviewOpen ? (
+        <ImagePreviewDialog
+          imageUrl={imageUrl}
+          label={`Attachment preview for ${fallbackLabel}`}
+          onClose={() => setIsPreviewOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }
