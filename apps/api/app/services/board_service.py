@@ -27,6 +27,8 @@ class BoardService:
             if case.merged_into_case_id is not None:
                 continue
             status = self._operational_status(case)
+            if status == "unassigned":
+                continue
             records.append(
                 PublicBoardRecord(
                     public_id=case.case_code,

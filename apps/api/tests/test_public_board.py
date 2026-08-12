@@ -57,6 +57,12 @@ def _authenticate_staff(email: str = "board-reviewer@example.com") -> dict[str, 
 
 
 def test_public_board_lists_case_tasks_without_private_contact() -> None:
+    unassigned_case = _submit_case(
+        urgency="medium",
+        incident_type="shelter",
+        location="Registration queue",
+        needs="Waiting for a volunteer should remain internal.",
+    )
     first_case = _submit_case(
         urgency="high",
         incident_type="medical",
@@ -97,6 +103,7 @@ def test_public_board_lists_case_tasks_without_private_contact() -> None:
     statuses = {record["operational_status"] for record in records}
 
     assert statuses == {"in_progress", "found_alive"}
+    assert unassigned_case["case_code"] not in {record["case_code"] for record in records}
     assert all(record["case_code"] for record in records)
 
     for private_field in (

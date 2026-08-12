@@ -21,7 +21,7 @@ type CommunityBoardPageProps = {
   locale: Locale;
 };
 
-type BoardFilter = "all" | "missing" | "safe" | "deceased";
+type BoardFilter = "all" | "in_progress" | "safe" | "deceased";
 
 const boardPageSize = 24;
 
@@ -286,14 +286,14 @@ function BoardRecordCard({
   );
 }
 
-const boardFilterOptions: BoardFilter[] = ["all", "missing", "safe", "deceased"];
+const boardFilterOptions: BoardFilter[] = ["all", "in_progress", "safe", "deceased"];
 
 function matchesBoardFilter(record: PublicBoardRecord, filter: BoardFilter) {
   if (filter === "all") {
     return true;
   }
-  if (filter === "missing") {
-    return record.operational_status === "unassigned" || record.operational_status === "in_progress";
+  if (filter === "in_progress") {
+    return record.operational_status === "in_progress";
   }
   if (filter === "safe") {
     return record.operational_status === "found_alive";
@@ -309,12 +309,12 @@ function summarizeBoardFilters(records: PublicBoardRecord[]): Record<BoardFilter
         summary.safe += 1;
       } else if (record.operational_status === "confirmed_deceased") {
         summary.deceased += 1;
-      } else {
-        summary.missing += 1;
+      } else if (record.operational_status === "in_progress") {
+        summary.in_progress += 1;
       }
       return summary;
     },
-    { all: 0, missing: 0, safe: 0, deceased: 0 },
+    { all: 0, in_progress: 0, safe: 0, deceased: 0 },
   );
 }
 
@@ -322,8 +322,8 @@ function boardFilterLabel(dictionary: Dictionary, filter: BoardFilter) {
   if (filter === "all") {
     return dictionary.board.filters.all;
   }
-  if (filter === "missing") {
-    return dictionary.board.filters.missing;
+  if (filter === "in_progress") {
+    return dictionary.board.filters.inProgress;
   }
   if (filter === "safe") {
     return dictionary.board.filters.safe;
@@ -354,7 +354,7 @@ function filterChipClassName(filter: BoardFilter, isActive: boolean) {
       ? "success"
       : filter === "deceased"
         ? "alert"
-        : filter === "missing"
+        : filter === "in_progress"
           ? "warning"
           : "neutral";
   return `board-filter-chip board-filter-chip-${tone}${isActive ? " board-filter-chip-active" : ""}`;

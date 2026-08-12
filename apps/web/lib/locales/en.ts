@@ -362,7 +362,7 @@ export const en = {
     searchEmpty: "No records match this search.",
     filters: {
       all: "All",
-      missing: "Still missing",
+      inProgress: "Being followed up",
       safe: "Found safe",
       deceased: "Confirmed deceased",
     },
