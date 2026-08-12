@@ -13,8 +13,6 @@ image source logic as the seed script.
 from __future__ import annotations
 
 import argparse
-import struct
-import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -35,12 +33,12 @@ from app.scripts.seed_demo_records import (
     PHOTO_EXTENSIONS_BY_CONTENT_TYPE,
     REPORT_PREFIX,
     PhotoAssetPool,
+    demo_png_bytes,
     empty_photo_asset_pool,
     load_photo_assets,
     load_preset_photo_assets,
     load_remote_photo_assets,
     photo_source_label,
-    png_chunk,
 )
 
 
@@ -225,7 +223,7 @@ def refresh_backfilled_avatars(db, *, dry_run: bool) -> int:
     storage = LocalReportAttachmentStorage()
     for offset, attachment in enumerate(attachments):
         subject_type = subject_type_for_attachment(attachment)
-        content = cartoon_avatar_png_bytes(offset, is_pet=subject_type == SubjectType.PET)
+        content = demo_png_bytes(offset, is_pet=subject_type == SubjectType.PET)
         if dry_run:
             continue
         storage.write_bytes(attachment.storage_key, content)
@@ -249,128 +247,7 @@ def backfill_photo_content(index: int, *, is_pet: bool, photo_assets: PhotoAsset
     if assets:
         asset = assets[index % len(assets)]
         return asset.content, asset.content_type
-    return cartoon_avatar_png_bytes(index, is_pet=is_pet), "image/png"
-
-
-def cartoon_avatar_png_bytes(index: int, *, is_pet: bool) -> bytes:
-    width = height = 256
-    bg = avatar_background(index)
-    accent = avatar_accent(index)
-    skin = avatar_skin(index)
-    hair = avatar_hair(index)
-    rows = []
-    for y in range(height):
-        row = bytearray()
-        for x in range(width):
-            color = bg
-            if inside_circle(x, y, 128, 128, 112):
-                color = lighten(bg, 16)
-            if is_pet:
-                color = pet_pixel(x, y, color, accent, skin, hair)
-            else:
-                color = human_pixel(x, y, color, accent, skin, hair)
-            row.extend(color)
-        rows.append(b"\x00" + bytes(row))
-    raw = b"".join(rows)
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-        + png_chunk(b"IDAT", zlib.compress(raw, 9))
-        + png_chunk(b"IEND", b"")
-    )
-
-
-def human_pixel(
-    x: int,
-    y: int,
-    current: tuple[int, int, int],
-    accent: tuple[int, int, int],
-    skin: tuple[int, int, int],
-    hair: tuple[int, int, int],
-) -> tuple[int, int, int]:
-    if ellipse(x, y, 128, 225, 72, 50):
-        current = accent
-    if ellipse(x, y, 128, 151, 46, 58):
-        current = skin
-    if ellipse(x, y, 128, 105, 56, 40) or (76 <= x <= 180 and 98 <= y <= 122):
-        current = hair
-    if ellipse(x, y, 92, 144, 10, 20) or ellipse(x, y, 164, 144, 10, 20):
-        current = skin
-    if ellipse(x, y, 108, 150, 5, 4) or ellipse(x, y, 148, 150, 5, 4):
-        current = (28, 43, 50)
-    if ellipse(x, y, 128, 175, 17, 7):
-        current = (143, 76, 72)
-    if ellipse(x, y, 128, 136, 30, 11):
-        current = lighten(skin, 20)
-    return current
-
-
-def pet_pixel(
-    x: int,
-    y: int,
-    current: tuple[int, int, int],
-    accent: tuple[int, int, int],
-    skin: tuple[int, int, int],
-    hair: tuple[int, int, int],
-) -> tuple[int, int, int]:
-    fur = hair
-    if triangle(x, y, 80, 74, 103, 28, 119, 96) or triangle(x, y, 176, 74, 153, 28, 137, 96):
-        current = fur
-    if ellipse(x, y, 128, 135, 70, 62):
-        current = fur
-    if triangle(x, y, 84, 70, 101, 42, 111, 87) or triangle(x, y, 172, 70, 155, 42, 145, 87):
-        current = lighten(skin, 8)
-    if ellipse(x, y, 103, 136, 8, 9) or ellipse(x, y, 153, 136, 8, 9):
-        current = (25, 34, 35)
-    if ellipse(x, y, 128, 154, 12, 9):
-        current = (45, 45, 45)
-    if ellipse(x, y, 128, 179, 28, 12):
-        current = lighten(fur, 22)
-    if 99 <= x <= 157 and 198 <= y <= 213:
-        current = accent
-    return current
-
-
-def avatar_background(index: int) -> tuple[int, int, int]:
-    colors = [(225, 239, 232), (247, 232, 211), (226, 232, 244), (241, 226, 233), (228, 238, 214)]
-    return colors[index % len(colors)]
-
-
-def avatar_accent(index: int) -> tuple[int, int, int]:
-    colors = [(42, 103, 99), (66, 94, 133), (139, 83, 75), (92, 113, 64), (113, 82, 137)]
-    return colors[index % len(colors)]
-
-
-def avatar_skin(index: int) -> tuple[int, int, int]:
-    colors = [(232, 186, 145), (197, 135, 91), (246, 202, 164), (153, 96, 65), (219, 166, 120)]
-    return colors[index % len(colors)]
-
-
-def avatar_hair(index: int) -> tuple[int, int, int]:
-    colors = [(45, 38, 34), (83, 58, 43), (31, 52, 61), (115, 82, 48), (60, 55, 67)]
-    return colors[index % len(colors)]
-
-
-def inside_circle(x: int, y: int, cx: int, cy: int, radius: int) -> bool:
-    return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= radius * radius
-
-
-def ellipse(x: int, y: int, cx: int, cy: int, rx: int, ry: int) -> bool:
-    return ((x - cx) * (x - cx)) / (rx * rx) + ((y - cy) * (y - cy)) / (ry * ry) <= 1
-
-
-def triangle(x: int, y: int, ax: int, ay: int, bx: int, by: int, cx: int, cy: int) -> bool:
-    denominator = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
-    if denominator == 0:
-        return False
-    a = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / denominator
-    b = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / denominator
-    c = 1 - a - b
-    return 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
-
-
-def lighten(color: tuple[int, int, int], amount: int) -> tuple[int, int, int]:
-    return tuple(min(255, channel + amount) for channel in color)
+    return demo_png_bytes(index, is_pet=is_pet), "image/png"
 
 
 def seed_index(code: str, *, fallback: int) -> int:
