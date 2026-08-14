@@ -1864,7 +1864,7 @@ textarea {
 .image-preview-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 1000;
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -1876,23 +1876,28 @@ textarea {
   display: grid;
   inline-size: min(88vw, 34rem);
   block-size: min(82vh, 34rem);
-  padding: 3rem 1rem 1rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 1rem;
   border: 1px solid rgba(226, 232, 240, 0.28);
   border-radius: 0.5rem;
   background: #f8fafc;
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.36);
 }
 
+.image-preview-dialog-avatar {
+  inline-size: min(92vw, 24rem);
+  block-size: auto;
+}
+
 .image-preview-close {
-  position: absolute;
-  inset-block-start: 0.75rem;
-  inset-inline-end: 0.75rem;
+  justify-self: end;
   min-block-size: 2.25rem;
   padding: 0 0.8rem;
-  border: 1px solid var(--border);
+  border: 1px solid #334155;
   border-radius: 0.45rem;
   background: #ffffff;
-  color: var(--text);
+  color: #0f172a;
   font-weight: 800;
 }
 
@@ -1907,11 +1912,23 @@ textarea {
   background: #eef2f7;
 }
 
+.image-preview-dialog-avatar .image-preview-frame {
+  aspect-ratio: 1;
+  block-size: auto;
+}
+
 .image-preview-image {
   display: block;
-  inline-size: 100%;
-  block-size: 100%;
+  inline-size: auto;
+  block-size: auto;
+  max-inline-size: 100%;
+  max-block-size: 100%;
   object-fit: contain;
+}
+
+.image-preview-dialog-avatar .image-preview-image {
+  inline-size: min(100%, 18rem);
+  block-size: min(100%, 18rem);
 }
 
 .staff-merge-panel {

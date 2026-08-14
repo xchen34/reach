@@ -1814,6 +1814,7 @@ function StaffCardAvatar({
         <ImagePreviewDialog
           imageUrl={imageUrl}
           label={`Attachment preview for ${fallbackLabel}`}
+          variant="avatar"
           onClose={() => setIsPreviewOpen(false)}
         />
       ) : null}

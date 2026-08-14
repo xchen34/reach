@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export function ImagePreviewDialog({
   imageUrl,
   label,
   onClose,
+  variant = "photo",
 }: {
   imageUrl: string;
   label: string;
   onClose: () => void;
+  variant?: "avatar" | "photo";
 }) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -21,12 +24,20 @@ export function ImagePreviewDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  return (
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  const dialog = (
     <div className="image-preview-backdrop" role="presentation" onClick={onClose}>
       <div
         aria-label={label}
         aria-modal="true"
-        className="image-preview-dialog"
+        className={`image-preview-dialog image-preview-dialog-${variant}`}
         role="dialog"
         onClick={(event) => event.stopPropagation()}
       >
@@ -40,4 +51,6 @@ export function ImagePreviewDialog({
       </div>
     </div>
   );
+
+  return createPortal(dialog, document.body);
 }
