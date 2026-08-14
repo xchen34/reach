@@ -103,6 +103,34 @@ A coordinator triggers import with:
 POST /staff/incidents/{incident_id}/intake-sources/{source_id}/import
 ```
 
+That coordinator-only endpoint is the manual administrative fallback. Public
+Google Form submissions should not rely on a volunteer or coordinator pressing
+Sync sheet before the dashboard sees them.
+
+For near-immediate imports, install the Apps Script in
+`docs/google-form-apps-script-example.js` as an `On form submit` trigger on the
+response spreadsheet. The trigger calls:
+
+```text
+POST /ingest/sync-intake
+x-beacon-ingest-token: <Reach_GOOGLE_FORM_INGEST_TOKEN>
+```
+
+The endpoint is not a staff action and does not require a coordinator session.
+It only uses the shared ingest token to tell Beacon to pull all active Google
+Sheets intake sources through the normal importer. The importer records the
+audit actor as `system`.
+
+The background safety-net poll is controlled by:
+
+```bash
+Reach_INTAKE_AUTO_SYNC_ENABLED=true
+Reach_INTAKE_AUTO_SYNC_INTERVAL_SECONDS=300
+```
+
+The poll is intentionally a fallback; use the Apps Script trigger when form
+submissions need to appear in the staff dashboard quickly.
+
 For local Docker Compose development, run the same import endpoint without manually copying a
 Bearer token:
 

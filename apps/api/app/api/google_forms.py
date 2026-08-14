@@ -25,6 +25,7 @@ def ingest_google_form_report(
     payload: GoogleFormIngestRequest,
     db: Session = Depends(get_db),
     ingest_token: Optional[str] = Header(default=None, alias="x-beacon-ingest-token"),
+    legacy_ingest_token: Optional[str] = Header(default=None, alias="x-Reach-ingest-token"),
 ) -> GoogleFormIngestResponse:
     settings = get_settings()
     if not settings.google_form_ingest_token:
@@ -33,7 +34,7 @@ def ingest_google_form_report(
             detail="Google Form ingest is not configured.",
         )
 
-    if ingest_token != settings.google_form_ingest_token:
+    if (ingest_token or legacy_ingest_token) != settings.google_form_ingest_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid ingest token.",
@@ -59,6 +60,7 @@ class IntakeSyncTriggerResponse(BaseModel):
 )
 def trigger_intake_sync(
     ingest_token: Optional[str] = Header(default=None, alias="x-beacon-ingest-token"),
+    legacy_ingest_token: Optional[str] = Header(default=None, alias="x-Reach-ingest-token"),
 ) -> IntakeSyncTriggerResponse:
     """Pull the sheets now, for a Google Apps Script onFormSubmit trigger.
 
@@ -77,7 +79,7 @@ def trigger_intake_sync(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google Form ingest is not configured.",
         )
-    if ingest_token != settings.google_form_ingest_token:
+    if (ingest_token or legacy_ingest_token) != settings.google_form_ingest_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid ingest token.",

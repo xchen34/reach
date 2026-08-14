@@ -69,7 +69,7 @@ Reach_DEMO_GOOGLE_SHEET_NAME=Form Responses 1
 
 Keep the service-account JSON as one-line raw JSON. Do not put Google credentials in any `NEXT_PUBLIC_*` variable.
 
-`Reach_GOOGLE_FORM_INGEST_TOKEN` and `NEXT_PUBLIC_SAFE_REPORT_FORM_URL`, `NEXT_PUBLIC_MISSING_REPORT_FORM_URL`, and `NEXT_PUBLIC_UPDATE_REPORT_FORM_URL` remain legacy compatibility settings for the old Apps Script ingest and homepage form links. They are not required for the Incident-scoped Google Sheets importer.
+`NEXT_PUBLIC_SAFE_REPORT_FORM_URL`, `NEXT_PUBLIC_MISSING_REPORT_FORM_URL`, and `NEXT_PUBLIC_UPDATE_REPORT_FORM_URL` remain legacy compatibility settings for old homepage form links. They are not required for Incident-scoped intake. `Reach_GOOGLE_FORM_INGEST_TOKEN` is required only when a Google Apps Script `onFormSubmit` trigger calls `/ingest/sync-intake` for immediate imports; manual coordinator import and background polling do not use it.
 
 See [incident-google-sheets-intake.md](incident-google-sheets-intake.md) for the Incident and intake-source database setup.
 

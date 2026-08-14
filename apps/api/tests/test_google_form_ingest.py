@@ -21,7 +21,7 @@ def reset_state(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     # Override a repository-level .env so this test module remains deterministic.
-    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "")
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -46,7 +46,7 @@ def _payload(report_kind: str = "missing") -> dict:
 
 
 def test_google_form_ingest_requires_valid_shared_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
     get_settings.cache_clear()
 
     response = client.post("/ingest/google-form", json=_payload())
@@ -67,7 +67,7 @@ def test_google_form_ingest_rejects_when_not_configured() -> None:
 
 
 def test_google_form_ingest_creates_report_without_case_or_publication(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
     get_settings.cache_clear()
 
     ingest_response = client.post(
@@ -93,8 +93,21 @@ def test_google_form_ingest_creates_report_without_case_or_publication(monkeypat
     assert board_payload["records"] == []
 
 
+def test_google_form_ingest_accepts_legacy_reach_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
+    get_settings.cache_clear()
+
+    response = client.post(
+        "/ingest/google-form",
+        headers={"x-Reach-ingest-token": "secret-ingest-token"},
+        json=_payload(),
+    )
+
+    assert response.status_code == 200
+
+
 def test_google_form_ingest_is_idempotent_by_source_identity(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BEACON_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
+    monkeypatch.setenv("Reach_GOOGLE_FORM_INGEST_TOKEN", "secret-ingest-token")
     get_settings.cache_clear()
 
     first_response = client.post(

@@ -864,6 +864,9 @@ def test_sync_intake_webhook_requires_the_ingest_token(monkeypatch: pytest.Monke
     assert ok.status_code == 200
     assert ok.json()["imported"] == 2
 
+    legacy = client.post("/ingest/sync-intake", headers={"x-Reach-ingest-token": "trigger-secret"})
+    assert legacy.status_code == 200
+
 
 def test_sync_intake_skips_when_a_sync_is_already_running(monkeypatch: pytest.MonkeyPatch) -> None:
     """Two submissions arriving together must not start overlapping passes.
