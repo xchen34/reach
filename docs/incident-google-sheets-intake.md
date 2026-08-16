@@ -117,7 +117,7 @@ x-beacon-ingest-token: <Reach_GOOGLE_FORM_INGEST_TOKEN>
 ```
 
 The endpoint is not a staff action and does not require a coordinator session.
-It only uses the shared ingest token to tell Beacon to pull all active Google
+It only uses the shared ingest token to tell Reach to pull all active Google
 Sheets intake sources through the normal importer. The importer records the
 audit actor as `system`.
 
@@ -177,9 +177,9 @@ Accepted image types are JPEG, PNG, and WebP. The API validates file signatures,
 
 Public board behavior:
 
-- staff can see pending attachment metadata and staff-only image previews;
-- uploaded images default to `public_visibility=false` and `moderation_status=pending`;
-- public board cards show only approved images with public visibility enabled;
-- there is no moderation UI yet, so approval currently requires a staff/API or database operation.
+- staff can see attachment metadata and staff-only image previews;
+- public board cards use the first linked image whose storage file exists;
+- seed/demo records are backfilled with local curated raster avatars;
+- public image URLs are mediated by the backend attachment endpoint.
 
 Production storage should use a private object store or equivalent backend storage. Public image serving should remain mediated by Reach or by non-guessable, policy-controlled signed URLs. Do not expose staff-only originals through predictable public paths.

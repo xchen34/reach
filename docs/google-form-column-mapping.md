@@ -1,117 +1,75 @@
-# Google Form Column Mapping
+# Google Sheet Column Mapping
 
-This file maps suggested Google Form question labels to Reach's ingest payload for `POST /ingest/google-form`.
+Reach imports Google Form responses by reading the linked Google Sheet. Apps
+Script should only trigger `/ingest/sync-intake`; it should not map form fields
+itself.
 
-For Incident-scoped Google Sheets imports, prefer stable machine-readable columns:
+The mapping lives in:
+
+```text
+apps/api/app/services/google_sheets_mapping.py
+```
+
+## Current V2 Form Columns
+
+Keep these question titles stable after publishing the form. The importer maps
+headers by exact text.
+
+- `Timestamp`
+- `Who is this information about?`
+- `Is this person or pet already listed on Reach?`
+- `What is their name?`
+- `What is their gender?`
+- `What is their approximate age?`
+- `Where were they last known to be?`
+- `Tell us what happened and anything that may help us find or assist them.`
+- `How did you know this information?`
+- `Your phone or email`
+- `Reach photo attachment code`
+
+## Important Fields
+
+`Who is this information about?`
+
+- maps to `subject_type`
+- accepted answers include person/pet/unknown variants in English, French, and
+  Chinese
+- if both person and pet are mentioned, or neither is clear, Reach stores
+  `unknown`
+- the importer must not infer pet/person from narrative text
+
+`Reach photo attachment code`
+
+- optional
+- returned by Reach's public photo upload section
+- links uploaded photos to the imported report
+- Google Forms native file upload should not be used if it requires reporter
+  Google sign-in
+
+`Your phone or email`
+
+- maps to reporter contact
+- values containing `@` are treated as email
+- other non-empty values are treated as phone/contact text
+
+## Backward Compatibility
+
+The importer still recognizes several older headers, including:
 
 - `subject_type`
-  - accepted values: `person`, `pet`, `unknown`
-  - missing values default to `unknown`
-  - do not infer pets from free text
-- `Reach photo attachment code`
-  - optional code returned by the Reach photo upload section
-  - used to link uploaded photos to the imported Report
+- `Who is this report about?`
+- `Full Name of the Person Being Reported`
+- `Exact Address or Last Confirmed Location`
+- `What is currently known about this person?`
+- `What is currently known about the person's situation?`
+- `Photo attachment code`
 
-## Shared notes
+Older Sheets can continue importing, but new forms should use the V2 columns
+above.
 
-- Keep question titles stable after publishing the form. Apps Script mappings depend on exact labels unless you adjust the script.
-- Prefer separate `Reporter contact email` and `Reporter contact phone` questions instead of one overloaded field.
-- Include the default Google Forms `Timestamp` field and pass it through as `submitted_at`.
+## Unknown Columns
 
-## Safe Check-In Form
-
-Suggested sheet columns:
-
-- `Timestamp`
-- `Who are you reporting about?`
-- `Current location or last safe location`
-- `When was this status confirmed?`
-- `How do you know this?`
-- `Short update`
-- `Reporter name`
-- `Reporter contact email`
-- `Reporter contact phone`
-- `Can part of this update be shown publicly?`
-- `Public summary suggestion`
-- `Language code`
-
-Reach mapping:
-
-- `report_kind = "safe"`
-- `subject_name <- Who are you reporting about?`
-- `location_summary <- Current location or last safe location`
-- `details_summary <- composed from subject / confirmed time / source / short update`
-- `source_relationship <- How do you know this?`
-- `public_visibility_requested <- Can part of this update be shown publicly?`
-
-## Missing Person Form
-
-Suggested sheet columns:
-
-- `Timestamp`
-- `Who are you trying to locate?`
-- `Last known location`
-- `When were they last confirmed reachable or seen?`
-- `What makes you think they may be missing or unreachable?`
-- `How do you know this?`
-- `Known needs or vulnerabilities`
-- `Reporter name`
-- `Reporter contact email`
-- `Reporter contact phone`
-- `Can volunteers contact you for verification?`
-- `Can a public-safe summary be shown on the board?`
-- `Language code`
-
-Reach mapping:
-
-- `report_kind = "missing"`
-- `subject_name <- Who are you trying to locate?`
-- `location_summary <- Last known location`
-- `details_summary <- composed from subject / last confirmation / concern / vulnerabilities`
-- `callback_allowed <- Can volunteers contact you for verification?`
-- `public_visibility_requested <- Can a public-safe summary be shown on the board?`
-
-## Update / Lead Form
-
-Suggested sheet columns:
-
-- `Timestamp`
-- `Who or what is this update about?`
-- `Type of update`
-- `Update details`
-- `When did this happen or when was it confirmed?`
-- `How do you know this?`
-- `Related location`
-- `Reporter name`
-- `Reporter contact email`
-- `Reporter contact phone`
-- `Can this update be made public?`
-- `Public summary suggestion`
-- `Language code`
-
-Reach mapping:
-
-- `report_kind = "update"`
-- `subject_name <- Who or what is this update about?`
-- `location_summary <- Related location`
-- `details_summary <- composed from update target / type / details / confirmed time / source`
-- `update_category <- Type of update`
-- `public_visibility_requested <- Can this update be made public?`
-
-## Expected enum outputs
-
-`source_relationship`
-
-- `self`
-- `family_friend`
-- `community_member`
-- `on_site`
-- `other`
-
-`update_category`
-
-- `safe_sighting`
-- `missing_lead`
-- `correction`
-- `resource_update`
-- `other`
+Unrecognized headers are preserved in `raw_answers_json.unknown_columns`. A new
+required form question should be added to `GOOGLE_FORM_FIELD_MAP`; otherwise its
+answer will be visible only as an unknown raw column and not used in structured
+case/report fields.

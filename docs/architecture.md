@@ -1,49 +1,74 @@
-# Beacon Architecture
+# Reach Architecture
 
-Phase 1.5 extends the Phase 1 foundation with a minimal voice-intake domain that supports anonymous audio upload, human-confirmed transcript editing, and staff-only retrieval of retained voice metadata.
+Reach is a small case-management system for community missing-person and
+missing-pet coordination.
 
-## Structure
+## Runtime Pieces
 
-- `apps/web`: Next.js app with locale-aware shell pages and accessible baseline UI.
-- `apps/api`: FastAPI app with health, development magic-link auth, staff session verification, Phase 1 case-domain endpoints, and Phase 1.5 voice-intake endpoints.
-- `infra`: local Docker Compose, Dockerfiles, env template, and a future Caddy example.
-- `docs`: project documentation and phase notes.
+- `apps/web`: Next.js app for public pages, public board, staff login, staff
+  dashboard, case/report detail pages, and the browser API proxy.
+- `apps/api`: FastAPI app for auth, reports, cases, staff actions, board data,
+  attachment access, Google Sheets import, and voice-intake foundations.
+- `infra`: Docker Compose and Dockerfiles for local PostgreSQL, API, and
+  optional web service.
+- `docs/openapi.yaml`: checked-in OpenAPI snapshot.
 
-## Backend contract
+## Main Data Flow
 
-FastAPI OpenAPI is the source of truth for backend contracts in this phase. `docs/openapi.yaml` is the checked-in contract snapshot. The frontend keeps its TypeScript API types lightweight and local.
+```text
+Google Form
+→ linked Google Sheet
+→ Apps Script /ingest/sync-intake trigger
+→ FastAPI Google Sheets importer
+→ Report
+→ staff review
+→ Case
+→ public board when status is public-safe
+```
 
-## Auth foundation
+Manual Sheet import is available only to coordinators. Normal form submissions
+should use the system webhook and background poll.
 
-The current auth implementation provides:
+## Auth
 
-- `User` and `MagicLinkToken` models
-- one-time token generation
-- short token expiry
-- development-only delivery through API response or logs
-- token verification and staff session creation
-- bearer-token based staff API authentication
+Staff sign in with magic links. In development, links are returned in the API
+response and logs. Staff API routes use bearer sessions. Users have either
+`volunteer` or `coordinator` role.
 
-This phase still does not implement frontend staff session UX or protected web routes.
+## Reports And Cases
 
-## Voice intake foundation
+- `Report` preserves imported source intake.
+- Staff can create a new `Case`, link a report to an existing case, mark a
+  report out of scope, mark it invalid/insufficient, or add notes.
+- `Case` is the durable follow-up task shown in staff workflows and, when
+  appropriate, on the public board.
 
-The Phase 1.5 voice flow is intentionally bounded:
+## Public Board
 
-- anonymous users upload short audio clips through a multipart API;
-- the API stores audio on local filesystem storage, never in the database;
-- speech-to-text is routed through a provider abstraction;
-- the checked-in implementation uses a development stub provider rather than a production cloud dependency;
-- users must confirm or edit the transcript before it can be attached to a case;
-- staff can retrieve voice metadata and authorized audio only through authenticated staff routes.
+The public board is derived from cases. It hides pending/unassigned/withdrawn
+records and currently shows:
 
-No audio is exposed through public guessable URLs, and the voice layer does not infer safety, urgency, or recommended emergency action from audio.
+- in progress follow-up
+- found safe
+- confirmed deceased
 
-## Database
+Reporter contact data, internal notes, Sheet metadata, and staff-only details
+are never part of public board responses.
 
-PostgreSQL is the only database. Alembic manages migrations. The schema now includes:
+## Attachments
 
-- staff auth tables: `users`, `magic_link_tokens`, `staff_sessions`
-- case tables: `cases`, `case_share_links`, `case_actions`
-- audit table: `audit_log_entries`
-- voice table: `voice_intakes`
+Public reporters can upload images to Reach and copy the returned attachment
+code into the Google Form. The Sheet importer links matching codes to reports.
+When a report becomes or links to a case, those attachments are available in
+staff views and as the case image shown on the public board.
+
+Uploads are stored on the filesystem in local development, not in PostgreSQL.
+Production should use private object storage or an equivalent backend storage
+layer.
+
+## Voice Intake
+
+Voice intake exists as a bounded foundation: anonymous upload, stored audio,
+development speech-to-text stub, user-confirmed transcript, and staff-only
+retrieval after attachment to a case. It does not infer safety or provide
+emergency advice.
