@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import EmailStr, Field
+from pydantic import AliasChoices, EmailStr, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     )
 
     app_env: str = "development"
-    database_url: str = "postgresql+psycopg://Reach:Reach@db:5432/Reach"
+    database_url: str = Field(
+        default="postgresql+psycopg://Reach:Reach@db:5432/Reach",
+        validation_alias=AliasChoices("Reach_DATABASE_URL", "DATABASE_URL"),
+    )
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -54,6 +57,15 @@ class Settings(BaseSettings):
     # it reaches an external API on a timer, which a deployment should opt into.
     intake_auto_sync_enabled: bool = False
     intake_auto_sync_interval_seconds: int = 300
+
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if value.startswith("postgres://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgres://")
+        if value.startswith("postgresql://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgresql://")
+        return value
 
 
 @lru_cache

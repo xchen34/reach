@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app/apps/api
 
 # Install build dependencies needed for packages with native extensions (e.g. psycopg)
 RUN apt-get update \
@@ -10,13 +13,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies based on apps/api/pyproject.toml
-COPY pyproject.toml ./pyproject.toml
-COPY app ./app
+COPY apps/api/pyproject.toml ./pyproject.toml
+COPY apps/api/app ./app
 RUN pip install --no-cache-dir .
 
 # Copy the rest of the api source
-COPY . ./
+COPY apps/api/alembic ./alembic
+COPY apps/api/alembic.ini ./alembic.ini
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

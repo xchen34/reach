@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder stage ----
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY apps/web/ ./
 RUN npm run build
 
 # ---- Production stage ----
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
@@ -28,4 +28,4 @@ COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx next start --hostname 0.0.0.0 --port ${PORT:-3000}"]
