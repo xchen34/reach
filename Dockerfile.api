@@ -12,14 +12,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies based on apps/api/pyproject.toml
-COPY apps/api/pyproject.toml ./pyproject.toml
-COPY apps/api/app ./app
+# Copy the API source, including Alembic config and migrations.
+COPY apps/api/ ./
 RUN pip install --no-cache-dir .
-
-# Copy the rest of the api source
-COPY apps/api/alembic ./alembic
-COPY apps/api/alembic.ini ./alembic.ini
 
 EXPOSE 8000
 
