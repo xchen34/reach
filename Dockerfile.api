@@ -10,12 +10,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies based on apps/api/pyproject.toml
-COPY apps/api/pyproject.toml ./pyproject.toml
-COPY apps/api/app ./app
+COPY pyproject.toml ./pyproject.toml
+COPY app ./app
 RUN pip install --no-cache-dir .
 
 # Copy the rest of the api source
-COPY apps/api/ ./
+COPY . ./
 
 EXPOSE 8000
 
