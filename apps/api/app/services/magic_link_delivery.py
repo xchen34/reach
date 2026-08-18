@@ -15,8 +15,7 @@ class MagicLinkDelivery:
             f"?token={signed_token}"
         )
 
-        if self.settings.app_env == "development":
+        if self.settings.app_env == "development" or self.settings.dev_magic_link_mode == "response":
             return self.dev_delivery.deliver(login_url)
 
         raise NotImplementedError("Production email delivery is not configured yet.")
-

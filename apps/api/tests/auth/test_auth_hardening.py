@@ -42,8 +42,8 @@ def override_get_db():
 def reset_state(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    monkeypatch.delenv("BEACON_APP_ENV", raising=False)
-    monkeypatch.delenv("BEACON_DEV_AUTO_CREATE_USERS", raising=False)
+    monkeypatch.delenv("Reach_APP_ENV", raising=False)
+    monkeypatch.delenv("Reach_DEV_AUTO_CREATE_USERS", raising=False)
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -194,8 +194,8 @@ def test_request_magic_link_disables_auto_create_outside_development(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("BEACON_APP_ENV", "production")
-    monkeypatch.setenv("BEACON_DEV_AUTO_CREATE_USERS", "true")
+    monkeypatch.setenv("Reach_APP_ENV", "production")
+    monkeypatch.setenv("Reach_DEV_AUTO_CREATE_USERS", "true")
     get_settings.cache_clear()
 
     response = client.post(
@@ -205,3 +205,23 @@ def test_request_magic_link_disables_auto_create_outside_development(
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Unknown staff user."}
+
+
+def test_existing_staff_can_receive_response_magic_link_outside_development(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _create_user("coordinator@example.com")
+    monkeypatch.setenv("Reach_APP_ENV", "production")
+    monkeypatch.setenv("Reach_DEV_MAGIC_LINK_MODE", "response")
+    monkeypatch.setenv("Reach_DEV_AUTO_CREATE_USERS", "false")
+    monkeypatch.setenv("Reach_MAGIC_LINK_BASE_URL", "https://reach.example")
+    get_settings.cache_clear()
+
+    response = client.post(
+        "/auth/request-magic-link",
+        json={"email": "coordinator@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["login_url"].startswith("https://reach.example/staff/magic-link?token=")
