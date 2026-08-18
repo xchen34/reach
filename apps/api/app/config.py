@@ -14,6 +14,9 @@ class Settings(BaseSettings):
         case_sensitive=False,
         # The repository-level .env also carries NEXT_PUBLIC_* values for Next.js.
         extra="ignore",
+        # Railway can leave placeholder variables as empty strings; do not let an
+        # empty deployment value override a valid fallback or service reference.
+        env_ignore_empty=True,
     )
 
     app_env: str = "development"
