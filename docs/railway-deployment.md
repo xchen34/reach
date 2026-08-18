@@ -66,6 +66,25 @@ NEXT_PUBLIC_UPDATE_REPORT_FORM_URL=
 
 The web Dockerfile starts Next.js on Railway's `$PORT`.
 
+## First Demo Initialization
+
+A fresh Railway PostgreSQL database has no staff users and no public-board data.
+After the API deploys and `/health` returns `{"status":"ok","database":"ok"}`,
+run this once in the `reach-api` service shell/console:
+
+```bash
+python -m app.scripts.bootstrap_demo_deployment \
+  --coordinator-email you@example.com \
+  --seed-count 40
+```
+
+Then request a staff magic link using that same email address. The script creates
+or promotes that user as a coordinator, creates the `reach-demo` Incident, and
+adds synthetic demo records for the staff dashboard and public board.
+
+For a real deployment, use `--seed-count 0` and import real intake data through
+the configured Google Sheets source instead of synthetic demo records.
+
 ## Google Apps Script
 
 After the API is deployed, install `docs/google-form-apps-script-example.js` on
