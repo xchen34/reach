@@ -1,4 +1,4 @@
-"""Seed local demo data with synthetic people/pet records and generated cartoon photos.
+"""Seed local demo data with synthetic people/pet records and curated avatar photos.
 
 Run inside the API container:
 
@@ -8,10 +8,8 @@ Run inside the API container:
     python -m app.scripts.seed_demo_records --count 60 --photo-manifest-url https://example.com/photos.json
 
 When --photo-dir or --photo-manifest-url is provided, the script uses
-AI-generated JPEG, PNG, or WebP images from that source. Otherwise it uses a
-small fixed cartoon avatar set and reuses those images across records. If the
-remote avatar preset is unavailable, it falls back to synthetic PNGs generated
-in code.
+JPEG, PNG, or WebP images from that source. Otherwise it uses a small fixed
+avatar set and reuses those images across records.
 
 Preferred remote manifest format:
 
@@ -70,7 +68,6 @@ SEED_FORM_NAME = "Reach demo bulk seed"
 CASE_PREFIX = "DCASE"
 REPORT_PREFIX = "DREP"
 ATTACHMENT_PREFIX = "DATT"
-PHOTO_COVERAGE_MODULUS = 5
 REMOTE_PHOTO_TIMEOUT_SECONDS = 10
 REMOTE_PHOTO_MAX_BYTES = 8 * 1024 * 1024
 DICEBEAR_ROBOHASH_PRESET = "dicebear-robohash"
@@ -545,7 +542,7 @@ def pet_age(index: int) -> str:
 
 
 def should_add_demo_photo(index: int) -> bool:
-    return index % PHOTO_COVERAGE_MODULUS != 0
+    return True
 
 
 def empty_photo_asset_pool() -> PhotoAssetPool:

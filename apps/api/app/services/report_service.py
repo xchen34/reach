@@ -563,10 +563,10 @@ class ReportService:
 
     def _to_detail(self, report: Report) -> ReportDetailResponse:
         base = self._to_list_item(report)
+        base_data = base.model_dump()
         return ReportDetailResponse(
-            **base.model_dump(),
+            **base_data,
             raw_answers_json=report.raw_answers_json,
-            original_narrative=report.original_narrative,
             reporter_name=report.reporter_name,
             reporter_email=report.reporter_email,
             reporter_phone=report.reporter_phone,
