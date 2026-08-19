@@ -466,7 +466,7 @@ export const en = {
         "Request a staff magic link to open the case queue. Keep the sign-in link private.",
       backHome: "Home",
       emailLabel: "Staff email",
-      emailHint: "Use the email address registered for your staff account.",
+      emailHint: "Reviewer tip: enter co@reach.com to access the demo staff dashboard.",
       submit: "Request sign-in link",
       submitting: "Requesting link...",
       successBadge: "Link requested",
